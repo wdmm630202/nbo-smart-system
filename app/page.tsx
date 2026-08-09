@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type Project = {
   id: string;
@@ -15,8 +15,8 @@ type Project = {
   tone: string;
   visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews";
   featured?: boolean;
-  href?: string;
-  linkLabel?: string;
+  href: string;
+  linkLabel: string;
 };
 
 const projects: Project[] = [
@@ -29,11 +29,12 @@ const projects: Project[] = [
     status: "运行中",
     summary: "把机场、配置、设备授权与灾备收进一个可视化中心。",
     detail: "主备节点池、设备权限、配置版本、本机端口与云端网关统一检查。日常不需要翻配置文件，异常时可一键复制脱敏诊断。",
-    tags: ["macOS", "Stash", "自动检查"],
+    tags: ["跨设备", "Stash", "自动检查"],
     tone: "mint",
     visual: "network",
     featured: true,
-    linkLabel: "本机运行",
+    href: "https://stash-status.nanbostudio.com/",
+    linkLabel: "打开网络中心",
   },
   {
     id: "cover",
@@ -49,7 +50,7 @@ const projects: Project[] = [
     visual: "studio",
     featured: true,
     href: "https://wdmm630202.github.io/nbo-cover-copy/",
-    linkLabel: "打开网页",
+    linkLabel: "打开灵感封面",
   },
   {
     id: "server",
@@ -63,7 +64,8 @@ const projects: Project[] = [
     tags: ["Immich", "Docker", "自动备份"],
     tone: "sky",
     visual: "server",
-    linkLabel: "本机运行",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/server/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "jewelry",
@@ -73,11 +75,12 @@ const projects: Project[] = [
     category: "自动化",
     status: "生产中",
     summary: "从拍摄素材到 Photoshop 精修的标准化交付流程。",
-    detail: "用统一任务目录、安全导入、修图步骤与交付规范，让公司 Mac 和制作环节保持一致。旧版已明确归档，避免误用。",
+    detail: "用统一任务目录、安全导入、修图步骤与交付规范，让不同设备和制作环节保持一致。旧版已明确归档，避免误用。",
     tags: ["Photoshop", "珠宝摄影", "SOP"],
     tone: "lilac",
     visual: "workflow",
-    linkLabel: "本机运行",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/jewelry/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "odds",
@@ -91,7 +94,8 @@ const projects: Project[] = [
     tags: ["Odds", "风险管理", "单文件"],
     tone: "butter",
     visual: "odds",
-    linkLabel: "本机网页",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/odds/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "video",
@@ -105,7 +109,8 @@ const projects: Project[] = [
     tags: ["9:16", "卡点", "高清发布"],
     tone: "rose",
     visual: "video",
-    linkLabel: "本地工作流",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/video/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "crm",
@@ -119,7 +124,8 @@ const projects: Project[] = [
     tags: ["企业微信", "客户资产", "透明价格"],
     tone: "aqua",
     visual: "crm",
-    linkLabel: "内部系统",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/crm/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "media-agent",
@@ -133,7 +139,8 @@ const projects: Project[] = [
     tags: ["男士写真", "3 天运营", "发布交接"],
     tone: "coral",
     visual: "agent",
-    linkLabel: "Codex 智能体",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/media-agent/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "expand-agent",
@@ -147,7 +154,8 @@ const projects: Project[] = [
     tags: ["9:16", "安全区", "AI 扩图"],
     tone: "violet",
     visual: "expand",
-    linkLabel: "Codex 智能体",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/expand-agent/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "meter",
@@ -155,13 +163,14 @@ const projects: Project[] = [
     name: "Codex 余量 Pro",
     eyebrow: "USAGE MONITOR",
     category: "App",
-    status: "本机可用",
-    summary: "随时查看 Codex 用量与可用状态的轻量 Mac 工具。",
-    detail: "把频繁查看的余量信息从复杂页面中抽出，作为本机独立应用使用。",
-    tags: ["macOS", "Codex", "用量"],
+    status: "主页在线",
+    summary: "随时查看 Codex 用量与可用状态的轻量工具。",
+    detail: "把频繁查看的余量信息从复杂页面中抽出，逐步迁移为独立网页持续使用。",
+    tags: ["网页", "Codex", "用量"],
     tone: "graphite",
     visual: "meter",
-    linkLabel: "本机运行",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/meter/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "risk-agent",
@@ -175,7 +184,8 @@ const projects: Project[] = [
     tags: ["情景规划", "仓位", "风险控制"],
     tone: "lime",
     visual: "risk",
-    linkLabel: "Codex 智能体",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/risk-agent/",
+    linkLabel: "打开项目主页",
   },
   {
     id: "reviews",
@@ -189,7 +199,8 @@ const projects: Project[] = [
     tags: ["抖音来客", "客服", "团购"],
     tone: "orange",
     visual: "reviews",
-    linkLabel: "内部工具",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/reviews/",
+    linkLabel: "打开项目主页",
   },
 ];
 
@@ -219,13 +230,14 @@ function ProjectVisual({ project }: { project: Project }) {
   );
 }
 
-function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void }) {
+function ProjectCard({ project }: { project: Project }) {
   return (
-    <button
+    <a
       className={`project-card tone-${project.tone} ${project.featured ? "featured" : ""}`}
-      type="button"
-      onClick={onOpen}
-      aria-label={`查看 ${project.name}`}
+      href={project.href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`${project.linkLabel}：${project.name}`}
     >
       <div className="project-card-top">
         <span className="project-index">{project.index}</span>
@@ -238,29 +250,18 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void
         <p>{project.summary}</p>
         <div className="tag-row">{project.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
       </div>
-      <span className="open-project">查看详情 <b>↗</b></span>
-    </button>
+      <span className="open-project">立即打开 <b>↗</b></span>
+    </a>
   );
 }
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("全部");
-  const [selected, setSelected] = useState<Project | null>(null);
 
   const visibleProjects = useMemo(
     () => activeFilter === "全部" ? projects : projects.filter((project) => project.category === activeFilter),
     [activeFilter],
   );
-
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => event.key === "Escape" && setSelected(null);
-    document.addEventListener("keydown", close);
-    document.body.classList.toggle("modal-open", Boolean(selected));
-    return () => {
-      document.removeEventListener("keydown", close);
-      document.body.classList.remove("modal-open");
-    };
-  }, [selected]);
 
   return (
     <main>
@@ -278,19 +279,9 @@ export default function Home() {
           {filters.map((filter) => <button key={filter} type="button" className={activeFilter === filter ? "active" : ""} onClick={() => setActiveFilter(filter)}><span>{filter}</span><small>{filter === "全部" ? projects.length : projects.filter((project) => project.category === filter).length}</small></button>)}
         </div>
         <div className="project-grid" aria-live="polite">
-          {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelected(project)} />)}
+          {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} />)}
         </div>
       </section>
-
-      {selected && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}>
-          <section className={`project-modal tone-${selected.tone}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <button className="modal-close" type="button" onClick={() => setSelected(null)} aria-label="关闭详情">×</button>
-            <div className="modal-visual"><ProjectVisual project={selected} /></div>
-            <div className="modal-copy"><div className="modal-meta"><span>{selected.index} / {selected.category}</span><span className="project-status"><i />{selected.status}</span></div><p className="project-eyebrow">{selected.eyebrow}</p><h2 id="modal-title">{selected.name}</h2><p className="modal-summary">{selected.detail}</p><div className="tag-row">{selected.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>{selected.href ? <a className="modal-action" href={selected.href} target="_blank" rel="noreferrer"><span>{selected.linkLabel}</span><b>↗</b></a> : <div className="modal-action local"><span>{selected.linkLabel}</span><b>·</b></div>}</div>
-          </section>
-        </div>
-      )}
     </main>
   );
 }

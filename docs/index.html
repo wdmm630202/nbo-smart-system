@@ -17,7 +17,6 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; color: var(--ink); background: var(--paper); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
-body.modal-open { overflow: hidden; }
 button, a { color: inherit; font: inherit; -webkit-tap-highlight-color: transparent; }
 a { text-decoration: none; }
 
@@ -44,7 +43,7 @@ a { text-decoration: none; }
 .filter-bar small { font-size: 8px; opacity: .65; }
 
 .project-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.project-card { position: relative; min-width: 0; min-height: 400px; padding: 13px; overflow: hidden; border: 1px solid rgba(20,25,35,.07); border-radius: 21px; text-align: left; cursor: pointer; box-shadow: 0 8px 22px rgba(30,35,45,.045); transition: transform 170ms ease-out, box-shadow 170ms ease-out, border-color 150ms ease; content-visibility: auto; contain-intrinsic-size: 400px; }
+.project-card { position: relative; min-width: 0; min-height: 400px; padding: 13px; display: block; overflow: hidden; border: 1px solid rgba(20,25,35,.07); border-radius: 21px; color: inherit; text-align: left; text-decoration: none; cursor: pointer; box-shadow: 0 8px 22px rgba(30,35,45,.045); transition: transform 170ms ease-out, box-shadow 170ms ease-out, border-color 150ms ease; content-visibility: auto; contain-intrinsic-size: 400px; }
 .project-card:hover { border-color: rgba(20,25,35,.14); box-shadow: 0 14px 30px rgba(30,35,45,.08); transform: translateY(-3px); }
 .project-card:active { transform: scale(.985); transition-duration: 70ms; }
 .project-card-top { display: flex; align-items: center; justify-content: space-between; }
@@ -63,27 +62,10 @@ a { text-decoration: none; }
 .project-copy p { margin: 0; display: -webkit-box; overflow: hidden; color: #666b73; font-size: 10px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .tag-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 5px; }
 .tag-row span { padding: 5px 7px; border: 1px solid rgba(20,25,35,.07); border-radius: 99px; color: #676c74; background: rgba(255,255,255,.48); font-size: 7px; font-weight: 700; }
-.open-project { position: absolute; right: 13px; bottom: 13px; display: flex; align-items: center; gap: 7px; color: #777b82; font-size: 8px; font-weight: 750; opacity: 0; transform: translateY(4px); transition: opacity 150ms ease, transform 150ms ease; }
+.open-project { position: absolute; right: 13px; bottom: 13px; display: flex; align-items: center; gap: 7px; color: #777b82; font-size: 8px; font-weight: 750; }
 .open-project b { width: 23px; height: 23px; display: grid; place-items: center; border-radius: 8px; color: white; background: #171a1f; }
-.project-card:hover .open-project { opacity: 1; transform: none; }
 
 .tone-mint{background:linear-gradient(145deg,#dfeee6,#edf0ec 56%,#d8e0dd)}.tone-peach{background:linear-gradient(145deg,#f5e0d3,#eeece5 55%,#ead9d1)}.tone-sky{background:linear-gradient(145deg,#dfe9f5,#e8edf3 55%,#d8e2ec)}.tone-lilac{background:linear-gradient(145deg,#e8e0f4,#ece9ef 55%,#ded8e8)}.tone-butter{background:linear-gradient(145deg,#f1e8c8,#eeece2 55%,#e7dfbd)}.tone-rose{background:linear-gradient(145deg,#f2dcdf,#eeeaeb 55%,#e5d3d9)}.tone-aqua{background:linear-gradient(145deg,#d8ecea,#e9eeee 55%,#cee0df)}.tone-coral{background:linear-gradient(145deg,#f0d9d0,#eee9e5 55%,#e3cec6)}.tone-violet{background:linear-gradient(145deg,#e5dcf2,#e9e7ee 55%,#d9d0e8)}.tone-graphite{background:linear-gradient(145deg,#dfe1e4,#eaebec 55%,#d5d8dc)}.tone-lime{background:linear-gradient(145deg,#e4ebd1,#eceee7 55%,#d9e2c3)}.tone-orange{background:linear-gradient(145deg,#f3dfcc,#eee9e2 55%,#e8d2bc)}
-
-.modal-backdrop { position: fixed; z-index: 100; inset: 0; padding: 22px; display: grid; place-items: center; background: rgba(11,13,17,.58); animation: fade-in 150ms ease; }
-.project-modal { position: relative; width: min(900px, 100%); max-height: calc(100vh - 44px); display: grid; grid-template-columns: .9fr 1.1fr; overflow: auto; border: 1px solid rgba(255,255,255,.65); border-radius: 28px; box-shadow: 0 35px 90px rgba(0,0,0,.3); animation: modal-in 230ms ease-out; }
-@keyframes fade-in { from { opacity: 0; } }
-@keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
-.modal-close { position: absolute; z-index: 4; top: 14px; right: 14px; width: 40px; height: 40px; border: 1px solid rgba(20,25,35,.09); border-radius: 13px; background: rgba(255,255,255,.9); cursor: pointer; font-size: 23px; }
-.modal-close:active { transform: scale(.9); }
-.modal-visual { min-height: 500px; padding: 30px; display: grid; place-items: center; }
-.modal-visual .project-visual { width: 100%; height: 100%; margin: 0; }
-.modal-copy { padding: 72px 45px 45px; background: rgba(250,250,248,.97); }
-.modal-meta { margin-bottom: 38px; display: flex; align-items: center; justify-content: space-between; color: #777c84; font-size: 9px; font-weight: 780; }
-.modal-copy h2 { margin: 12px 0 20px; font-size: clamp(34px, 4vw, 56px); line-height: 1; letter-spacing: -.055em; }
-.modal-summary { margin: 0; color: #62676f; font-size: 13px; line-height: 1.8; }
-.modal-action { height: 54px; margin-top: 35px; padding: 0 12px 0 18px; display: flex; align-items: center; justify-content: space-between; border-radius: 15px; color: white; background: #171a1f; font-size: 11px; font-weight: 750; }
-.modal-action b { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: #171a1f; background: white; }
-.modal-action.local { color: #5f646c; background: rgba(255,255,255,.6); border: 1px solid rgba(20,25,35,.08); }.modal-action.local b { color: #4eb87a; background: #e6f5eb; }
 
 @media(max-width:1250px) { .project-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media(max-width:900px) { .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -102,15 +84,11 @@ a { text-decoration: none; }
   .project-copy h3 { font-size: 27px; }
   .project-copy p { font-size: 11px; }
   .open-project { opacity: 1; transform: none; }
-  .project-modal { grid-template-columns: 1fr; }
-  .modal-visual { min-height: 275px; padding: 18px; }
-  .modal-copy { padding: 42px 22px 25px; }
-  .modal-close { position: fixed; top: 28px; right: 28px; }
 }
 
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
-main{min-height:100vh}.static-page .top-nav{position:sticky;top:10px;margin:10px auto 0;transform:none;left:auto}.static-page .work-section{padding-top:32px}.static-page .results-header{min-height:128px}.static-page .project-card{display:block}.static-page .project-card summary{position:relative;min-height:374px;list-style:none}.static-page .project-card summary::-webkit-details-marker{display:none}.static-page .project-copy h2{margin:7px 0;font-size:clamp(18px,1.35vw,24px);line-height:1.12;letter-spacing:-.035em}.static-page .static-detail{margin-top:12px;padding:14px;border-top:1px solid rgba(20,25,35,.08);color:#5f646c;font-size:11px;line-height:1.7}.static-page .static-detail p{margin:0 0 12px}.static-page .static-detail a,.static-page .static-detail>span{display:inline-flex;padding:8px 10px;border-radius:9px;background:#171a1f;color:white;font-weight:750}.static-page details[open] .open-project b{transform:rotate(45deg)}.static-page details[open]{content-visibility:visible}.static-page .open-project{opacity:1;transform:none}@media(max-width:640px){.static-page .top-nav{position:sticky}.static-page .work-section{padding-top:22px}.static-page .project-card summary{min-height:429px}}
+main{min-height:100vh}.static-page .top-nav{position:sticky;top:10px;margin:10px auto 0;transform:none;left:auto}.static-page .work-section{padding-top:32px}.static-page .results-header{min-height:128px}.static-page .open-project{opacity:1;transform:none}.project-page{min-height:100vh;padding:18px}.project-shell{width:min(1060px,100%);margin:0 auto}.project-back{height:44px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:13px;background:#fafaf8;color:#565c65;font-size:11px;font-weight:750}.project-hero{margin-top:16px;padding:clamp(22px,5vw,58px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:40px;border:1px solid rgba(20,25,35,.08);border-radius:30px;box-shadow:0 18px 55px rgba(30,35,45,.08)}.project-hero-copy{align-self:center}.project-hero .project-eyebrow{display:block;margin-bottom:15px}.project-hero h1{margin:0;font-size:clamp(38px,6vw,74px);line-height:.96;letter-spacing:-.06em}.project-lead{margin:22px 0 0;color:#5f646c;font-size:clamp(14px,1.6vw,18px);line-height:1.75}.project-detail{margin:22px 0 0;padding-top:22px;border-top:1px solid rgba(20,25,35,.09);color:#5f646c;font-size:13px;line-height:1.85}.project-hero .project-visual{height:360px;margin:0}.permanent-note{margin-top:16px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid var(--line);border-radius:18px;background:#fafaf8}.permanent-note strong{display:block;font-size:13px}.permanent-note span{display:block;margin-top:5px;color:#70757d;font-size:11px;line-height:1.5}.permanent-badge{flex:0 0 auto;padding:9px 12px;border-radius:99px;color:#237a4b!important;background:#e5f4eb;font-size:9px!important;font-weight:800}.project-url{margin-top:16px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:16px;color:white;background:#171a1f;font-size:11px;font-weight:750}.project-url small{font-size:9px;opacity:.6}.project-footer{padding:24px 4px;color:#747981;font-size:10px}@media(max-width:700px){.static-page .top-nav{position:sticky}.static-page .work-section{padding-top:22px}.project-page{padding:10px}.project-hero{grid-template-columns:1fr;gap:22px;border-radius:22px}.project-hero .project-visual{height:250px;grid-row:1}.permanent-note{align-items:flex-start;flex-direction:column}.project-url{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body class="static-page">
@@ -119,114 +97,78 @@ main{min-height:100vh}.static-page .top-nav{position:sticky;top:10px;margin:10px
     <section class="work-section" id="top">
       <header class="results-header"><div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>打开即看结果 · 电脑、手机均可使用</span></div><div class="result-count"><strong>12</strong><span>全部系统</span></div></header>
       <div class="project-grid">
-  <details class="project-card tone-mint">
-    <summary>
-      <div class="project-card-top"><span class="project-index">01</span><span class="project-status"><i></i>运行中</span></div>
-      <div class="project-visual visual-network"><span>N</span><small>App</small></div>
-      <div class="project-copy"><span class="project-eyebrow">NETWORK OPERATIONS</span><h2>南铂 Stash 长期运行中心</h2><p>把机场、配置、设备授权与灾备收进一个可视化中心。</p><div class="tag-row"><span>macOS</span><span>Stash</span><span>自动检查</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>主备节点池、设备权限、配置版本、本机端口与云端网关统一检查。日常不需要翻配置文件，异常时可一键复制脱敏诊断。</p><span>本机运行</span></div>
-  </details>
-  <details class="project-card tone-peach">
-    <summary>
-      <div class="project-card-top"><span class="project-index">02</span><span class="project-status"><i></i>已上线</span></div>
-      <div class="project-visual visual-studio"><span>15</span><small>网页</small></div>
-      <div class="project-copy"><span class="project-eyebrow">CREATIVE AI WEB APP</span><h2>NBO 灵感封面</h2><p>上传照片，一次生成封面文案与三端发布内容。</p><div class="tag-row"><span>Gemini</span><span>小红书</span><span>抖音</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>Gemini 多模态识图，同步生成小红书、抖音、视频号的独立标题、描述和话题。具备中文错误提示、自动重试和移动端封面导出。</p><a href="https://wdmm630202.github.io/nbo-cover-copy/" target="_blank" rel="noreferrer">打开网页 ↗</a></div>
-  </details>
-  <details class="project-card tone-sky">
-    <summary>
-      <div class="project-card-top"><span class="project-index">03</span><span class="project-status"><i></i>24/7 守护</span></div>
-      <div class="project-visual visual-server"><span>99</span><small>App</small></div>
-      <div class="project-copy"><span class="project-eyebrow">SERVER GUARDIAN</span><h2>NBO 服务器管家</h2><p>一个给非技术人使用的本地服务器健康与备份面板。</p><div class="tag-row"><span>Immich</span><span>Docker</span><span>自动备份</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>检查电源、硬盘、网络、Docker、Immich 与 Tunnel，并定时备份数据库和照片副本。包含宽带迁移检测与更换硬盘向导。</p><span>本机运行</span></div>
-  </details>
-  <details class="project-card tone-lilac">
-    <summary>
-      <div class="project-card-top"><span class="project-index">04</span><span class="project-status"><i></i>生产中</span></div>
-      <div class="project-visual visual-workflow"><span>◇</span><small>自动化</small></div>
-      <div class="project-copy"><span class="project-eyebrow">PHOTO PRODUCTION OS</span><h2>NBO OS 珠宝修图工作流</h2><p>从拍摄素材到 Photoshop 精修的标准化交付流程。</p><div class="tag-row"><span>Photoshop</span><span>珠宝摄影</span><span>SOP</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>用统一任务目录、安全导入、修图步骤与交付规范，让公司 Mac 和制作环节保持一致。旧版已明确归档，避免误用。</p><span>本机运行</span></div>
-  </details>
-  <details class="project-card tone-butter">
-    <summary>
-      <div class="project-card-top"><span class="project-index">05</span><span class="project-status"><i></i>日常更新</span></div>
-      <div class="project-visual visual-odds"><span>2:1</span><small>网页</small></div>
-      <div class="project-copy"><span class="project-eyebrow">MATCH RISK WORKBENCH</span><h2>南铂足球赔率工作台</h2><p>单文件运行的赔率、补单、比分与特殊玩法管理工具。</p><div class="tag-row"><span>Odds</span><span>风险管理</span><span>单文件</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>集成正确比分、大小球、亚盘、双方进球和晋级等市场。保留浏览器本地数据，同时区分模拟重建与真实原始记录。</p><span>本机网页</span></div>
-  </details>
-  <details class="project-card tone-rose">
-    <summary>
-      <div class="project-card-top"><span class="project-index">06</span><span class="project-status"><i></i>持续制作</span></div>
-      <div class="project-visual visual-video"><span>▶</span><small>自动化</small></div>
-      <div class="project-copy"><span class="project-eyebrow">SOCIAL VIDEO PIPELINE</span><h2>南铂图文卡点视频系统</h2><p>把原片、封面、卡点和高清发布变成可重复的视频生产线。</p><div class="tag-row"><span>9:16</span><span>卡点</span><span>高清发布</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>针对 9:16 抖音成片，完成素材整理、节奏切片、首帧封面、安全区与 BT.709 高清输出，也提供公司端便携使用包。</p><span>本地工作流</span></div>
-  </details>
-  <details class="project-card tone-aqua">
-    <summary>
-      <div class="project-card-top"><span class="project-index">07</span><span class="project-status"><i></i>持续完善</span></div>
-      <div class="project-visual visual-crm"><span>透明</span><small>自动化</small></div>
-      <div class="project-copy"><span class="project-eyebrow">CUSTOMER ASSET SYSTEM</span><h2>南铂企业微信客户资产</h2><p>欢迎语、套餐知识、客户回复和品牌资产的统一中心。</p><div class="tag-row"><span>企业微信</span><span>客户资产</span><span>透明价格</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>以朋友式沟通、透明价格和无强制消费为基础，管理欢迎语、快捷回复、套餐说明与品牌标志文件。</p><span>内部系统</span></div>
-  </details>
-  <details class="project-card tone-coral">
-    <summary>
-      <div class="project-card-top"><span class="project-index">08</span><span class="project-status"><i></i>可调用</span></div>
-      <div class="project-visual visual-agent"><span>AI</span><small>智能体</small></div>
-      <div class="project-copy"><span class="project-eyebrow">CONTENT AGENT</span><h2>南铂媒体智能体</h2><p>围绕男士写真，安排三天运营、视频包装和发布交接。</p><div class="tag-row"><span>男士写真</span><span>3 天运营</span><span>发布交接</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>从低价团购引流、拍摄清单、视频剪辑方案到抖音与小红书文案，输出一套小团队真正可执行的周期。</p><span>Codex 智能体</span></div>
-  </details>
-  <details class="project-card tone-violet">
-    <summary>
-      <div class="project-card-top"><span class="project-index">09</span><span class="project-status"><i></i>可调用</span></div>
-      <div class="project-visual visual-expand"><span>9:16</span><small>智能体</small></div>
-      <div class="project-copy"><span class="project-eyebrow">VISUAL SAFETY AGENT</span><h2>封面安全扩图智能体</h2><p>在不损伤原始精修人物的前提下，完成 9:16 封面扩展。</p><div class="tag-row"><span>9:16</span><span>安全区</span><span>AI 扩图</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>同时检查 2:3 原图、9:16 发布和主页 3:4 安全区。先决定移动人物还是扩展背景，必要时才使用 AI 补景。</p><span>Codex 智能体</span></div>
-  </details>
-  <details class="project-card tone-graphite">
-    <summary>
-      <div class="project-card-top"><span class="project-index">10</span><span class="project-status"><i></i>本机可用</span></div>
-      <div class="project-visual visual-meter"><span>72%</span><small>App</small></div>
-      <div class="project-copy"><span class="project-eyebrow">USAGE MONITOR</span><h2>Codex 余量 Pro</h2><p>随时查看 Codex 用量与可用状态的轻量 Mac 工具。</p><div class="tag-row"><span>macOS</span><span>Codex</span><span>用量</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>把频繁查看的余量信息从复杂页面中抽出，作为本机独立应用使用。</p><span>本机运行</span></div>
-  </details>
-  <details class="project-card tone-lime">
-    <summary>
-      <div class="project-card-top"><span class="project-index">11</span><span class="project-status"><i></i>可调用</span></div>
-      <div class="project-visual visual-risk"><span>−18</span><small>智能体</small></div>
-      <div class="project-copy"><span class="project-eyebrow">RISK CONTROL AGENT</span><h2>投注对冲风险智能体</h2><p>用情景表、触发赔率和仓位规则做保守风险管理。</p><div class="tag-row"><span>情景规划</span><span>仓位</span><span>风险控制</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>为已接受或计划接受的赛果暴露生成目标利润表、补仓规则和正确比分覆盖，不做“保证获利”承诺。</p><span>Codex 智能体</span></div>
-  </details>
-  <details class="project-card tone-orange">
-    <summary>
-      <div class="project-card-top"><span class="project-index">12</span><span class="project-status"><i></i>迭代中</span></div>
-      <div class="project-visual visual-reviews"><span>★★★★★</span><small>智能体</small></div>
-      <div class="project-copy"><span class="project-eyebrow">LOCAL COMMERCE AGENT</span><h2>抖音团购运营助手</h2><p>围绕团购套餐、评价回复和客服知识的运营工具。</p><div class="tag-row"><span>抖音来客</span><span>客服</span><span>团购</span></div></div>
-      <span class="open-project">查看详情 <b>＋</b></span>
-    </summary>
-    <div class="static-detail"><p>把套餐信息、预约流程、拍摄张数、地址和客服用语统一起来，重点保留明码实价与无强制消费。</p><span>内部工具</span></div>
-  </details></div>
+  <a class="project-card tone-mint" href="https://stash-status.nanbostudio.com/" aria-label="打开网络中心：南铂 Stash 长期运行中心">
+    <div class="project-card-top"><span class="project-index">01</span><span class="project-status"><i></i>运行中</span></div>
+    <div class="project-visual visual-network"><span>N</span><small>App</small></div>
+    <div class="project-copy"><span class="project-eyebrow">NETWORK OPERATIONS</span><h3>南铂 Stash 长期运行中心</h3><p>把机场、配置、设备授权与灾备收进一个可视化中心。</p><div class="tag-row"><span>跨设备</span><span>Stash</span><span>自动检查</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-peach" href="https://wdmm630202.github.io/nbo-cover-copy/" aria-label="打开灵感封面：NBO 灵感封面">
+    <div class="project-card-top"><span class="project-index">02</span><span class="project-status"><i></i>已上线</span></div>
+    <div class="project-visual visual-studio"><span>15</span><small>网页</small></div>
+    <div class="project-copy"><span class="project-eyebrow">CREATIVE AI WEB APP</span><h3>NBO 灵感封面</h3><p>上传照片，一次生成封面文案与三端发布内容。</p><div class="tag-row"><span>Gemini</span><span>小红书</span><span>抖音</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-sky" href="https://wdmm630202.github.io/nbo-smart-system/projects/server/" aria-label="打开项目主页：NBO 服务器管家">
+    <div class="project-card-top"><span class="project-index">03</span><span class="project-status"><i></i>24/7 守护</span></div>
+    <div class="project-visual visual-server"><span>99</span><small>App</small></div>
+    <div class="project-copy"><span class="project-eyebrow">SERVER GUARDIAN</span><h3>NBO 服务器管家</h3><p>一个给非技术人使用的本地服务器健康与备份面板。</p><div class="tag-row"><span>Immich</span><span>Docker</span><span>自动备份</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-lilac" href="https://wdmm630202.github.io/nbo-smart-system/projects/jewelry/" aria-label="打开项目主页：NBO OS 珠宝修图工作流">
+    <div class="project-card-top"><span class="project-index">04</span><span class="project-status"><i></i>生产中</span></div>
+    <div class="project-visual visual-workflow"><span>◇</span><small>自动化</small></div>
+    <div class="project-copy"><span class="project-eyebrow">PHOTO PRODUCTION OS</span><h3>NBO OS 珠宝修图工作流</h3><p>从拍摄素材到 Photoshop 精修的标准化交付流程。</p><div class="tag-row"><span>Photoshop</span><span>珠宝摄影</span><span>SOP</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-butter" href="https://wdmm630202.github.io/nbo-smart-system/projects/odds/" aria-label="打开项目主页：南铂足球赔率工作台">
+    <div class="project-card-top"><span class="project-index">05</span><span class="project-status"><i></i>日常更新</span></div>
+    <div class="project-visual visual-odds"><span>2:1</span><small>网页</small></div>
+    <div class="project-copy"><span class="project-eyebrow">MATCH RISK WORKBENCH</span><h3>南铂足球赔率工作台</h3><p>单文件运行的赔率、补单、比分与特殊玩法管理工具。</p><div class="tag-row"><span>Odds</span><span>风险管理</span><span>单文件</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-rose" href="https://wdmm630202.github.io/nbo-smart-system/projects/video/" aria-label="打开项目主页：南铂图文卡点视频系统">
+    <div class="project-card-top"><span class="project-index">06</span><span class="project-status"><i></i>持续制作</span></div>
+    <div class="project-visual visual-video"><span>▶</span><small>自动化</small></div>
+    <div class="project-copy"><span class="project-eyebrow">SOCIAL VIDEO PIPELINE</span><h3>南铂图文卡点视频系统</h3><p>把原片、封面、卡点和高清发布变成可重复的视频生产线。</p><div class="tag-row"><span>9:16</span><span>卡点</span><span>高清发布</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-aqua" href="https://wdmm630202.github.io/nbo-smart-system/projects/crm/" aria-label="打开项目主页：南铂企业微信客户资产">
+    <div class="project-card-top"><span class="project-index">07</span><span class="project-status"><i></i>持续完善</span></div>
+    <div class="project-visual visual-crm"><span>透明</span><small>自动化</small></div>
+    <div class="project-copy"><span class="project-eyebrow">CUSTOMER ASSET SYSTEM</span><h3>南铂企业微信客户资产</h3><p>欢迎语、套餐知识、客户回复和品牌资产的统一中心。</p><div class="tag-row"><span>企业微信</span><span>客户资产</span><span>透明价格</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-coral" href="https://wdmm630202.github.io/nbo-smart-system/projects/media-agent/" aria-label="打开项目主页：南铂媒体智能体">
+    <div class="project-card-top"><span class="project-index">08</span><span class="project-status"><i></i>可调用</span></div>
+    <div class="project-visual visual-agent"><span>AI</span><small>智能体</small></div>
+    <div class="project-copy"><span class="project-eyebrow">CONTENT AGENT</span><h3>南铂媒体智能体</h3><p>围绕男士写真，安排三天运营、视频包装和发布交接。</p><div class="tag-row"><span>男士写真</span><span>3 天运营</span><span>发布交接</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-violet" href="https://wdmm630202.github.io/nbo-smart-system/projects/expand-agent/" aria-label="打开项目主页：封面安全扩图智能体">
+    <div class="project-card-top"><span class="project-index">09</span><span class="project-status"><i></i>可调用</span></div>
+    <div class="project-visual visual-expand"><span>9:16</span><small>智能体</small></div>
+    <div class="project-copy"><span class="project-eyebrow">VISUAL SAFETY AGENT</span><h3>封面安全扩图智能体</h3><p>在不损伤原始精修人物的前提下，完成 9:16 封面扩展。</p><div class="tag-row"><span>9:16</span><span>安全区</span><span>AI 扩图</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-graphite" href="https://wdmm630202.github.io/nbo-smart-system/projects/meter/" aria-label="打开项目主页：Codex 余量 Pro">
+    <div class="project-card-top"><span class="project-index">10</span><span class="project-status"><i></i>主页在线</span></div>
+    <div class="project-visual visual-meter"><span>72%</span><small>App</small></div>
+    <div class="project-copy"><span class="project-eyebrow">USAGE MONITOR</span><h3>Codex 余量 Pro</h3><p>随时查看 Codex 用量与可用状态的轻量工具。</p><div class="tag-row"><span>网页</span><span>Codex</span><span>用量</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-lime" href="https://wdmm630202.github.io/nbo-smart-system/projects/risk-agent/" aria-label="打开项目主页：投注对冲风险智能体">
+    <div class="project-card-top"><span class="project-index">11</span><span class="project-status"><i></i>可调用</span></div>
+    <div class="project-visual visual-risk"><span>−18</span><small>智能体</small></div>
+    <div class="project-copy"><span class="project-eyebrow">RISK CONTROL AGENT</span><h3>投注对冲风险智能体</h3><p>用情景表、触发赔率和仓位规则做保守风险管理。</p><div class="tag-row"><span>情景规划</span><span>仓位</span><span>风险控制</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-orange" href="https://wdmm630202.github.io/nbo-smart-system/projects/reviews/" aria-label="打开项目主页：抖音团购运营助手">
+    <div class="project-card-top"><span class="project-index">12</span><span class="project-status"><i></i>迭代中</span></div>
+    <div class="project-visual visual-reviews"><span>★★★★★</span><small>智能体</small></div>
+    <div class="project-copy"><span class="project-eyebrow">LOCAL COMMERCE AGENT</span><h3>抖音团购运营助手</h3><p>围绕团购套餐、评价回复和客服知识的运营工具。</p><div class="tag-row"><span>抖音来客</span><span>客服</span><span>团购</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a></div>
     </section>
   </main>
 </body>

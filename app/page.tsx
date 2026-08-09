@@ -196,53 +196,25 @@ const projects: Project[] = [
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
 
 function ProjectVisual({ project }: { project: Project }) {
+  const marks: Record<Project["visual"], string> = {
+    network: "N",
+    studio: "15",
+    server: "99",
+    workflow: "◇",
+    odds: "2:1",
+    video: "▶",
+    crm: "透明",
+    agent: "AI",
+    expand: "9:16",
+    meter: "72%",
+    risk: "−18",
+    reviews: "★★★★★",
+  };
+
   return (
     <div className={`project-visual visual-${project.visual}`} aria-hidden="true">
-      <div className="visual-glow" />
-      {project.visual === "network" && (
-        <div className="network-ui">
-          <div className="status-orbit"><span>N</span></div>
-          <div className="network-lines"><i /><i /><i /></div>
-          <div className="network-pill"><b /> 12 项检查正常</div>
-        </div>
-      )}
-      {project.visual === "studio" && (
-        <div className="studio-ui">
-          <div className="photo-frame"><span>15</span><small>字封面</small></div>
-          <div className="copy-lines"><i /><i /><i /></div>
-          <div className="platform-pills"><span>小红书</span><span>抖音</span><span>视频号</span></div>
-        </div>
-      )}
-      {project.visual === "server" && (
-        <div className="server-ui"><div className="server-ring">99<small>%</small></div><div className="server-stack"><i /><i /><i /><i /></div></div>
-      )}
-      {project.visual === "workflow" && (
-        <div className="workflow-ui"><div className="gem">◇</div><div className="flow-nodes"><span>RAW</span><b /><span>PS</span><b /><span>OUT</span></div></div>
-      )}
-      {project.visual === "odds" && (
-        <div className="odds-ui"><div className="score"><span>2</span><i>:</i><span>1</span></div><div className="odds-bars"><i /><i /><i /></div></div>
-      )}
-      {project.visual === "video" && (
-        <div className="video-ui"><div className="video-phone"><span>▶</span></div><div className="timeline"><i /><i /><i /><i /><i /></div></div>
-      )}
-      {project.visual === "crm" && (
-        <div className="crm-ui"><div className="chat-bubble">价格透明<br/><small>无强制消费</small></div><div className="contact-dots"><i/><i/><i/></div></div>
-      )}
-      {project.visual === "agent" && (
-        <div className="agent-ui"><div className="agent-orb"><i/><i/><span>AI</span></div><div className="agent-route"><span>拍</span><b/><span>剪</span><b/><span>发</span></div></div>
-      )}
-      {project.visual === "expand" && (
-        <div className="expand-ui"><div className="safe-frame"><i/><span>9:16</span></div><div className="expand-corners"><i/><i/><i/><i/></div></div>
-      )}
-      {project.visual === "meter" && (
-        <div className="meter-ui"><div className="meter-ring"><span>72</span><small>%</small></div><div className="meter-caption">CODEX READY</div></div>
-      )}
-      {project.visual === "risk" && (
-        <div className="risk-ui"><div className="risk-curve"><i/><i/><i/><i/></div><div className="risk-label"><span>保守</span><b>− 18%</b></div></div>
-      )}
-      {project.visual === "reviews" && (
-        <div className="reviews-ui"><div className="star-row">★ ★ ★ ★ ★</div><div className="review-card"><i/><span>客户回复已生成</span></div></div>
-      )}
+      <span>{marks[project.visual]}</span>
+      <small>{project.category}</small>
     </div>
   );
 }
@@ -292,42 +264,16 @@ export default function Home() {
 
   return (
     <main>
-      <nav className="top-nav" aria-label="主导航">
-        <a className="brand" href="#top" aria-label="返回顶部"><span>N</span><b>NANBO / LAB</b></a>
-        <div className="nav-links"><a href="#work">作品</a><a href="#principles">原则</a><a href="#about">关于</a></div>
-        <a className="nav-cta" href="#work">查看全部 <span>↓</span></a>
+      <nav className="top-nav" aria-label="系统导航">
+        <a className="brand" href="#top" aria-label="返回顶部"><span>N</span><b>NBO南铂智能系统</b></a>
+        <a className="sync-link" href="https://github.com/wdmm630202/nbo-smart-system" target="_blank" rel="noreferrer"><i />GitHub 已同步</a>
       </nav>
 
-      <section className="hero" id="top">
-        <div className="hero-noise" />
-        <div className="hero-orb orb-one" />
-        <div className="hero-orb orb-two" />
-        <div className="hero-content">
-          <p className="kicker"><span /> INDEPENDENT DIGITAL SYSTEMS · 2026</p>
-          <h1>把每一次<br />解决问题，<br /><em>变成一个系统。</em></h1>
-          <p className="hero-lead">这里收集了我为南铂摄影和日常工作开发的 App、网页、自动化与智能体。<br />它们不是演示，而是正在使用的工具。</p>
-          <div className="hero-actions"><a className="primary-button" href="#work"><span>浏览作品</span><b>↘</b></a><button type="button" className="play-button" onClick={() => setSelected(projects[0])}><i>▶</i><span>查看代表作</span></button></div>
-        </div>
-        <div className="hero-stage" aria-label="作品系统概览">
-          <div className="glass-window">
-            <div className="window-top"><span className="traffic"><i/><i/><i/></span><b>NBO SYSTEMS</b><span className="live-dot">LIVE</span></div>
-            <div className="window-body">
-              <div className="system-rail"><span className="active">N</span><span>S</span><span>AI</span><span>◇</span></div>
-              <div className="system-screen">
-                <div className="screen-heading"><div><small>TODAY&apos;S SYSTEM</small><strong>南铂数字工作系统</strong></div><span>12 / 12</span></div>
-                <div className="screen-feature"><div className="mini-orbit"><span>N</span></div><div><small>OPERATING NORMALLY</small><strong>工具已连接</strong><p>网络、创作、交付与运营</p></div></div>
-                <div className="screen-grid"><div><i className="green"/><span>网络中心</span><b>ONLINE</b></div><div><i className="orange"/><span>灵感封面</span><b>AI READY</b></div><div><i className="purple"/><span>智能体</span><b>4 ACTIVE</b></div><div><i className="blue"/><span>服务器</span><b>24 / 7</b></div></div>
-              </div>
-            </div>
-          </div>
-          <div className="floating-chip chip-one"><i />即时响应</div>
-          <div className="floating-chip chip-two"><span>↗</span>可打断动效</div>
-        </div>
-        <div className="hero-meta"><div><strong>12</strong><span>个已整理作品</span></div><div><strong>4</strong><span>类数字系统</span></div><div><strong>1</strong><span>个持续进化的体系</span></div></div>
-      </section>
-
-      <section className="work-section" id="work">
-        <div className="section-heading"><div><p className="section-number">01 / SELECTED WORK</p><h2>不只是作品展示，<br /><em>而是实际问题的答案。</em></h2></div><p>从一个本机 App，到可以反复执行的智能体。点击任意作品查看它解决了什么。</p></div>
+      <section className="work-section" id="top">
+        <header className="results-header">
+          <div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>打开即看结果 · 电脑、手机均可使用</span></div>
+          <div className="result-count"><strong>{visibleProjects.length}</strong><span>当前结果</span></div>
+        </header>
         <div className="filter-bar" role="group" aria-label="按作品类型筛选">
           {filters.map((filter) => <button key={filter} type="button" className={activeFilter === filter ? "active" : ""} onClick={() => setActiveFilter(filter)}><span>{filter}</span><small>{filter === "全部" ? projects.length : projects.filter((project) => project.category === filter).length}</small></button>)}
         </div>
@@ -335,23 +281,6 @@ export default function Home() {
           {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} onOpen={() => setSelected(project)} />)}
         </div>
       </section>
-
-      <section className="principles" id="principles">
-        <div className="principle-intro"><p className="section-number">02 / HOW IT FEELS</p><h2>好设计不是装饰。<br /><em>它是“我知道下一步会发生什么”。</em></h2></div>
-        <div className="principle-grid">
-          <article><span>01</span><div className="principle-demo press-demo"><button type="button">PRESS ME</button></div><h3>立即反馈</h3><p>按下的瞬间就响应，而不是等任务结束才告诉你。</p></article>
-          <article><span>02</span><div className="principle-demo spring-demo"><i/><i/><i/></div><h3>有物理感的动效</h3><p>轻微过冲、回弹和阻尼，让界面像可以被触摸。</p></article>
-          <article><span>03</span><div className="principle-demo glass-demo"><i/><div>DEPTH</div></div><h3>透明但不模糊</h3><p>玻璃材质用于表达层级，而不是给所有东西加特效。</p></article>
-          <article><span>04</span><div className="principle-demo path-demo"><i/><b/><i/><b/><i/></div><h3>路径要自然</h3><p>人能看懂自己从哪里来、正在哪里、如何返回。</p></article>
-        </div>
-      </section>
-
-      <section className="about-section" id="about">
-        <div className="about-mark">N</div>
-        <div className="about-copy"><p className="section-number">03 / ABOUT THE SYSTEM</p><h2>一边经营摄影，<br />一边把重复工作做成工具。</h2><p>这些系统的起点都很具体：网络总是难管、封面每次重做、客户回复容易不一致、视频交付经常出错。它们现在被收进同一个长期使用的数字体系。</p><div className="about-tags"><span>DESIGN</span><span>OPERATIONS</span><span>AI AGENTS</span><span>PHOTOGRAPHY</span></div></div>
-      </section>
-
-      <footer><div className="footer-top"><div><span className="footer-label">NANBO / DIGITAL SYSTEMS</span><h2>让工具越来越少，<br /><em>让系统越来越完整。</em></h2></div><a href="#top" className="back-top">↑<span>回到顶部</span></a></div><div className="footer-bottom"><span>© 2026 NANBO STUDIO</span><span>DESIGNED IN GUANGZHOU</span><span>BUILT WITH INTENTION</span></div></footer>
 
       {selected && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}>

@@ -248,29 +248,13 @@ function ProjectVisual({ project }: { project: Project }) {
 }
 
 function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void }) {
-  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-    event.currentTarget.style.setProperty("--pointer-x", `${x}%`);
-    event.currentTarget.style.setProperty("--pointer-y", `${y}%`);
-    event.currentTarget.style.setProperty("--tilt-x", `${(50 - y) / 35}deg`);
-    event.currentTarget.style.setProperty("--tilt-y", `${(x - 50) / 35}deg`);
-  };
-
   return (
     <button
       className={`project-card tone-${project.tone} ${project.featured ? "featured" : ""}`}
       type="button"
       onClick={onOpen}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={(event) => {
-        event.currentTarget.style.setProperty("--tilt-x", "0deg");
-        event.currentTarget.style.setProperty("--tilt-y", "0deg");
-      }}
       aria-label={`查看 ${project.name}`}
     >
-      <span className="card-light" />
       <div className="project-card-top">
         <span className="project-index">{project.index}</span>
         <span className="project-status"><i />{project.status}</span>

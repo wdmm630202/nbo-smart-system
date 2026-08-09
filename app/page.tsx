@@ -14,6 +14,7 @@ type Project = {
   tags: string[];
   tone: string;
   visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews";
+  preview?: string;
   featured?: boolean;
   href: string;
   linkLabel: string;
@@ -26,12 +27,13 @@ const projects: Project[] = [
     name: "南铂 Stash 长期运行中心",
     eyebrow: "NETWORK OPERATIONS",
     category: "App",
-    status: "运行中",
-    summary: "把机场、配置、设备授权与灾备收进一个可视化中心。",
+    status: "云端运行",
+    summary: "点击直接进入云端运行中心，长期查看配置、设备与灾备状态。",
     detail: "主备节点池、设备权限、配置版本、本机端口与云端网关统一检查。日常不需要翻配置文件，异常时可一键复制脱敏诊断。",
     tags: ["跨设备", "Stash", "自动检查"],
     tone: "mint",
     visual: "network",
+    preview: "/stash-dashboard-preview.jpg",
     featured: true,
     href: "https://stash-status.nanbostudio.com/",
     linkLabel: "打开网络中心",
@@ -221,6 +223,15 @@ function ProjectVisual({ project }: { project: Project }) {
     risk: "−18",
     reviews: "★★★★★",
   };
+
+  if (project.preview) {
+    return (
+      <div className={`project-visual has-preview visual-${project.visual}`} aria-hidden="true">
+        <img className="project-preview" src={project.preview} alt="" loading="eager" />
+        <em className="preview-badge">点击进入云端</em>
+      </div>
+    );
+  }
 
   return (
     <div className={`project-visual visual-${project.visual}`} aria-hidden="true">

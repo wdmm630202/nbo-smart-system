@@ -56,6 +56,11 @@ a { text-decoration: none; }
 .project-visual::after { width: 175px; height: 80px; transform: rotate(-18deg); }
 .project-visual>span { position: relative; z-index: 2; min-width: 70px; min-height: 70px; padding: 0 12px; display: grid; place-items: center; border-radius: 23px; color: white; background: #1d2229; box-shadow: 0 16px 35px rgba(25,30,40,.17); font-size: 24px; font-weight: 800; letter-spacing: -.04em; }
 .project-visual>small { position: absolute; z-index: 2; bottom: 12px; color: #6e737c; font-size: 8px; font-weight: 800; letter-spacing: .14em; }
+.project-visual.has-preview { background: #eaf4ff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.9); }
+.project-visual.has-preview::before, .project-visual.has-preview::after { display: none; }
+.project-preview { width: 100%; height: 100%; display: block; object-fit: cover; object-position: top center; transition: transform 180ms ease-out; }
+.project-card:hover .project-preview { transform: scale(1.025); }
+.preview-badge { position: absolute; z-index: 3; right: 10px; bottom: 10px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.75); border-radius: 99px; color: white; background: rgba(16,24,36,.74); backdrop-filter: blur(12px) saturate(150%); box-shadow: 0 4px 14px rgba(20,30,45,.16); font-size: 7px; font-style: normal; font-weight: 800; letter-spacing: .04em; }
 .visual-studio>span { background: #bd6545; }.visual-server>span { background: #497bc5; }.visual-workflow>span { background: #785c9d; }.visual-odds>span { background: #8f803f; }.visual-video>span { background: #8e4d5b; }.visual-crm>span { background: #4f8884; }.visual-agent>span { background: #9a5749; }.visual-expand>span { background: #755a9b; font-size: 17px; }.visual-meter>span { background: #444a53; font-size: 18px; }.visual-risk>span { background: #718743; }.visual-reviews>span { background: #b97437; font-size: 10px; letter-spacing: .08em; }
 .project-eyebrow { color: #747981; font-size: 7px; font-weight: 800; letter-spacing: .17em; }
 .project-copy h3 { margin: 7px 0; font-size: clamp(18px, 1.35vw, 24px); line-height: 1.12; letter-spacing: -.035em; }
@@ -98,9 +103,9 @@ main{min-height:100vh}.static-page .top-nav{position:sticky;top:10px;margin:10px
       <header class="results-header"><div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>打开即看结果 · 电脑、手机均可使用</span></div><div class="result-count"><strong>12</strong><span>全部系统</span></div></header>
       <div class="project-grid">
   <a class="project-card tone-mint" href="https://stash-status.nanbostudio.com/" aria-label="打开网络中心：南铂 Stash 长期运行中心">
-    <div class="project-card-top"><span class="project-index">01</span><span class="project-status"><i></i>运行中</span></div>
-    <div class="project-visual visual-network"><span>N</span><small>App</small></div>
-    <div class="project-copy"><span class="project-eyebrow">NETWORK OPERATIONS</span><h3>南铂 Stash 长期运行中心</h3><p>把机场、配置、设备授权与灾备收进一个可视化中心。</p><div class="tag-row"><span>跨设备</span><span>Stash</span><span>自动检查</span></div></div>
+    <div class="project-card-top"><span class="project-index">01</span><span class="project-status"><i></i>云端运行</span></div>
+    <div class="project-visual has-preview visual-network"><img class="project-preview" src="./stash-dashboard-preview.jpg" alt="" loading="eager"><em class="preview-badge">点击进入云端</em></div>
+    <div class="project-copy"><span class="project-eyebrow">NETWORK OPERATIONS</span><h3>南铂 Stash 长期运行中心</h3><p>点击直接进入云端运行中心，长期查看配置、设备与灾备状态。</p><div class="tag-row"><span>跨设备</span><span>Stash</span><span>自动检查</span></div></div>
     <span class="open-project">立即打开 <b>↗</b></span>
   </a>
   <a class="project-card tone-peach" href="https://wdmm630202.github.io/nbo-cover-copy/" aria-label="打开灵感封面：NBO 灵感封面">

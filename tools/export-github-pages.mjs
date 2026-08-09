@@ -13,13 +13,18 @@ const projects = Function(`"use strict"; return (${match[1]});`)();
 const marks = { network: "N", studio: "15", server: "99", workflow: "◇", odds: "2:1", video: "▶", crm: "透明", agent: "AI", expand: "9:16", meter: "72%", risk: "−18", reviews: "★★★★★" };
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
-const cards = projects.map((project) => `
+const cards = projects.map((project) => {
+  const visual = project.preview
+    ? `<div class="project-visual has-preview visual-${escapeHtml(project.visual)}"><img class="project-preview" src=".${escapeHtml(project.preview)}" alt="" loading="eager"><em class="preview-badge">点击进入云端</em></div>`
+    : `<div class="project-visual visual-${escapeHtml(project.visual)}"><span>${escapeHtml(marks[project.visual])}</span><small>${escapeHtml(project.category)}</small></div>`;
+  return `
   <a class="project-card tone-${escapeHtml(project.tone)}" href="${escapeHtml(project.href)}" aria-label="${escapeHtml(project.linkLabel)}：${escapeHtml(project.name)}">
     <div class="project-card-top"><span class="project-index">${escapeHtml(project.index)}</span><span class="project-status"><i></i>${escapeHtml(project.status)}</span></div>
-    <div class="project-visual visual-${escapeHtml(project.visual)}"><span>${escapeHtml(marks[project.visual])}</span><small>${escapeHtml(project.category)}</small></div>
+    ${visual}
     <div class="project-copy"><span class="project-eyebrow">${escapeHtml(project.eyebrow)}</span><h3>${escapeHtml(project.name)}</h3><p>${escapeHtml(project.summary)}</p><div class="tag-row">${project.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div></div>
     <span class="open-project">立即打开 <b>↗</b></span>
-  </a>`).join("");
+  </a>`;
+}).join("");
 
 const staticCss = `
 main{min-height:100vh}.static-page .top-nav{position:sticky;top:10px;margin:10px auto 0;transform:none;left:auto}.static-page .work-section{padding-top:32px}.static-page .results-header{min-height:128px}.static-page .open-project{opacity:1;transform:none}.project-page{min-height:100vh;padding:18px}.project-shell{width:min(1060px,100%);margin:0 auto}.project-back{height:44px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:13px;background:#fafaf8;color:#565c65;font-size:11px;font-weight:750}.project-hero{margin-top:16px;padding:clamp(22px,5vw,58px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:40px;border:1px solid rgba(20,25,35,.08);border-radius:30px;box-shadow:0 18px 55px rgba(30,35,45,.08)}.project-hero-copy{align-self:center}.project-hero .project-eyebrow{display:block;margin-bottom:15px}.project-hero h1{margin:0;font-size:clamp(38px,6vw,74px);line-height:.96;letter-spacing:-.06em}.project-lead{margin:22px 0 0;color:#5f646c;font-size:clamp(14px,1.6vw,18px);line-height:1.75}.project-detail{margin:22px 0 0;padding-top:22px;border-top:1px solid rgba(20,25,35,.09);color:#5f646c;font-size:13px;line-height:1.85}.project-hero .project-visual{height:360px;margin:0}.permanent-note{margin-top:16px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid var(--line);border-radius:18px;background:#fafaf8}.permanent-note strong{display:block;font-size:13px}.permanent-note span{display:block;margin-top:5px;color:#70757d;font-size:11px;line-height:1.5}.permanent-badge{flex:0 0 auto;padding:9px 12px;border-radius:99px;color:#237a4b!important;background:#e5f4eb;font-size:9px!important;font-weight:800}.project-url{margin-top:16px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:16px;color:white;background:#171a1f;font-size:11px;font-weight:750}.project-url small{font-size:9px;opacity:.6}.project-footer{padding:24px 4px;color:#747981;font-size:10px}@media(max-width:700px){.static-page .top-nav{position:sticky}.static-page .work-section{padding-top:22px}.project-page{padding:10px}.project-hero{grid-template-columns:1fr;gap:22px;border-radius:22px}.project-hero .project-visual{height:250px;grid-row:1}.permanent-note{align-items:flex-start;flex-direction:column}.project-url{align-items:flex-start;flex-direction:column}}
@@ -89,6 +94,7 @@ await writeFile(join(docs, "index.html"), html);
 await writeFile(join(docs, ".nojekyll"), "");
 await copyFile(join(root, "public/icon.png"), join(docs, "icon.png"));
 await copyFile(join(root, "public/og.png"), join(docs, "og.png"));
+await copyFile(join(root, "public/stash-dashboard-preview.jpg"), join(docs, "stash-dashboard-preview.jpg"));
 
 const internalProjects = projects.filter((project) => project.href.includes("/nbo-smart-system/projects/"));
 for (const project of internalProjects) {

@@ -115,7 +115,7 @@ await copyFile(join(root, "apps/reviews/nfc/nfc-qr.png"), join(reviewNfcDir, "nf
 await copyFile(join(root, "apps/reviews/nfc/douyin-review-code.png"), join(reviewNfcDir, "douyin-review-code.png"));
 const reviewNfcAssetsDir = join(reviewNfcDir, "assets");
 await mkdir(reviewNfcAssetsDir, { recursive: true });
-for (const asset of ["review-example-portrait.webp", "review-example-bts.webp", "review-example-selection.webp"]) {
+for (const asset of ["review-example-portrait.webp", "review-example-bts.webp", "review-example-selection.webp", "review-photo-guide-triptych.png"]) {
   await copyFile(join(root, "apps/reviews/nfc/assets", asset), join(reviewNfcAssetsDir, asset));
 }
 

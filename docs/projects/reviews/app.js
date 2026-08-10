@@ -15,6 +15,7 @@
   let scenarioId = "first";
   let generation = 0;
   let variants = [];
+  let recentReviews = [];
 
   const toast = (message) => {
     const node = $("#toast");
@@ -24,10 +25,24 @@
     toast.timer = setTimeout(() => node.classList.remove("show"), 2100);
   };
 
-  const normalize = (text) => text.replace(/\s+/g, " ").replace(/。。+/g, "。").trim();
-  const pick = (items, offset) => items[(generation + offset) % items.length];
+  const dayStamp = () => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+  const hashText = (text) => {
+    let hash = 2166136261;
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  };
+  const choose = (items, lane, attempt = 0) => items[hashText(`${dayStamp()}|${scenarioId}|${generation}|${lane}|${attempt}`) % items.length];
+  const stripEnd = (text) => String(text || "").replace(/[。！!？?，,\s]+$/g, "").trim();
+  const sentence = (text) => stripEnd(text) ? `${stripEnd(text)}。` : "";
+  const normalize = (text) => text.replace(/\s+/g, " ").replace(/，。/g, "。").replace(/([。！？])\1+/g, "$1").trim();
   const moduleCount = Object.values(DB.scenarios).reduce((sum, item) => sum + item.openers.length + item.proofs.length + item.results.length, 0);
-  $("#databaseCount").textContent = `语言库 ${moduleCount} 条 · ${Object.keys(DB.scenarios).length} 个热门场景 · 本地生成`;
+  $("#databaseCount").textContent = `语言库 ${moduleCount} 条 · 9 种结构轮换 · 近 30 条自动避重`;
 
   function renderScenarios() {
     const root = $("#scenarios");
@@ -53,7 +68,8 @@
       button.dataset.id = id;
       button.textContent = label;
       button.addEventListener("click", () => {
-        selectedFacts.has(id) ? selectedFacts.delete(id) : selectedFacts.add(id);
+        if (selectedFacts.has(id)) selectedFacts.delete(id);
+        else selectedFacts.add(id);
         button.classList.toggle("active", selectedFacts.has(id));
         persist();
       });
@@ -84,16 +100,57 @@
     const service = $("#service").value;
     const feeling = $("#feeling").value.trim().replace(/[。！!？?]+$/g, "");
     const extraFacts = facts.filter(([id]) => selectedFacts.has(id) && !s.facts.includes(id)).map(([, , text]) => text);
-    const opener = pick(s.openers, 0);
-    const proof = pick(s.proofs, 1);
-    const result = pick(s.results, 2);
-    const own = feeling ? `${feeling}。` : "";
-    const extra = extraFacts.length ? `${extraFacts.slice(0, 2).join("，")}。` : "";
-    return [
-      { name: "自然口语", tag: "首选", text: normalize(`${opener}。实际拍下来，${proof}。${result}。${own}`) },
-      { name: "简短高信任", tag: "适合快速发", text: normalize(`体验了${service}。${proof}，${result}。${extra}${own}`) },
-      { name: "细节更完整", tag: "适合配图", text: normalize(`${opener}。这次体验的是${service}，${proof}。${extra}${result}。${own}以上都是这次实际体验，给同样有顾虑的人做个参考。`) }
+    const styles = [
+      { name: "当天自然说", tag: "首选", offset: 0 },
+      { name: "先说一个细节", tag: "换个开头", offset: 3 },
+      { name: "先说最后感受", tag: "完整表达", offset: 6 }
     ];
+    const endings = [
+      "这是我这次的真实感受，给有类似顾虑的人做个参考",
+      "每个人在意的点不同，我更看重的是过程和最后拿到的照片",
+      "以上是这次实际体验，也可以按自己的需求提前问清楚"
+    ];
+
+    const compose = (pattern, content) => {
+      const opener = sentence(content.opener);
+      const proof = sentence(content.proof);
+      const result = sentence(content.result);
+      const extra = content.extra.length ? sentence(content.extra.join("，")) : "";
+      const own = sentence(content.feeling);
+      const serviceLine = sentence(`这次体验的是${content.service}`);
+      const ending = sentence(content.ending);
+      const structures = [
+        () => `${opener}${proof}${result}${extra}${own}`,
+        () => `如果只说一个感受，${result}${opener}${proof}${extra}${own}`,
+        () => `有个现场细节让我印象很深：${proof}${result}${opener}${extra}${own}`,
+        () => `${opener}${serviceLine}${proof}${result}${extra}${own}`,
+        () => `${proof}${result}回头看，${opener}${extra}${own}`,
+        () => `拍完回头看，${result}${proof}${opener}${extra}${own}`,
+        () => `${opener}${extra}${proof}${result}${own}`,
+        () => `这次我更在意过程：${proof}${result}${opener}${extra}${own}`,
+        () => `${result}${opener}${proof}${extra}${own}${ending}`
+      ];
+      return normalize(structures[pattern % structures.length]());
+    };
+
+    const usedNow = new Set();
+    return styles.map((style) => {
+      let text = "";
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        text = compose((hashText(`${dayStamp()}|${generation}|${style.offset}|${attempt}`) % 9), {
+          opener: choose(s.openers, style.offset, attempt),
+          proof: choose(s.proofs, style.offset + 11, attempt),
+          result: choose(s.results, style.offset + 23, attempt),
+          extra: extraFacts.slice(0, 2),
+          feeling,
+          service,
+          ending: choose(endings, style.offset + 37, attempt)
+        });
+        if (!recentReviews.includes(text) && !usedNow.has(text)) break;
+      }
+      usedNow.add(text);
+      return { name: style.name, tag: style.tag, text };
+    });
   }
 
   function makeInvite(review) {
@@ -102,7 +159,7 @@
     return `${hello}照片收到后，如果您愿意，麻烦在抖音团购订单里写一下这次真实体验。\n\n下面是一段表达参考，请务必按您的实际感受删改；满意或不满意都可以直接写：\n\n${review}\n\n配图建议：1张最喜欢的成片 + 1张拍摄过程或环境图。谢谢您的真实反馈，这对我们改进很重要。`;
   }
 
-  function useVariant(index) {
+  function selectVariant(index) {
     const item = variants[index];
     if (!item) return;
     $("#review").value = item.text;
@@ -113,11 +170,11 @@
 
   function renderResult() {
     const scenario = DB.scenarios[scenarioId];
-    $("#modeLine").innerHTML = `<b>${scenario.label}</b> · AI 只组合本次真实场景、顾虑、服务证据和结果，不复制网上评价。`;
+    $("#modeLine").innerHTML = `<b>${scenario.label}</b> · 每天轮换结构，近 30 条自动避重；只组合本次真实经历，不复制网上评价。`;
     $("#strategyFlow").innerHTML = scenario.strategy.map((item, index) => `<b>${item}</b>${index < scenario.strategy.length - 1 ? "<i>→</i>" : ""}`).join("");
     $("#variants").innerHTML = variants.map((item, index) => `<button class="variant${index === 0 ? " active" : ""}" type="button" data-index="${index}"><header><b>${item.name}</b><span>${item.tag}</span></header><p>${item.text}</p></button>`).join("");
-    document.querySelectorAll(".variant").forEach((node) => node.addEventListener("click", () => useVariant(Number(node.dataset.index))));
-    useVariant(0);
+    document.querySelectorAll(".variant").forEach((node) => node.addEventListener("click", () => selectVariant(Number(node.dataset.index))));
+    selectVariant(0);
   }
 
   function generate() {
@@ -127,13 +184,16 @@
     }
     variants = buildVariants();
     renderResult();
-    toast("已生成 3 个真实表达");
+    recentReviews = [...recentReviews, ...variants.map((item) => item.text)].slice(-30);
+    generation += 1;
+    persist();
+    toast("已生成 3 个不同结构的真实表达");
   }
 
   async function copyText(text, message) {
     if (!text.trim()) { toast("请先一键生成"); return false; }
     try { await navigator.clipboard.writeText(text); }
-    catch (_error) {
+    catch {
       const area = document.createElement("textarea");
       area.value = text; area.style.position = "fixed"; area.style.opacity = "0";
       document.body.append(area); area.select(); document.execCommand("copy"); area.remove();
@@ -145,11 +205,13 @@
   function persist() {
     try {
       localStorage.setItem("nbo-real-review-v2", JSON.stringify({
-        truth: $("#truthConfirm").checked, scenarioId, generation, selectedFacts: [...selectedFacts],
+        truth: $("#truthConfirm").checked, scenarioId, generation, recentReviews, selectedFacts: [...selectedFacts],
         customer: $("#customer").value, service: $("#service").value, feeling: $("#feeling").value,
         invite: $("#invite").value, review: $("#review").value
       }));
-    } catch (_error) {}
+    } catch {
+      // 本地存储不可用时仍可继续生成。
+    }
   }
 
   function restore() {
@@ -159,9 +221,12 @@
       $("#truthConfirm").checked = Boolean(data.truth);
       scenarioId = DB.scenarios[data.scenarioId] ? data.scenarioId : scenarioId;
       generation = Number(data.generation) || 0;
+      recentReviews = Array.isArray(data.recentReviews) ? data.recentReviews.filter((item) => typeof item === "string").slice(-30) : [];
       (data.selectedFacts || []).forEach((id) => selectedFacts.add(id));
       ["customer", "service", "feeling", "invite", "review"].forEach((id) => { if (data[id]) $("#" + id).value = data[id]; });
-    } catch (_error) {}
+    } catch {
+      // 历史记录不可读时使用全新状态。
+    }
   }
 
   const shots = "南铂评价配图清单：\n1. 最满意成片：眼平正面或45°，人物约占2/3\n2. 拍摄过程：侧后方45°，记录摄影师指导动作\n3. 门店环境：入口斜角广景，保持横平竖直\n4. 服务细节：妆造或选片特写，避开客户隐私\n建议选3—5张，竖图3:4优先，不过度磨皮，不加大段宣传字。";
@@ -174,7 +239,7 @@
   $("#hotGenerate").disabled = !$("#truthConfirm").checked;
   $("#truthConfirm").addEventListener("change", () => { $("#hotGenerate").disabled = !$("#truthConfirm").checked; persist(); if ($("#truthConfirm").checked) toast("已确认，今后点场景即可生成"); });
   $("#hotGenerate").addEventListener("click", generate);
-  $("#refresh").addEventListener("click", () => { generation += 1; persist(); generate(); });
+  $("#refresh").addEventListener("click", generate);
   $("#generate").addEventListener("click", generate);
   ["customer", "service", "feeling", "invite", "review"].forEach((id) => $("#" + id).addEventListener("input", persist));
   $("#copyInvite").addEventListener("click", () => copyText($("#invite").value, "客户话术已复制"));

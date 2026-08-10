@@ -104,5 +104,7 @@ for (const project of internalProjects) {
 }
 
 await copyFile(join(root, "apps/reviews/index.html"), join(docs, "projects/reviews/index.html"));
+await copyFile(join(root, "apps/reviews/language-db.js"), join(docs, "projects/reviews/language-db.js"));
+await copyFile(join(root, "apps/reviews/app.js"), join(docs, "projects/reviews/app.js"));
 
 console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统`);

@@ -7,6 +7,13 @@
     { id: "natural", icon: "真", title: "成片自然，像本人", note: "好看但没有修得很假", tag: "我确实经历过" },
     { id: "service", icon: "顺", title: "妆造、选片、交付顺", note: "每一步都有人说明", tag: "我确实经历过" }
   ];
+  const packages = [
+    { id: "268", price: "268元", title: "体验款", detail: "2套风格 · 2张精修", lead: "这次买的是268元体验款，订单包含2套风格和2张精修" },
+    { id: "498", price: "498元", title: "变帅款", detail: "2套风格 · 5张精修", lead: "这次买的是498元变帅款，订单包含2套风格和5张精修" },
+    { id: "698", price: "698元", title: "内外景款", detail: "1内1外 · 6张精修", lead: "这次买的是698元内外景款，订单包含1套内景、1套外景和6张精修" },
+    { id: "998", price: "998元", title: "质感定制款", detail: "1内1外 · 10张精修", lead: "这次买的是998元质感定制款，订单包含1套内景、1套外景和10张精修" }
+  ];
+  let selectedPackage = "";
   let selected = "";
   let generation = 0;
   let variants = [];
@@ -25,21 +32,41 @@
     return DB.scenarios[selected];
   }
 
+  function getPackage() {
+    return packages.find((item) => item.id === selectedPackage);
+  }
+
   function makeVariants() {
     const item = getScenario();
     const opener = pick(item.openers, 0);
     const proof = pick(item.proofs, 1);
     const result = pick(item.results, 2);
+    const order = getPackage().lead;
     return [
-      { name: "自然口语", tag: "最像自己说", text: clean(`${opener}。实际拍下来，${proof}。${result}。`) },
-      { name: "简短真实", tag: "适合快速发", text: clean(`${proof}，${result}。整体是一次比较轻松、清楚的体验。`) },
-      { name: "细节完整", tag: "适合配 3 张图", text: clean(`${opener}。这次从沟通到拍摄，${proof}。${result}。以上是我这次的真实感受，给有同样顾虑的人做个参考。`) }
+      { name: "自然口语", tag: "最像自己说", text: clean(`${order}。${opener}。实际拍下来，${proof}。${result}。`) },
+      { name: "简短真实", tag: "适合快速发", text: clean(`${order}。${proof}，${result}。整体是一次比较轻松、清楚的体验。`) },
+      { name: "细节完整", tag: "适合配 3 张图", text: clean(`${order}。${opener}。这次从沟通到拍摄，${proof}。${result}。以上是我这次的真实感受，给有同样顾虑的人做个参考。`) }
     ];
+  }
+
+  function renderPackages() {
+    $("#packages").innerHTML = packages.map((item) => `<button class="package" type="button" data-id="${item.id}" aria-pressed="false"><div><strong>${item.price}</strong><span>${item.title}<br>${item.detail}</span></div><i>✓</i></button>`).join("");
+    document.querySelectorAll(".package").forEach((button) => button.addEventListener("click", () => {
+      selectedPackage = button.dataset.id;
+      document.querySelectorAll(".package").forEach((node) => {
+        const active = node === button;
+        node.classList.toggle("active", active);
+        node.setAttribute("aria-pressed", String(active));
+      });
+      if (selected) generate();
+      else setTimeout(() => $("#experience").scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    }));
   }
 
   function renderScenarios() {
     $("#scenarios").innerHTML = choices.map((item) => `<button class="scenario" type="button" data-id="${item.id}"><i>${item.icon}</i><b>${item.title}</b><span>${item.note}</span><em>${item.tag}</em></button>`).join("");
     document.querySelectorAll(".scenario").forEach((button) => button.addEventListener("click", () => {
+      if (!selectedPackage) { toast("请先点一下本次实际套餐"); $("#packages").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
       selected = button.dataset.id;
       generation = 0;
       document.querySelectorAll(".scenario").forEach((node) => node.classList.toggle("active", node === button));
@@ -56,11 +83,13 @@
   }
 
   function generate() {
-    if (!selected) return;
+    if (!selected || !selectedPackage) return;
     variants = makeVariants();
     $("#variants").innerHTML = variants.map((item, index) => `<button class="variant${index === 0 ? " active" : ""}" type="button" data-index="${index}"><div><b>${item.name}</b><span>${item.text}</span></div><i>✓</i></button>`).join("");
     document.querySelectorAll(".variant").forEach((node) => node.addEventListener("click", () => useVariant(Number(node.dataset.index))));
     $("#result").classList.add("show");
+    const order = getPackage();
+    $("#package-summary").textContent = `${order.price} · ${order.title}`;
     useVariant(0);
   }
 
@@ -81,6 +110,7 @@
     return true;
   }
 
+  renderPackages();
   renderScenarios();
   $("#copy").addEventListener("click", () => copyReview("评价已复制"));
   $("#refresh").addEventListener("click", () => { if (!selected) return; generation += 1; generate(); toast("已换一批表达"); });

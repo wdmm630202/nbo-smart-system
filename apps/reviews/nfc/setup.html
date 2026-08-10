@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f2">
+  <title>南铂 NFC 碰碰卡配置</title>
+  <link rel="icon" href="../../../icon.png">
+  <style>
+    :root{--ink:#111318;--muted:#6d727a;--line:rgba(17,19,24,.09);--paper:#f5f5f2}*{box-sizing:border-box}body{margin:0;color:var(--ink);background:radial-gradient(circle at 10% 0,#fff1e5,transparent 30%),var(--paper);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;-webkit-font-smoothing:antialiased}.shell{width:min(760px,calc(100% - 24px));margin:auto;padding:calc(18px + env(safe-area-inset-top)) 0 50px}.top{height:52px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border:1px solid #fff;border-radius:16px;background:rgba(255,255,253,.85);box-shadow:0 12px 35px rgba(25,29,35,.07)}.top b{font-size:12px}.top a{color:#5f646c;text-decoration:none;font-size:11px}.hero{padding:50px 5px 28px}.hero p{color:#7e838a;font-size:9px;font-weight:850;letter-spacing:.16em}.hero h1{margin:10px 0 13px;font-size:clamp(40px,9vw,72px);line-height:.95;letter-spacing:-.06em}.hero span{color:var(--muted);font-size:13px;line-height:1.7}.grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:12px}.card{padding:18px;border:1px solid #fff;border-radius:24px;background:rgba(255,255,253,.9);box-shadow:0 18px 55px rgba(25,29,35,.08)}.qr{width:100%;aspect-ratio:1;display:block;border-radius:16px}.card small{color:#858a91;font-size:9px;font-weight:800;letter-spacing:.12em}.card h2{margin:7px 0 13px;font-size:21px}.url{padding:13px;border-radius:14px;overflow-wrap:anywhere;color:#47505a;background:#efefec;font-size:11px;line-height:1.55}.copy{width:100%;min-height:48px;margin-top:9px;border:0;border-radius:14px;color:#fff;background:#171a1f;font-size:12px;font-weight:800;cursor:pointer}.steps{margin:0;padding-left:21px;color:#5f646c;font-size:12px;line-height:2}.note{margin-top:12px;padding:14px;border-radius:16px;color:#365b47;background:#e9f5ed;font-size:11px;line-height:1.65}.copywriting{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px}.copywriting p{margin:0;color:#666c74;font-size:12px;line-height:1.8}.copywriting b{color:#171a1f}.foot{margin-top:14px;color:#7b8087;font-size:10px;line-height:1.7}.toast{position:fixed;left:50%;bottom:24px;padding:11px 15px;border-radius:99px;color:#fff;background:#171a1f;font-size:11px;opacity:0;transform:translate(-50%,8px);transition:.16s}.toast.show{opacity:1;transform:translate(-50%,0)}@media(max-width:620px){.grid,.copywriting{grid-template-columns:1fr}.hero{padding-top:38px}.qr{width:min(260px,100%);margin:auto}}@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <nav class="top"><b>NBO · NFC 卡配置</b><a href="./">打开顾客版 ↗</a></nav>
+    <header class="hero"><p>NBO NFC DEPLOYMENT</p><h1>碰一下，<br>直接写真实体验。</h1><span>这是卡片制作和写入页。顾客只会看到极简评价页，不会看到这里。</span></header>
+    <section class="grid">
+      <div class="card"><img class="qr" src="./nfc-qr.png" alt="南铂真实体验卡二维码"><div class="note">二维码是 NFC 失效、旧手机或顾客不方便碰卡时的备用入口。</div></div>
+      <div class="card"><small>01 / 写入内容</small><h2>NFC 只写这一个网址</h2><div class="url" id="url">https://wdmm630202.github.io/nbo-smart-system/projects/reviews/nfc/</div><button class="copy" id="copy" type="button">复制 NFC 写入网址</button><h2>一次写入步骤</h2><ol class="steps"><li>准备 NTAG215 卡片或贴纸</li><li>iPhone 安装可信 NFC 写入工具</li><li>新建 URL / URI 记录并粘贴上面网址</li><li>写入后锁卡前，先用另一台手机碰卡测试</li><li>确认正常再贴到前台卡片</li></ol><div class="note"><b>推荐 NTAG215。</b>网址本身也能写入 NTAG213，但 215 留有更充足余量。不要把抖音私有协议直接写进 NFC，卡内只放 HTTPS 永久网址。</div></div>
+    </section>
+    <section class="card copywriting"><p><b>卡片正面</b><br>南铂真实体验卡<br>碰一下，把今天真实感受写清楚<br>AI 只帮你整理，不要求五星</p><p><b>卡片背面</b><br>碰一下 → 选真实经历<br>→ 复制 → 打开抖音订单<br>碰卡不便时，扫描二维码</p></section>
+    <p class="foot">实体 NFC 芯片仍需拿到卡片后写入；网页、固定网址、二维码与写入内容已经准备好。锁卡不可逆，建议先测试再锁定。</p>
+  </main>
+  <div class="toast" id="toast">网址已复制</div>
+  <script>document.querySelector("#copy").addEventListener("click",async()=>{const text=document.querySelector("#url").textContent.trim();try{await navigator.clipboard.writeText(text)}catch(e){const t=document.createElement("textarea");t.value=text;document.body.append(t);t.select();document.execCommand("copy");t.remove()}const n=document.querySelector("#toast");n.classList.add("show");setTimeout(()=>n.classList.remove("show"),1600)});</script>
+</body>
+</html>

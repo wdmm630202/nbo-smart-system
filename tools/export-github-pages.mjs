@@ -113,5 +113,10 @@ await copyFile(join(root, "apps/reviews/nfc/app.js"), join(reviewNfcDir, "app.js
 await copyFile(join(root, "apps/reviews/nfc/setup.html"), join(reviewNfcDir, "setup.html"));
 await copyFile(join(root, "apps/reviews/nfc/nfc-qr.png"), join(reviewNfcDir, "nfc-qr.png"));
 await copyFile(join(root, "apps/reviews/nfc/douyin-review-code.png"), join(reviewNfcDir, "douyin-review-code.png"));
+const reviewNfcAssetsDir = join(reviewNfcDir, "assets");
+await mkdir(reviewNfcAssetsDir, { recursive: true });
+for (const asset of ["review-example-portrait.webp", "review-example-bts.webp", "review-example-selection.webp"]) {
+  await copyFile(join(root, "apps/reviews/nfc/assets", asset), join(reviewNfcAssetsDir, asset));
+}
 
 console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版`);

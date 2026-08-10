@@ -94,11 +94,7 @@
     await copyReview("已复制，可粘贴到任意应用");
   });
   $("#douyin").addEventListener("click", async () => {
-    if (!(await copyReview("已复制，正在打开抖音"))) return;
-    const started = Date.now();
+    if (!(await copyReview("已复制；请扫描前台官方评价码"))) return;
     location.href = "snssdk1128://";
-    setTimeout(() => {
-      if (!document.hidden && Date.now() - started < 2200) location.href = "https://www.douyin.com/";
-    }, 1200);
   });
 })();

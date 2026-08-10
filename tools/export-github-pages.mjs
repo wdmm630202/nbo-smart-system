@@ -112,5 +112,6 @@ await copyFile(join(root, "apps/reviews/nfc/index.html"), join(reviewNfcDir, "in
 await copyFile(join(root, "apps/reviews/nfc/app.js"), join(reviewNfcDir, "app.js"));
 await copyFile(join(root, "apps/reviews/nfc/setup.html"), join(reviewNfcDir, "setup.html"));
 await copyFile(join(root, "apps/reviews/nfc/nfc-qr.png"), join(reviewNfcDir, "nfc-qr.png"));
+await copyFile(join(root, "apps/reviews/nfc/douyin-review-code.png"), join(reviewNfcDir, "douyin-review-code.png"));
 
 console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版`);

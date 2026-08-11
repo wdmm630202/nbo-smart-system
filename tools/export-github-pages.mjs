@@ -125,4 +125,10 @@ await cp(join(root, "apps/portfolio"), join(docs, "projects/portfolio"), {
   force: true,
 });
 
-console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 1 个客片作品页`);
+await rm(join(docs, "projects/portfolio-v2"), { recursive: true, force: true });
+await cp(join(root, "apps/portfolio-v2"), join(docs, "projects/portfolio-v2"), {
+  recursive: true,
+  force: true,
+});
+
+console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 客片 V1/V2`);

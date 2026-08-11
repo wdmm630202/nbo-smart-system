@@ -3,150 +3,112 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#10100f" />
-    <meta
-      name="description"
-      content="南铂摄影真实男士客片：商务西装、日常松弛、情绪光影与个人形象。"
-    />
-    <title>南铂摄影｜真实客片</title>
-    <link rel="preload" as="image" href="assets/photos/photo-01.webp" type="image/webp" fetchpriority="high" />
+    <meta name="theme-color" content="#11110f" />
+    <meta name="description" content="南铂摄影真实男士客片精选。158 张作品，按风格轻松浏览。" />
+    <title>南铂摄影｜真实客片画廊</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preload" as="image" href="assets/photos/featured/photo-031.webp" type="image/webp" fetchpriority="high" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="hero" aria-labelledby="page-title">
-        <div class="hero-media" aria-hidden="true">
-          <img
-            id="hero-image"
-            src="assets/photos/photo-01.webp"
-            alt=""
-            width="1080"
-            height="1440"
-            fetchpriority="high"
-          />
-          <div class="hero-shade"></div>
-        </div>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="南铂摄影首页">
+        <span class="brand-mark">N</span>
+        <span><strong>南铂摄影</strong><small>NANBO PORTRAIT</small></span>
+      </a>
+      <a class="header-link" href="#works">浏览全部 <span>158</span></a>
+    </header>
 
-        <div class="hero-topbar">
-          <a class="brand" href="#top" aria-label="返回顶部">
-            <span class="brand-mark">N</span>
-            <span class="brand-name">南铂摄影</span>
-          </a>
-          <span class="truth-chip">真实客片</span>
-        </div>
-
-        <div class="hero-copy" id="top">
-          <p class="eyebrow">NANBO MEN'S PORTRAIT</p>
-          <h1 id="page-title">拍下真实的你</h1>
-          <p class="hero-intro">先看看我们最近拍过的照片，喜欢哪种感觉，直接告诉我就好。</p>
-          <a class="scroll-cue" href="#gallery" aria-label="查看全部客片">
-            <span>查看客片</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m7 10 5 5 5-5" />
-            </svg>
-          </a>
-        </div>
-      </header>
-
-      <main>
-        <section class="gallery-section" id="gallery" aria-labelledby="gallery-title">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">RECENT WORK</p>
-              <h2 id="gallery-title">最近客片</h2>
-            </div>
-            <p class="section-note">点击照片可全屏查看</p>
+    <main id="top">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">MEN'S PORTRAIT · NANBO</p>
+          <h1 id="page-title">每一种你，<br />都值得认真拍。</h1>
+          <p class="hero-lead">这里收录了 158 张真实风格样片。慢慢看，遇到喜欢的照片，点开后把编号发给我就好。</p>
+          <a class="primary-link" href="#works">开始挑选 <span aria-hidden="true">↓</span></a>
+          <div class="hero-stats" aria-label="作品数据">
+            <div><strong>158</strong><span>张精选样片</span></div>
+            <div><strong>4</strong><span>种风格方向</span></div>
+            <div><strong>3:4</strong><span>沉浸式竖版</span></div>
           </div>
-
-          <nav class="filter-wrap" aria-label="按风格筛选客片">
-            <div class="filter-list" id="filters"></div>
-          </nav>
-
-          <div class="gallery-grid" id="gallery-grid" aria-live="polite"></div>
-        </section>
-
-        <section class="promise" aria-label="南铂拍摄服务特点">
-          <p class="section-kicker">OUR PROMISE</p>
-          <h2>不用会摆动作，<br />做你自己就好。</h2>
-          <div class="promise-list">
-            <span>真实客片</span>
-            <span>全程动作指导</span>
-            <span>明码实价</span>
-            <span>无强制消费</span>
-          </div>
-          <p class="promise-footnote">页面照片均为展示模板，请替换为已获得展示授权的真实客片。</p>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <span class="brand-mark brand-mark-small">N</span>
-        <p>南铂摄影 · 男士写真与上门拍摄</p>
-        <p class="copyright">© <span id="year"></span> NANBO STUDIO</p>
-      </footer>
-    </div>
-
-    <div class="floating-cta-wrap" aria-label="咨询操作">
-      <button class="floating-cta" id="style-cta" type="button">
-        <span>
-          <small>已经有喜欢的感觉？</small>
-          <strong>选一种风格，复制发给我</strong>
-        </span>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m9 6 6 6-6 6" />
-        </svg>
-      </button>
-    </div>
-
-    <dialog class="viewer" id="viewer" aria-label="全屏查看客片">
-      <div class="viewer-surface">
-        <button class="icon-button viewer-close" id="viewer-close" type="button" aria-label="关闭">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6l12 12M18 6 6 18" />
-          </svg>
-        </button>
-        <div class="viewer-stage" id="viewer-stage">
-          <img id="viewer-image" alt="" />
         </div>
-        <button class="viewer-arrow viewer-prev" id="viewer-prev" type="button" aria-label="上一张">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>
-        </button>
-        <button class="viewer-arrow viewer-next" id="viewer-next" type="button" aria-label="下一张">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
-        </button>
-        <div class="viewer-caption">
+
+        <div class="hero-gallery" aria-label="精选客片预览">
+          <figure class="hero-photo hero-photo-main">
+            <img src="assets/photos/featured/photo-031.webp" width="900" height="1200" alt="南铂摄影精选男士客片" fetchpriority="high" />
+          </figure>
+          <figure class="hero-photo hero-photo-top">
+            <img src="assets/photos/featured/photo-077.webp" width="900" height="1200" alt="南铂摄影男士户外风格样片" />
+          </figure>
+          <figure class="hero-photo hero-photo-bottom">
+            <img src="assets/photos/featured/photo-127.webp" width="900" height="1200" alt="南铂摄影男士创意光影样片" />
+          </figure>
+          <p class="hero-index">NANBO / SELECTED WORKS / 2026</p>
+        </div>
+      </section>
+
+      <section class="works" id="works" aria-labelledby="works-title">
+        <div class="section-head">
           <div>
-            <strong id="viewer-title"></strong>
-            <span id="viewer-count"></span>
+            <p class="eyebrow">SELECT YOUR STYLE</p>
+            <h2 id="works-title">找到你喜欢的感觉</h2>
           </div>
-          <button id="viewer-copy" type="button">喜欢这张</button>
+          <p>点击任意照片全屏查看<br />左右滑动浏览高清大图</p>
+        </div>
+
+        <nav class="filter-bar" aria-label="按风格筛选">
+          <div class="filters" id="filters"></div>
+        </nav>
+
+        <div class="gallery-status">
+          <span id="gallery-summary">全部作品</span>
+          <span id="gallery-progress">显示 0 / 158</span>
+        </div>
+        <div class="gallery-grid" id="gallery-grid" aria-live="polite"></div>
+
+        <div class="load-area">
+          <button class="load-more" id="load-more" type="button">
+            <span>继续浏览更多客片</span>
+            <small id="load-remaining"></small>
+          </button>
+        </div>
+      </section>
+
+      <section class="closing">
+        <p class="eyebrow">YOUR PORTRAIT, YOUR STORY</p>
+        <h2>不用会摆动作。<br />做你自己，就很好。</h2>
+        <p>选中喜欢的照片后复制编号，回到企业微信直接发给我，我们一起确定你的拍摄方向。</p>
+        <button id="copy-page-message" type="button">复制咨询话术</button>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="brand footer-brand"><span class="brand-mark">N</span><span><strong>南铂摄影</strong><small>NANBO PORTRAIT</small></span></div>
+      <p>真实客片 · 动作指导 · 明码实价</p>
+      <small>© <span id="year"></span> NANBO STUDIO</small>
+    </footer>
+
+    <dialog class="viewer" id="viewer" aria-label="高清客片浏览器">
+      <div class="viewer-shell">
+        <div class="viewer-top">
+          <span id="viewer-category">真实客片</span>
+          <button class="icon-button" id="viewer-close" type="button" aria-label="关闭高清查看">×</button>
+        </div>
+        <div class="viewer-stage" id="viewer-stage">
+          <button class="viewer-arrow viewer-prev" id="viewer-prev" type="button" aria-label="上一张">‹</button>
+          <img id="viewer-image" alt="" />
+          <div class="viewer-loader" id="viewer-loader">高清加载中</div>
+          <button class="viewer-arrow viewer-next" id="viewer-next" type="button" aria-label="下一张">›</button>
+        </div>
+        <div class="viewer-bottom">
+          <div><strong id="viewer-code"></strong><span id="viewer-count"></span></div>
+          <button id="viewer-copy" type="button">喜欢这张 · 复制编号</button>
         </div>
       </div>
     </dialog>
 
-    <dialog class="style-sheet" id="style-sheet" aria-labelledby="style-sheet-title">
-      <div class="sheet-handle" aria-hidden="true"></div>
-      <div class="sheet-heading">
-        <div>
-          <p class="section-kicker">TELL US</p>
-          <h2 id="style-sheet-title">你喜欢哪种感觉？</h2>
-        </div>
-        <button class="icon-button" id="sheet-close" type="button" aria-label="关闭">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6l12 12M18 6 6 18" />
-          </svg>
-        </button>
-      </div>
-      <div class="style-options" id="style-options"></div>
-      <p class="sheet-tip">点击后会复制一句话，返回微信直接粘贴给我。</p>
-    </dialog>
-
-    <div class="dialog-scrim" id="dialog-scrim" aria-hidden="true"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-    <noscript>
-      <p class="noscript">请开启浏览器 JavaScript 后查看客片。</p>
-    </noscript>
-
+    <noscript><p class="noscript">请开启 JavaScript 后浏览全部 158 张客片。</p></noscript>
     <script src="app.js" defer></script>
   </body>
 </html>

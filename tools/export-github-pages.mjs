@@ -1,4 +1,4 @@
-import { copyFile, cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -119,6 +119,7 @@ for (const asset of ["review-example-portrait.webp", "review-example-bts.webp", 
   await copyFile(join(root, "apps/reviews/nfc/assets", asset), join(reviewNfcAssetsDir, asset));
 }
 
+await rm(join(docs, "projects/portfolio"), { recursive: true, force: true });
 await cp(join(root, "apps/portfolio"), join(docs, "projects/portfolio"), {
   recursive: true,
   force: true,

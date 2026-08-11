@@ -1,405 +1,249 @@
-const categories = [
-  { id: "all", label: "全部客片", hint: "先随便看看" },
-  { id: "business", label: "商务西装", hint: "利落、稳重、有质感" },
-  { id: "relaxed", label: "日常松弛", hint: "自然、轻松、不用端着" },
-  { id: "mood", label: "情绪光影", hint: "克制、安静、有故事感" },
-  { id: "profile", label: "个人形象", hint: "干净、可靠、适合展示自己" },
+const categoryConfig = [
+  { id: "all", label: "全部作品", description: "158 张精选样片" },
+  { id: "business", label: "商务质感", description: "利落、稳重、有质感" },
+  { id: "relaxed", label: "日常松弛", description: "自然、清爽、不用端着" },
+  { id: "mood", label: "情绪光影", description: "克制、安静、有故事感" },
+  { id: "creative", label: "创意主题", description: "鲜明、特别、有记忆点" },
 ];
 
-// 只需把真实照片按下列文件名放进 assets/photos 文件夹，不必修改这里。
-const galleryItems = [
-  { id: "NB-01", src: "assets/photos/photo-01.webp", fallback: "assets/photos/photo-01.jpg", category: "business", title: "商务西装" },
-  { id: "NB-02", src: "assets/photos/photo-02.webp", fallback: "assets/photos/photo-02.jpg", category: "business", title: "商务西装" },
-  { id: "NB-03", src: "assets/photos/photo-03.webp", fallback: "assets/photos/photo-03.jpg", category: "business", title: "商务西装" },
-  { id: "NB-04", src: "assets/photos/photo-04.webp", fallback: "assets/photos/photo-04.jpg", category: "relaxed", title: "日常松弛" },
-  { id: "NB-05", src: "assets/photos/photo-05.webp", fallback: "assets/photos/photo-05.jpg", category: "relaxed", title: "日常松弛" },
-  { id: "NB-06", src: "assets/photos/photo-06.webp", fallback: "assets/photos/photo-06.jpg", category: "relaxed", title: "日常松弛" },
-  { id: "NB-07", src: "assets/photos/photo-07.webp", fallback: "assets/photos/photo-07.jpg", category: "mood", title: "情绪光影" },
-  { id: "NB-08", src: "assets/photos/photo-08.webp", fallback: "assets/photos/photo-08.jpg", category: "mood", title: "情绪光影" },
-  { id: "NB-09", src: "assets/photos/photo-09.webp", fallback: "assets/photos/photo-09.jpg", category: "mood", title: "情绪光影" },
-  { id: "NB-10", src: "assets/photos/photo-10.webp", fallback: "assets/photos/photo-10.jpg", category: "profile", title: "个人形象" },
-  { id: "NB-11", src: "assets/photos/photo-11.webp", fallback: "assets/photos/photo-11.jpg", category: "profile", title: "个人形象" },
-  { id: "NB-12", src: "assets/photos/photo-12.webp", fallback: "assets/photos/photo-12.jpg", category: "profile", title: "个人形象" },
-];
+const categorySeries = {
+  business: new Set([3, 4, 6, 9, 11, 17, 18, 20, 21, 26, 30, 36, 50, 58, 70, 73, 79]),
+  relaxed: new Set([12, 19, 22, 23, 25, 27, 28, 29, 31, 32, 33, 34, 53, 55, 56, 57, 61, 69, 74, 76]),
+  mood: new Set([1, 5, 7, 13, 15, 35, 39, 41, 42, 43, 44, 45, 46, 47, 49, 54, 59, 60, 68, 71]),
+  creative: new Set([2, 8, 10, 14, 16, 24, 37, 38, 40, 48, 51, 52, 62, 63, 64, 65, 66, 67, 72, 75, 77, 78]),
+};
+
+const titleByCategory = Object.fromEntries(categoryConfig.map((item) => [item.id, item.label]));
+const featuredIds = [31, 77, 127, 111, 37, 107, 51, 81, 129, 11, 59, 93, 115, 139, 147, 157, 45, 49, 73, 99, 21, 65, 85, 119, 137, 13, 95, 105, 123, 143];
+
+function categoryForSeries(series) {
+  return Object.entries(categorySeries).find(([, numbers]) => numbers.has(series))?.[0] || "creative";
+}
+
+function itemFromId(id) {
+  const series = Math.ceil(id / 2);
+  const category = categoryForSeries(series);
+  const code = `NB-${String(id).padStart(3, "0")}`;
+  return {
+    id,
+    code,
+    series,
+    category,
+    title: titleByCategory[category],
+    thumb: `assets/photos/thumbs/photo-${String(id).padStart(3, "0")}.webp`,
+    full: `assets/photos/full/photo-${String(id).padStart(3, "0")}.jpg`,
+  };
+}
+
+const remainingA = Array.from({ length: 79 }, (_, index) => index * 2 + 1).filter((id) => !featuredIds.includes(id));
+const variantB = Array.from({ length: 79 }, (_, index) => index * 2 + 2);
+const galleryItems = [...featuredIds, ...remainingA, ...variantB].map(itemFromId);
 
 const filters = document.querySelector("#filters");
 const galleryGrid = document.querySelector("#gallery-grid");
+const gallerySummary = document.querySelector("#gallery-summary");
+const galleryProgress = document.querySelector("#gallery-progress");
+const loadMoreButton = document.querySelector("#load-more");
+const loadRemaining = document.querySelector("#load-remaining");
 const viewer = document.querySelector("#viewer");
 const viewerImage = document.querySelector("#viewer-image");
-const viewerTitle = document.querySelector("#viewer-title");
-const viewerCount = document.querySelector("#viewer-count");
+const viewerLoader = document.querySelector("#viewer-loader");
 const viewerStage = document.querySelector("#viewer-stage");
-const styleSheet = document.querySelector("#style-sheet");
-const styleOptions = document.querySelector("#style-options");
-const scrim = document.querySelector("#dialog-scrim");
+const viewerCategory = document.querySelector("#viewer-category");
+const viewerCode = document.querySelector("#viewer-code");
+const viewerCount = document.querySelector("#viewer-count");
 const toast = document.querySelector("#toast");
-const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+const PAGE_SIZE = 30;
 let activeCategory = "all";
-let visibleItems = [...galleryItems];
+let filteredItems = [...galleryItems];
+let visibleCount = PAGE_SIZE;
 let viewerIndex = 0;
 let toastTimer;
 let dragStartX = 0;
-let dragLastX = 0;
-let dragStartTime = 0;
-let isDragging = false;
+let dragDeltaX = 0;
+let dragging = false;
 
-function categoryById(id) {
-  return categories.find((category) => category.id === id) || categories[0];
-}
-
-function placeholderFor(item) {
-  const palettes = {
-    business: ["#2c3033", "#9b8a70"],
-    relaxed: ["#827c70", "#d0b98f"],
-    mood: ["#272727", "#695d58"],
-    profile: ["#526064", "#b4a68c"],
-  };
-  const [from, to] = palettes[item.category];
-  const filename = item.src.split("/").pop();
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop stop-color="${from}" />
-          <stop offset="1" stop-color="${to}" />
-        </linearGradient>
-        <radialGradient id="r" cx="72%" cy="15%" r="72%">
-          <stop stop-color="#fff" stop-opacity=".22" />
-          <stop offset="1" stop-color="#fff" stop-opacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="900" height="1200" fill="url(#g)" />
-      <rect width="900" height="1200" fill="url(#r)" />
-      <circle cx="450" cy="430" r="132" fill="#fff" opacity=".08" />
-      <path d="M245 950c18-215 93-330 205-330s187 115 205 330" fill="#fff" opacity=".08" />
-      <line x1="90" y1="1050" x2="810" y2="1050" stroke="#fff" stroke-opacity=".22" />
-      <text x="90" y="1104" fill="#fff" font-family="Arial, sans-serif" font-size="34" font-weight="700">${item.title}</text>
-      <text x="810" y="1104" fill="#fff" fill-opacity=".68" text-anchor="end" font-family="Arial, sans-serif" font-size="24">请替换 ${filename}</text>
-    </svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function heroPlaceholder() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop stop-color="#222422" />
-          <stop offset=".52" stop-color="#71695d" />
-          <stop offset="1" stop-color="#b49c77" />
-        </linearGradient>
-        <radialGradient id="r" cx="78%" cy="12%" r="78%">
-          <stop stop-color="#fff" stop-opacity=".28" />
-          <stop offset="1" stop-color="#fff" stop-opacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="1200" height="1600" fill="url(#g)" />
-      <rect width="1200" height="1600" fill="url(#r)" />
-      <path d="M780 0h420v1600H980z" fill="#fff" opacity=".06" />
-      <circle cx="650" cy="520" r="170" fill="#fff" opacity=".075" />
-      <path d="M330 1420c25-360 132-570 320-570s295 210 320 570" fill="#fff" opacity=".075" />
-    </svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function attachImageFallback(image, item) {
-  const useFallback = () => {
-    if (image.dataset.jpgFallback !== "true" && item.fallback) {
-      image.dataset.jpgFallback = "true";
-      image.src = item.fallback;
-      return;
-    }
-    if (image.dataset.fallback === "true") return;
-    image.dataset.fallback = "true";
-    image.src = placeholderFor(item);
-  };
-  image.addEventListener("error", useFallback);
-  if (image.complete && image.naturalWidth === 0) useFallback();
-}
-
-function attachHeroFallback(image, jpgFallback) {
-  const useFallback = () => {
-    if (image.dataset.jpgFallback !== "true") {
-      image.dataset.jpgFallback = "true";
-      image.src = jpgFallback;
-      return;
-    }
-    if (image.dataset.fallback === "true") return;
-    image.dataset.fallback = "true";
-    image.src = heroPlaceholder();
-  };
-  image.addEventListener("error", useFallback);
-  if (image.complete && image.naturalWidth === 0) useFallback();
+function categoryCount(categoryId) {
+  return categoryId === "all" ? galleryItems.length : galleryItems.filter((item) => item.category === categoryId).length;
 }
 
 function renderFilters() {
-  filters.replaceChildren(
-    ...categories.map((category) => {
-      const button = document.createElement("button");
-      button.className = "filter-button";
-      button.type = "button";
-      button.textContent = category.label;
-      button.dataset.category = category.id;
-      button.setAttribute("aria-pressed", String(activeCategory === category.id));
-      button.addEventListener("click", () => setCategory(category.id));
-      return button;
-    }),
-  );
+  filters.replaceChildren(...categoryConfig.map((category) => {
+    const button = document.createElement("button");
+    button.className = "filter-button";
+    button.type = "button";
+    button.dataset.category = category.id;
+    button.setAttribute("aria-pressed", String(activeCategory === category.id));
+    button.innerHTML = `${category.label}<span>${categoryCount(category.id)}</span>`;
+    button.addEventListener("click", () => setCategory(category.id));
+    return button;
+  }));
 }
 
-function createGalleryCard(item, sourceIndex) {
+function createCard(item, index) {
   const article = document.createElement("article");
   article.className = "gallery-card";
 
-  const photoButton = document.createElement("button");
-  photoButton.className = "photo-button";
-  photoButton.type = "button";
-  photoButton.setAttribute("aria-label", `全屏查看${item.title}客片 ${item.id}`);
-  photoButton.addEventListener("click", () => openViewer(sourceIndex));
+  const button = document.createElement("button");
+  button.className = "photo-button";
+  button.type = "button";
+  button.setAttribute("aria-label", `查看${item.title}高清样片，编号${item.code}`);
+  button.addEventListener("click", () => openViewer(index));
 
   const image = document.createElement("img");
-  image.src = item.src;
-  image.alt = `${item.title}真实客片，编号${item.id}`;
-  image.width = 1080;
-  image.height = 1440;
-  image.loading = sourceIndex < 2 ? "eager" : "lazy";
+  image.alt = `${item.title}男士摄影样片，编号${item.code}`;
+  image.width = 480;
+  image.height = 640;
+  image.loading = index < 6 ? "eager" : "lazy";
   image.decoding = "async";
-  attachImageFallback(image, item);
-  photoButton.append(image);
+  image.dataset.loading = "true";
+  image.addEventListener("load", () => { image.dataset.loading = "false"; }, { once: true });
+  image.addEventListener("error", () => {
+    if (image.dataset.fallback !== "true") {
+      image.dataset.fallback = "true";
+      image.src = item.full;
+    }
+  });
+  image.src = item.thumb;
 
-  const meta = document.createElement("div");
-  meta.className = "photo-meta";
-  const text = document.createElement("div");
-  const title = document.createElement("strong");
-  title.textContent = item.title;
-  const id = document.createElement("span");
-  id.textContent = item.id;
-  text.append(title, id);
-
-  const select = document.createElement("button");
-  select.className = "select-photo";
-  select.type = "button";
-  select.textContent = "喜欢这张";
-  select.addEventListener("click", () => copyPhotoMessage(item));
-  meta.append(text, select);
-  article.append(photoButton, meta);
+  const code = document.createElement("span");
+  code.className = "photo-code";
+  code.textContent = item.code;
+  button.append(image, code);
+  article.append(button);
   return article;
 }
 
 function renderGallery() {
-  visibleItems =
-    activeCategory === "all"
-      ? [...galleryItems]
-      : galleryItems.filter((item) => item.category === activeCategory);
-  galleryGrid.replaceChildren(...visibleItems.map(createGalleryCard));
+  const shownItems = filteredItems.slice(0, visibleCount);
+  galleryGrid.replaceChildren(...shownItems.map(createCard));
+  const category = categoryConfig.find((item) => item.id === activeCategory) || categoryConfig[0];
+  gallerySummary.textContent = `${category.label} · ${category.description}`;
+  galleryProgress.textContent = `显示 ${shownItems.length} / ${filteredItems.length}`;
+  const remaining = Math.max(0, filteredItems.length - shownItems.length);
+  loadRemaining.textContent = remaining ? `还有 ${remaining} 张` : "";
+  loadMoreButton.hidden = remaining === 0;
 }
 
 function setCategory(categoryId) {
   activeCategory = categoryId;
+  visibleCount = PAGE_SIZE;
+  filteredItems = categoryId === "all" ? [...galleryItems] : galleryItems.filter((item) => item.category === categoryId);
   renderFilters();
   renderGallery();
 }
 
-function setViewerContent(index) {
-  viewerIndex = (index + visibleItems.length) % visibleItems.length;
-  const item = visibleItems[viewerIndex];
-  viewerImage.dataset.fallback = "false";
-  viewerImage.dataset.jpgFallback = "false";
-  viewerImage.src = item.src;
-  viewerImage.alt = `${item.title}真实客片，编号${item.id}`;
-  viewerTitle.textContent = `${item.title} · ${item.id}`;
-  viewerCount.textContent = `${viewerIndex + 1} / ${visibleItems.length}`;
+function loadMore() {
+  visibleCount = Math.min(visibleCount + PAGE_SIZE, filteredItems.length);
+  renderGallery();
+}
+
+function setViewer(index) {
+  viewerIndex = (index + filteredItems.length) % filteredItems.length;
+  const item = filteredItems[viewerIndex];
+  viewerImage.dataset.loading = "true";
+  viewerLoader.hidden = false;
+  viewerImage.alt = `${item.title}高清样片，编号${item.code}`;
+  viewerImage.src = item.full;
+  viewerCategory.textContent = `${item.title} · NANBO PORTRAIT`;
+  viewerCode.textContent = item.code;
+  viewerCount.textContent = `${viewerIndex + 1} / ${filteredItems.length}`;
 }
 
 function openViewer(index) {
-  setViewerContent(index);
+  setViewer(index);
   if (!viewer.open) viewer.showModal();
-  document.body.style.overflow = "hidden";
+  document.body.classList.add("viewer-open");
 }
 
 function closeViewer() {
   if (viewer.open) viewer.close();
-  document.body.style.overflow = "";
+  document.body.classList.remove("viewer-open");
 }
 
 function moveViewer(direction) {
-  if (visibleItems.length < 2) return;
-  const nextIndex = viewerIndex + direction;
-  if (prefersReducedMotion.matches || !viewerImage.animate) {
-    setViewerContent(nextIndex);
-    return;
-  }
-
-  const outX = direction > 0 ? "-16%" : "16%";
-  const enterX = direction > 0 ? "16%" : "-16%";
-  const outgoing = viewerImage.animate(
-    [
-      { transform: `translateX(${dragLastX || 0}px)`, opacity: 1 },
-      { transform: `translateX(${outX})`, opacity: 0 },
-    ],
-    { duration: 170, easing: "ease-out", fill: "forwards" },
-  );
-  outgoing.finished.then(() => {
-    setViewerContent(nextIndex);
-    viewerImage.animate(
-      [
-        { transform: `translateX(${enterX})`, opacity: 0 },
-        { transform: "translateX(0)", opacity: 1 },
-      ],
-      { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" },
-    );
-  });
-}
-
-function resetDraggedImage() {
-  if (prefersReducedMotion.matches || !viewerImage.animate) {
-    viewerImage.style.transform = "";
-    viewerImage.style.opacity = "";
-    return;
-  }
-  viewerImage
-    .animate(
-      [
-        { transform: `translateX(${dragLastX}px)`, opacity: Math.max(0.65, 1 - Math.abs(dragLastX) / 900) },
-        { transform: "translateX(0)", opacity: 1 },
-      ],
-      { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" },
-    )
-    .finished.finally(() => {
-      viewerImage.style.transform = "";
-      viewerImage.style.opacity = "";
-    });
-}
-
-function onDragStart(event) {
-  if (event.pointerType === "mouse" && event.button !== 0) return;
-  isDragging = true;
-  dragStartX = event.clientX;
-  dragLastX = 0;
-  dragStartTime = performance.now();
-  viewerStage.setPointerCapture(event.pointerId);
-}
-
-function onDragMove(event) {
-  if (!isDragging) return;
-  dragLastX = event.clientX - dragStartX;
-  const resistance = 1 / (1 + Math.abs(dragLastX) / 1100);
-  const translated = dragLastX * resistance;
-  viewerImage.style.transform = `translateX(${translated}px)`;
-  viewerImage.style.opacity = String(Math.max(0.65, 1 - Math.abs(translated) / 900));
-}
-
-function onDragEnd(event) {
-  if (!isDragging) return;
-  isDragging = false;
-  const elapsed = Math.max(1, performance.now() - dragStartTime);
-  const velocity = dragLastX / elapsed;
-  viewerStage.releasePointerCapture?.(event.pointerId);
-  viewerImage.style.transform = "";
-  viewerImage.style.opacity = "";
-
-  if (Math.abs(dragLastX) > 64 || Math.abs(velocity) > 0.45) {
-    moveViewer(dragLastX < 0 ? 1 : -1);
-  } else {
-    resetDraggedImage();
-  }
-}
-
-function openStyleSheet() {
-  if (!styleSheet.open) styleSheet.showModal();
-  scrim.classList.add("is-visible");
-}
-
-function closeStyleSheet() {
-  if (styleSheet.open) styleSheet.close();
-  scrim.classList.remove("is-visible");
-}
-
-function renderStyleOptions() {
-  styleOptions.replaceChildren(
-    ...categories.slice(1).map((category) => {
-      const button = document.createElement("button");
-      button.className = "style-option";
-      button.type = "button";
-      button.innerHTML = `<span><strong>${category.label}</strong><small>${category.hint}</small></span><em>复制话术</em>`;
-      button.addEventListener("click", () => copyStyleMessage(category));
-      return button;
-    }),
-  );
-}
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.append(textarea);
-    textarea.select();
-    document.execCommand("copy");
-    textarea.remove();
-  }
-}
-
-async function copyStyleMessage(category) {
-  await copyText(`你好，我看了客片，比较喜欢「${category.label}」这种感觉，想了解一下怎么拍～`);
-  closeStyleSheet();
-  showToast("已复制，返回微信粘贴给我就好");
-}
-
-async function copyPhotoMessage(item) {
-  await copyText(`你好，我喜欢客片 ${item.id} 这张「${item.title}」的感觉，想参考这个方向拍～`);
-  showToast(`已复制 ${item.id}，返回微信粘贴给我`);
+  setViewer(viewerIndex + direction);
 }
 
 function showToast(message) {
-  clearTimeout(toastTimer);
+  window.clearTimeout(toastTimer);
   toast.textContent = message;
   toast.classList.add("is-visible");
-  toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 2400);
+  toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2200);
 }
 
-document.querySelector("#year").textContent = new Date().getFullYear();
-document.querySelector("#style-cta").addEventListener("click", openStyleSheet);
-document.querySelector("#sheet-close").addEventListener("click", closeStyleSheet);
+async function copyText(text, successMessage) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.append(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+  }
+  showToast(successMessage);
+}
+
+function copyCurrentPhoto() {
+  const item = filteredItems[viewerIndex];
+  copyText(`你好，我喜欢南铂客片 ${item.code} 这张的感觉，想参考这个方向拍。`, `已复制 ${item.code}，回微信粘贴即可`);
+}
+
+viewerImage.addEventListener("load", () => {
+  viewerImage.dataset.loading = "false";
+  viewerLoader.hidden = true;
+});
+
+viewerImage.addEventListener("error", () => {
+  viewerLoader.textContent = "图片暂时加载失败，请切换下一张";
+});
+
+viewerStage.addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "mouse" && event.button !== 0) return;
+  dragging = true;
+  dragStartX = event.clientX;
+  dragDeltaX = 0;
+  viewerStage.setPointerCapture?.(event.pointerId);
+});
+
+viewerStage.addEventListener("pointermove", (event) => {
+  if (!dragging) return;
+  dragDeltaX = event.clientX - dragStartX;
+  viewerImage.style.transform = `translateX(${dragDeltaX * .55}px)`;
+  viewerImage.style.opacity = String(Math.max(.55, 1 - Math.abs(dragDeltaX) / 500));
+});
+
+function finishDrag(event) {
+  if (!dragging) return;
+  dragging = false;
+  viewerStage.releasePointerCapture?.(event.pointerId);
+  viewerImage.style.transform = "";
+  viewerImage.style.opacity = "";
+  if (Math.abs(dragDeltaX) > 55) moveViewer(dragDeltaX < 0 ? 1 : -1);
+}
+
+viewerStage.addEventListener("pointerup", finishDrag);
+viewerStage.addEventListener("pointercancel", finishDrag);
 document.querySelector("#viewer-close").addEventListener("click", closeViewer);
 document.querySelector("#viewer-prev").addEventListener("click", () => moveViewer(-1));
 document.querySelector("#viewer-next").addEventListener("click", () => moveViewer(1));
-document.querySelector("#viewer-copy").addEventListener("click", () => copyPhotoMessage(visibleItems[viewerIndex]));
-scrim.addEventListener("click", closeStyleSheet);
-viewer.addEventListener("click", (event) => {
-  if (event.target === viewer) closeViewer();
-});
-styleSheet.addEventListener("click", (event) => {
-  if (event.target === styleSheet) closeStyleSheet();
-});
-document.addEventListener("keydown", (event) => {
+document.querySelector("#viewer-copy").addEventListener("click", copyCurrentPhoto);
+document.querySelector("#copy-page-message").addEventListener("click", () => copyText("你好，我看了南铂摄影的客片，想咨询男士写真。我再把喜欢的照片编号发给你。", "咨询话术已复制，回微信粘贴即可"));
+loadMoreButton.addEventListener("click", loadMore);
+viewer.addEventListener("click", (event) => { if (event.target === viewer) closeViewer(); });
+viewer.addEventListener("cancel", (event) => { event.preventDefault(); closeViewer(); });
+window.addEventListener("keydown", (event) => {
   if (!viewer.open) return;
   if (event.key === "ArrowLeft") moveViewer(-1);
   if (event.key === "ArrowRight") moveViewer(1);
   if (event.key === "Escape") closeViewer();
 });
-viewerStage.addEventListener("pointerdown", onDragStart);
-viewerStage.addEventListener("pointermove", onDragMove);
-viewerStage.addEventListener("pointerup", onDragEnd);
-viewerStage.addEventListener("pointercancel", onDragEnd);
 
-attachHeroFallback(document.querySelector("#hero-image"), galleryItems[0].fallback);
-viewerImage.addEventListener("error", () => {
-  const item = visibleItems[viewerIndex];
-  if (viewerImage.dataset.jpgFallback !== "true") {
-    viewerImage.dataset.jpgFallback = "true";
-    viewerImage.src = item.fallback;
-    return;
-  }
-  if (viewerImage.dataset.fallback === "true") return;
-  viewerImage.dataset.fallback = "true";
-  viewerImage.src = placeholderFor(item);
-});
+document.querySelector("#year").textContent = new Date().getFullYear();
 renderFilters();
 renderGallery();
-renderStyleOptions();

@@ -155,11 +155,12 @@
             <label class="settings-field"><span>补充要求 <small>选填</small></span><textarea id="additional-note" maxlength="80" rows="2" placeholder="例如：希望自然一点，不要太严肃"></textarea></label>
             <button class="settings-done" id="settings-done" type="button">完成设置</button>
           </section>
-          <div class="selection-card-wrap"><img id="selection-card" alt="客户喜欢的南铂拍摄风格图文需求卡" /><span id="selection-generating">正在生成图文需求…</span></div>
+          <div class="selection-card-wrap"><img id="selection-card" alt="客户喜欢的南铂拍摄风格图文需求卡" draggable="false" /><span id="selection-generating">正在生成图文需求…</span></div>
+          <div class="longpress-guide"><span aria-hidden="true">↓</span><div><strong>长按需求图保存到手机</strong><small>请直接长按上方图片，不会选中文字</small></div></div>
+          <div class="selection-edit-hint"><span>首选参考会在需求卡中重点放大</span><strong>轻点下方小图可更换首选</strong></div>
           <div class="selected-list" id="selected-list"></div>
           <details class="selection-text-details"><summary>查看将复制的文字</summary><p class="selection-summary" id="selection-summary"></p></details>
           <div class="selection-actions"><button class="copy-request" id="copy-request" type="button">复制图片＋文字</button></div>
-          <div class="longpress-guide"><span aria-hidden="true">↓</span><div><strong>长按上方需求图即可保存</strong><small>无需截图，不会打开新的下载页面</small></div></div>
           <p class="selection-tip">若企业微信限制图文剪贴板，会自动复制文字；需求图可长按保存后一起发送。</p>
           <button class="clear-selection" id="clear-selection" type="button">清空重新选择</button>
         </div>

@@ -116,13 +116,24 @@ function readFavorites() {
 }
 
 const favoriteIds = readFavorites();
+let primaryFavoriteId = Number(localStorage.getItem("nanbo-primary-favorite")) || 0;
+
+function ensurePrimaryFavorite() {
+  if (!favoriteIds.has(primaryFavoriteId)) primaryFavoriteId = [...favoriteIds][0] || 0;
+  if (primaryFavoriteId) localStorage.setItem("nanbo-primary-favorite", String(primaryFavoriteId));
+  else localStorage.removeItem("nanbo-primary-favorite");
+}
 
 function selectedItems() {
-  return [...favoriteIds].map((id) => itemById.get(id)).filter(Boolean);
+  ensurePrimaryFavorite();
+  return [...favoriteIds]
+    .sort((a, b) => Number(b === primaryFavoriteId) - Number(a === primaryFavoriteId))
+    .map((id) => itemById.get(id))
+    .filter(Boolean);
 }
 
 function briefSignature(items = selectedItems()) {
-  return JSON.stringify({ ids: items.map((item) => item.id), ...briefSettings });
+  return JSON.stringify({ ids: items.map((item) => item.id), primaryFavoriteId, ...briefSettings });
 }
 
 function hydrateSettingsForm() {
@@ -259,6 +270,7 @@ function updateLikeButton(button, id) {
 }
 
 function updateSelectionUi() {
+  ensurePrimaryFavorite();
   const count = favoriteIds.size;
   selectionCount.textContent = String(count);
   navFavoriteCount.textContent = String(count);
@@ -273,13 +285,29 @@ function updateSelectionUi() {
 function toggleFavorite(id) {
   const wasSelected = favoriteIds.has(id);
   if (wasSelected) favoriteIds.delete(id);
-  else favoriteIds.add(id);
+  else {
+    favoriteIds.add(id);
+    if (!primaryFavoriteId) primaryFavoriteId = id;
+  }
+  ensurePrimaryFavorite();
   lastCopiedSignature = "";
   resetCopyButton();
   navigator.vibrate?.(wasSelected ? 4 : 8);
   updateSelectionUi();
   showToast(wasSelected ? "已取消喜欢" : `已加入喜欢 · 共 ${favoriteIds.size} 张`);
   if (selectionSheet.open) renderSelectionSheet();
+}
+
+function setPrimaryFavorite(id) {
+  if (!favoriteIds.has(id) || primaryFavoriteId === id) return;
+  primaryFavoriteId = id;
+  localStorage.setItem("nanbo-primary-favorite", String(id));
+  selectionCardBlob = null;
+  lastCopiedSignature = "";
+  resetCopyButton();
+  navigator.vibrate?.(8);
+  renderSelectionSheet();
+  showToast(`${itemById.get(id)?.code || "这张照片"} 已设为首选参考`);
 }
 
 function setViewer(index) {
@@ -348,6 +376,7 @@ function requestText(items = selectedItems()) {
   const lines = [
     briefSettings.name ? `你好，我是${briefSettings.name}，这是我喜欢的南铂客片方向：` : "你好，这是我喜欢的南铂客片方向：",
     `偏好风格：${styles.join("、")}`,
+    `首选参考：${items[0].code} · ${items[0].title}`,
     `参考编号：${codes}`,
   ];
   if (briefSettings.focus.length) lines.push(`重点参考：${briefSettings.focus.join("、")}`);
@@ -360,17 +389,32 @@ function renderSelectedList(items) {
   selectedList.replaceChildren(...items.map((item) => {
     const chip = document.createElement("div");
     chip.className = "selected-chip";
+    chip.classList.toggle("is-primary", item.id === primaryFavoriteId);
+    const choose = document.createElement("button");
+    choose.className = "selected-chip-select";
+    choose.type = "button";
+    choose.setAttribute("aria-label", `${item.id === primaryFavoriteId ? "当前首选" : "设为首选"}${item.code}`);
+    choose.addEventListener("click", () => setPrimaryFavorite(item.id));
     const image = document.createElement("img");
     image.src = item.thumb;
     image.alt = `${item.code} ${item.title}`;
+    image.draggable = false;
+    choose.append(image);
+    if (item.id === primaryFavoriteId) {
+      const primaryBadge = document.createElement("em");
+      primaryBadge.textContent = "首选";
+      choose.append(primaryBadge);
+    }
     const label = document.createElement("span");
+    label.className = "selected-chip-label";
     label.textContent = `${item.code} · ${item.title}`;
     const remove = document.createElement("button");
+    remove.className = "selected-chip-remove";
     remove.type = "button";
     remove.textContent = "×";
     remove.setAttribute("aria-label", `移除${item.code}`);
     remove.addEventListener("click", () => toggleFavorite(item.id));
-    chip.append(image, label, remove);
+    chip.append(choose, label, remove);
     return chip;
   }));
 }
@@ -438,19 +482,57 @@ function drawImageCover(context, image, x, y, width, height) {
   context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
 }
 
+function roundedRectPath(context, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.lineTo(x + width - r, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + r);
+  context.lineTo(x + width, y + height - r);
+  context.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  context.lineTo(x + r, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - r);
+  context.lineTo(x, y + r);
+  context.quadraticCurveTo(x, y, x + r, y);
+  context.closePath();
+}
+
+function drawImageCoverRounded(context, image, layout, radius = 18) {
+  context.save();
+  roundedRectPath(context, layout.x, layout.y, layout.width, layout.height, radius);
+  context.clip();
+  drawImageCover(context, image, layout.x, layout.y, layout.width, layout.height);
+  context.restore();
+}
+
+function setFittedFont(context, text, maxWidth, startSize, minSize, weight = 600) {
+  let size = startSize;
+  do {
+    context.font = `${weight} ${size}px -apple-system, "PingFang SC", sans-serif`;
+    if (context.measureText(text).width <= maxWidth) break;
+    size -= 1;
+  } while (size > minSize);
+  return size;
+}
+
 function photoLayouts(count) {
-  if (count === 1) return [{ x: 210, y: 190, width: 660, height: 880 }];
-  if (count === 2) return [65, 555].map((x) => ({ x, y: 235, width: 460, height: 613 }));
-  if (count === 3) return [55, 375, 695].map((x) => ({ x, y: 255, width: 300, height: 400 }));
+  if (count === 1) return [{ x: 170, y: 270, width: 740, height: 730, primary: true }];
+  if (count === 2) return [60, 555].map((x, index) => ({ x, y: 280, width: 465, height: 700, primary: index === 0 }));
+  if (count === 3) return [
+    { x: 60, y: 280, width: 540, height: 720, primary: true },
+    { x: 625, y: 280, width: 395, height: 345 },
+    { x: 625, y: 655, width: 395, height: 345 },
+  ];
   if (count === 4) return [
-    { x: 190, y: 180, width: 330, height: 440 }, { x: 560, y: 180, width: 330, height: 440 },
-    { x: 190, y: 650, width: 330, height: 440 }, { x: 560, y: 650, width: 330, height: 440 },
+    { x: 60, y: 280, width: 465, height: 340, primary: true }, { x: 555, y: 280, width: 465, height: 340 },
+    { x: 60, y: 650, width: 465, height: 350 }, { x: 555, y: 650, width: 465, height: 350 },
   ];
   return Array.from({ length: count }, (_, index) => ({
-    x: 55 + (index % 3) * 320,
-    y: 190 + Math.floor(index / 3) * 425,
-    width: 300,
-    height: 400,
+    x: 55 + (index % 3) * 325,
+    y: 280 + Math.floor(index / 3) * 365,
+    width: 310,
+    height: 335,
+    primary: index === 0,
   }));
 }
 
@@ -468,57 +550,117 @@ async function generateSelectionCard(items) {
     canvas.width = 1080;
     canvas.height = 1440;
     const context = canvas.getContext("2d");
-    context.fillStyle = "#f5f2eb";
+    context.fillStyle = "#f3f0e9";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    context.fillStyle = "rgba(162,127,72,.055)";
-    context.font = "italic 520px Georgia, serif";
-    context.fillText("N", 690, 1415);
-    context.fillStyle = "#a27f48";
-    context.fillRect(55, 42, 4, 32);
+    context.strokeStyle = "#171714";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(92, 82, 31, 0, Math.PI * 2);
+    context.stroke();
     context.fillStyle = "#171714";
-    context.font = '600 28px -apple-system, "PingFang SC", sans-serif';
-    context.fillText("NANBO PORTRAIT", 76, 69);
-    context.font = '500 56px -apple-system, "PingFang SC", sans-serif';
-    context.fillText("我喜欢的拍摄风格", 55, 135);
-    context.font = '400 24px -apple-system, "PingFang SC", sans-serif';
+    context.font = "italic 31px Georgia, serif";
+    context.textAlign = "center";
+    context.fillText("N", 92, 93);
+    context.textAlign = "left";
+    context.font = '650 25px -apple-system, "PingFang SC", sans-serif';
+    context.fillText("南铂摄影", 145, 75);
+    context.fillStyle = "#7a7770";
+    context.font = '600 16px -apple-system, "PingFang SC", sans-serif';
+    context.fillText("NANBO PORTRAIT", 145, 101);
+    context.textAlign = "right";
+    context.fillStyle = "#a27f48";
+    context.font = '650 17px -apple-system, "PingFang SC", sans-serif';
+    context.fillText("MY PORTRAIT BRIEF / 2026", 1020, 88);
+    context.textAlign = "left";
+    context.fillStyle = "#171714";
+    context.font = '520 58px -apple-system, "PingFang SC", sans-serif';
+    context.fillText("我喜欢的拍摄风格", 60, 185);
+    context.font = '400 22px -apple-system, "PingFang SC", sans-serif';
     context.fillStyle = "#77756f";
     const customerPrefix = briefSettings.name ? `${briefSettings.name} · ` : "";
-    context.fillText(`${customerPrefix}已选择 ${items.length} 张参考照片 · 请化妆师与摄影师参考`, 55, 175);
+    context.fillText(`${customerPrefix}已选择 ${items.length} 张 · 首选 ${visibleItems[0].code} · 请化妆师与摄影师重点参考`, 60, 230);
 
     const layouts = photoLayouts(visibleItems.length);
     images.forEach((image, index) => {
       const layout = layouts[index];
       context.save();
-      context.shadowColor = "rgba(35,29,20,.16)";
-      context.shadowBlur = 18;
-      context.shadowOffsetY = 7;
-      drawImageCover(context, image, layout.x, layout.y, layout.width, layout.height);
+      context.shadowColor = "rgba(30,27,20,.2)";
+      context.shadowBlur = layout.primary ? 28 : 15;
+      context.shadowOffsetY = layout.primary ? 12 : 7;
+      context.fillStyle = "#fff";
+      roundedRectPath(context, layout.x, layout.y, layout.width, layout.height, 18);
+      context.fill();
       context.restore();
-      context.fillStyle = "rgba(0,0,0,.56)";
-      context.fillRect(layout.x, layout.y + layout.height - 48, layout.width, 48);
+      drawImageCoverRounded(context, image, layout);
+
+      context.save();
+      roundedRectPath(context, layout.x, layout.y, layout.width, layout.height, 18);
+      context.clip();
+      const labelGradient = context.createLinearGradient(0, layout.y + layout.height - 100, 0, layout.y + layout.height);
+      labelGradient.addColorStop(0, "rgba(0,0,0,0)");
+      labelGradient.addColorStop(1, "rgba(0,0,0,.82)");
+      context.fillStyle = labelGradient;
+      context.fillRect(layout.x, layout.y + layout.height - 110, layout.width, 110);
+      context.restore();
+
+      if (layout.primary) {
+        context.strokeStyle = "#b99459";
+        context.lineWidth = 7;
+        roundedRectPath(context, layout.x, layout.y, layout.width, layout.height, 18);
+        context.stroke();
+        context.fillStyle = "#b99459";
+        roundedRectPath(context, layout.x + 16, layout.y + 16, 132, 40, 20);
+        context.fill();
+        context.fillStyle = "#171714";
+        context.font = '700 18px -apple-system, "PingFang SC", sans-serif';
+        context.fillText("首选参考  01", layout.x + 32, layout.y + 43);
+      }
+
       context.fillStyle = "white";
-      context.font = '500 21px Georgia, -apple-system, "PingFang SC", sans-serif';
-      context.fillText(`${visibleItems[index].code} · ${visibleItems[index].title}`, layout.x + 14, layout.y + layout.height - 17);
+      setFittedFont(context, `${visibleItems[index].code} · ${visibleItems[index].title}`, layout.width - 32, layout.primary ? 23 : 20, 15, 600);
+      context.fillText(`${visibleItems[index].code} · ${visibleItems[index].title}`, layout.x + 16, layout.y + layout.height - 22);
     });
 
     const styles = [...new Set(items.map((item) => item.title))];
-    const footerY = visibleItems.length === 4 ? 1140 : visibleItems.length <= 3 ? 1120 : 1095;
-    context.fillStyle = "#171714";
-    context.font = '600 26px -apple-system, "PingFang SC", sans-serif';
-    context.fillText(`偏好风格：${styles.join(" · ")}`, 55, footerY);
-    context.fillStyle = "#6e6c66";
-    context.font = '400 21px -apple-system, "PingFang SC", sans-serif';
-    const codes = items.map((item) => item.code).join("  ");
-    context.fillText(`参考编号：${codes.slice(0, 74)}${codes.length > 74 ? "…" : ""}`, 55, footerY + 45);
-    const focusText = briefSettings.focus.length ? briefSettings.focus.join("、") : "以上照片的整体感觉";
-    context.fillText(`重点参考：${focusText}${items.length > 6 ? `（另选 ${items.length - 6} 张）` : ""}`, 55, footerY + 88);
-    if (briefSettings.note) context.fillText(`补充要求：${briefSettings.note.slice(0, 42)}`, 55, footerY + 128);
+    context.fillStyle = "rgba(255,253,248,.96)";
+    context.strokeStyle = "rgba(23,23,20,.12)";
+    context.lineWidth = 2;
+    roundedRectPath(context, 60, 1040, 960, 270, 24);
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = "rgba(162,127,72,.08)";
+    context.font = "italic 240px Georgia, serif";
+    context.fillText("01", 790, 1295);
     context.fillStyle = "#a27f48";
-    context.fillRect(55, 1370, 970, 3);
+    context.font = '700 18px -apple-system, "PingFang SC", sans-serif';
+    context.fillText(`首选参考  ${visibleItems[0].code} · ${visibleItems[0].title}`, 88, 1087);
+
+    const stylesText = `偏好风格  ${styles.join(" · ")}`;
+    context.fillStyle = "#171714";
+    setFittedFont(context, stylesText, 850, 36, 27, 650);
+    context.fillText(stylesText, 88, 1145);
+    context.fillStyle = "#6e6c66";
+    context.font = '450 22px -apple-system, "PingFang SC", sans-serif';
+    const codes = items.map((item) => item.code).join("  ");
+    context.fillText(`参考编号  ${codes.slice(0, 65)}${codes.length > 65 ? "…" : ""}`, 88, 1195);
+    const focusText = briefSettings.focus.length ? briefSettings.focus.join("、") : "以上照片的整体感觉";
+    context.fillText(`拍摄重点  ${focusText}${items.length > 6 ? `（另选 ${items.length - 6} 张）` : ""}`, 88, 1240);
+    if (briefSettings.note) {
+      context.fillStyle = "#4f4d47";
+      setFittedFont(context, `补充要求  ${briefSettings.note.slice(0, 42)}`, 850, 22, 17, 500);
+      context.fillText(`补充要求  ${briefSettings.note.slice(0, 42)}`, 88, 1282);
+    }
+
+    context.fillStyle = "#a27f48";
+    context.fillRect(60, 1362, 960, 3);
     context.fillStyle = "#77756f";
     context.font = '500 18px -apple-system, "PingFang SC", sans-serif';
-    context.fillText("南铂摄影 · 男士写真 · MY PORTRAIT BRIEF", 55, 1410);
+    context.fillText("南铂摄影 · 男士写真 · MY PORTRAIT BRIEF", 60, 1403);
+    context.textAlign = "right";
+    context.fillText("真实客片 · 结合本人条件与现场沟通调整", 1020, 1403);
+    context.textAlign = "left";
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob || currentGeneration !== generationId) return null;

@@ -111,8 +111,11 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .load-more[hidden] { display: none; }
 
 .prep { padding: 4.8rem 0 5rem; scroll-margin-top: 4rem; color: white; background: #10110f; }
+.prep .section-title { width: min(calc(100% - 2rem), 30rem); justify-content: center; margin: 0 auto; padding: 0; text-align: center; }
+.prep .section-title > div { display: grid; justify-items: center; }
+.prep .section-title h2 { max-width: 10em; margin-inline: auto; }
 .section-title.inverse p { color: var(--green); }
-.prep-steps { margin: 2.2rem 1rem 0; padding: 0; border-top: 1px solid rgba(255,255,255,.13); list-style: none; }
+.prep-steps { width: min(calc(100% - 2rem), 30rem); margin: 2.4rem auto 0; padding: 0; border-top: 1px solid rgba(255,255,255,.13); list-style: none; }
 .prep-steps li { display: grid; grid-template-columns: 3rem 1fr; gap: .8rem; padding: 1.3rem 0; border-bottom: 1px solid rgba(255,255,255,.13); }
 .prep-steps li > span { color: var(--green); font-family: Georgia, serif; font-size: .72rem; }
 .prep-steps div { display: grid; gap: .4rem; }

@@ -1,20 +1,21 @@
 const categoryConfig = [
   { id: "all", label: "全部作品", description: "158 张精选样片" },
   { id: "business", label: "商务质感", description: "利落、稳重、有质感" },
-  { id: "relaxed", label: "日常松弛", description: "自然、清爽、不用端着" },
+  { id: "relaxed", label: "自然松弛", description: "清爽、自然、不用端着" },
   { id: "mood", label: "情绪光影", description: "克制、安静、有故事感" },
   { id: "creative", label: "创意主题", description: "鲜明、特别、有记忆点" },
 ];
 
+// 每个数字代表原始双图系列，确保同一组照片归入同一种风格。
 const categorySeries = {
-  business: new Set([3, 4, 6, 9, 11, 17, 18, 20, 21, 26, 30, 36, 50, 58, 70, 73, 79]),
-  relaxed: new Set([12, 19, 22, 23, 25, 27, 28, 29, 31, 32, 33, 34, 53, 55, 56, 57, 61, 69, 74, 76]),
-  mood: new Set([1, 5, 7, 13, 15, 35, 39, 41, 42, 43, 44, 45, 46, 47, 49, 54, 59, 60, 68, 71]),
-  creative: new Set([2, 8, 10, 14, 16, 24, 37, 38, 40, 48, 51, 52, 62, 63, 64, 65, 66, 67, 72, 75, 77, 78]),
+  business: new Set([3, 9, 11, 17, 18, 20, 21, 26, 36, 38, 45, 50, 58, 69, 70]),
+  relaxed: new Set([12, 16, 19, 22, 23, 25, 27, 28, 30, 31, 32, 33, 41, 53, 55, 61, 74, 76]),
+  mood: new Set([6, 7, 13, 15, 29, 34, 35, 39, 42, 43, 44, 46, 47, 49, 54, 59, 68, 71, 73, 79]),
+  creative: new Set([1, 2, 4, 5, 8, 10, 14, 24, 37, 40, 48, 51, 52, 56, 57, 60, 62, 63, 64, 65, 66, 67, 72, 75, 77, 78]),
 };
 
 const titleByCategory = Object.fromEntries(categoryConfig.map((item) => [item.id, item.label]));
-const featuredIds = [31, 77, 127, 111, 37, 107, 51, 81, 129, 11, 59, 93, 115, 139, 147, 157, 45, 49, 73, 99, 21, 65, 85, 119, 137, 13, 95, 105, 123, 143];
+const featuredIds = [137, 37, 115, 127, 111, 77, 107, 51, 81, 129, 11, 59, 93, 139, 147, 157, 45, 49, 73, 99, 21, 65, 85, 119, 13, 95, 105, 123, 143, 31];
 
 function categoryForSeries(series) {
   return Object.entries(categorySeries).find(([, numbers]) => numbers.has(series))?.[0] || "creative";
@@ -38,6 +39,7 @@ function itemFromId(id) {
 const remainingA = Array.from({ length: 79 }, (_, index) => index * 2 + 1).filter((id) => !featuredIds.includes(id));
 const variantB = Array.from({ length: 79 }, (_, index) => index * 2 + 2);
 const galleryItems = [...featuredIds, ...remainingA, ...variantB].map(itemFromId);
+const itemById = new Map(galleryItems.map((item) => [item.id, item]));
 
 const filters = document.querySelector("#filters");
 const galleryGrid = document.querySelector("#gallery-grid");
@@ -52,6 +54,16 @@ const viewerStage = document.querySelector("#viewer-stage");
 const viewerCategory = document.querySelector("#viewer-category");
 const viewerCode = document.querySelector("#viewer-code");
 const viewerCount = document.querySelector("#viewer-count");
+const viewerLike = document.querySelector("#viewer-like");
+const selectionBar = document.querySelector("#selection-bar");
+const selectionCount = document.querySelector("#selection-count");
+const selectionSheet = document.querySelector("#selection-sheet");
+const selectionCard = document.querySelector("#selection-card");
+const selectionGenerating = document.querySelector("#selection-generating");
+const selectedList = document.querySelector("#selected-list");
+const selectionSummary = document.querySelector("#selection-summary");
+const saveRequest = document.querySelector("#save-request");
+const copyRequest = document.querySelector("#copy-request");
 const toast = document.querySelector("#toast");
 
 const PAGE_SIZE = 30;
@@ -63,6 +75,24 @@ let toastTimer;
 let dragStartX = 0;
 let dragDeltaX = 0;
 let dragging = false;
+let selectionCardBlob = null;
+let selectionCardUrl = "";
+let generationId = 0;
+
+function readFavorites() {
+  try {
+    const stored = JSON.parse(localStorage.getItem("nanbo-favorite-photos") || "[]");
+    return new Set(stored.filter((id) => Number.isInteger(id) && itemById.has(id)));
+  } catch {
+    return new Set();
+  }
+}
+
+const favoriteIds = readFavorites();
+
+function selectedItems() {
+  return [...favoriteIds].map((id) => itemById.get(id)).filter(Boolean);
+}
 
 function categoryCount(categoryId) {
   return categoryId === "all" ? galleryItems.length : galleryItems.filter((item) => item.category === categoryId).length;
@@ -85,11 +115,11 @@ function createCard(item, index) {
   const article = document.createElement("article");
   article.className = "gallery-card";
 
-  const button = document.createElement("button");
-  button.className = "photo-button";
-  button.type = "button";
-  button.setAttribute("aria-label", `查看${item.title}高清样片，编号${item.code}`);
-  button.addEventListener("click", () => openViewer(index));
+  const photoButton = document.createElement("button");
+  photoButton.className = "photo-button";
+  photoButton.type = "button";
+  photoButton.setAttribute("aria-label", `查看${item.title}高清样片，编号${item.code}`);
+  photoButton.addEventListener("click", () => openViewer(index));
 
   const image = document.createElement("img");
   image.alt = `${item.title}男士摄影样片，编号${item.code}`;
@@ -110,8 +140,17 @@ function createCard(item, index) {
   const code = document.createElement("span");
   code.className = "photo-code";
   code.textContent = item.code;
-  button.append(image, code);
-  article.append(button);
+  photoButton.append(image, code);
+
+  const likeButton = document.createElement("button");
+  likeButton.className = "like-button";
+  likeButton.type = "button";
+  likeButton.dataset.favoriteId = String(item.id);
+  likeButton.setAttribute("aria-label", `喜欢${item.code}`);
+  likeButton.addEventListener("click", () => toggleFavorite(item.id));
+  updateLikeButton(likeButton, item.id);
+
+  article.append(photoButton, likeButton);
   return article;
 }
 
@@ -139,16 +178,53 @@ function loadMore() {
   renderGallery();
 }
 
+function updateLikeButton(button, id) {
+  const selected = favoriteIds.has(id);
+  button.setAttribute("aria-pressed", String(selected));
+  button.textContent = selected ? "♥" : "♡";
+  button.setAttribute("aria-label", `${selected ? "取消喜欢" : "喜欢"}${itemById.get(id)?.code || "这张照片"}`);
+}
+
+function updateSelectionUi() {
+  const count = favoriteIds.size;
+  selectionCount.textContent = String(count);
+  selectionBar.hidden = count === 0;
+  document.body.classList.toggle("has-selection", count > 0);
+  document.querySelectorAll("[data-favorite-id]").forEach((button) => updateLikeButton(button, Number(button.dataset.favoriteId)));
+  updateViewerLike();
+  localStorage.setItem("nanbo-favorite-photos", JSON.stringify([...favoriteIds]));
+}
+
+function toggleFavorite(id) {
+  const wasSelected = favoriteIds.has(id);
+  if (wasSelected) favoriteIds.delete(id);
+  else favoriteIds.add(id);
+  navigator.vibrate?.(wasSelected ? 4 : 8);
+  updateSelectionUi();
+  showToast(wasSelected ? "已取消喜欢" : `已加入喜欢 · 共 ${favoriteIds.size} 张`);
+  if (selectionSheet.open) renderSelectionSheet();
+}
+
 function setViewer(index) {
   viewerIndex = (index + filteredItems.length) % filteredItems.length;
   const item = filteredItems[viewerIndex];
   viewerImage.dataset.loading = "true";
   viewerLoader.hidden = false;
+  viewerLoader.textContent = "高清加载中";
   viewerImage.alt = `${item.title}高清样片，编号${item.code}`;
   viewerImage.src = item.full;
   viewerCategory.textContent = `${item.title} · NANBO PORTRAIT`;
   viewerCode.textContent = item.code;
   viewerCount.textContent = `${viewerIndex + 1} / ${filteredItems.length}`;
+  updateViewerLike();
+}
+
+function updateViewerLike() {
+  if (!filteredItems.length || !viewerLike) return;
+  const item = filteredItems[viewerIndex];
+  const selected = favoriteIds.has(item.id);
+  viewerLike.classList.toggle("is-selected", selected);
+  viewerLike.textContent = selected ? "♥ 已加入喜欢" : "♡ 加入喜欢";
 }
 
 function openViewer(index) {
@@ -170,7 +246,7 @@ function showToast(message) {
   window.clearTimeout(toastTimer);
   toast.textContent = message;
   toast.classList.add("is-visible");
-  toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2200);
+  toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2300);
 }
 
 async function copyText(text, successMessage) {
@@ -186,12 +262,195 @@ async function copyText(text, successMessage) {
     document.execCommand("copy");
     area.remove();
   }
-  showToast(successMessage);
+  if (successMessage) showToast(successMessage);
 }
 
-function copyCurrentPhoto() {
-  const item = filteredItems[viewerIndex];
-  copyText(`你好，我喜欢南铂客片 ${item.code} 这张的感觉，想参考这个方向拍。`, `已复制 ${item.code}，回微信粘贴即可`);
+function requestText(items = selectedItems()) {
+  const styles = [...new Set(items.map((item) => item.title))];
+  const codes = items.map((item) => item.code).join("、");
+  return [
+    "你好，这是我喜欢的南铂客片方向：",
+    `偏好风格：${styles.join("、")}`,
+    `参考编号：${codes}`,
+    "我更喜欢以上照片的光线、色调、妆发和构图，请化妆师与摄影师结合我的个人条件参考。",
+  ].join("\n");
+}
+
+function renderSelectedList(items) {
+  selectedList.replaceChildren(...items.map((item) => {
+    const chip = document.createElement("div");
+    chip.className = "selected-chip";
+    const image = document.createElement("img");
+    image.src = item.thumb;
+    image.alt = `${item.code} ${item.title}`;
+    const label = document.createElement("span");
+    label.textContent = `${item.code} · ${item.title}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", `移除${item.code}`);
+    remove.addEventListener("click", () => toggleFavorite(item.id));
+    chip.append(image, label, remove);
+    return chip;
+  }));
+}
+
+function openSelectionSheet() {
+  if (!favoriteIds.size) return;
+  renderSelectionSheet();
+  if (!selectionSheet.open) selectionSheet.showModal();
+  document.body.classList.add("dialog-open");
+}
+
+function closeSelectionSheet() {
+  if (selectionSheet.open) selectionSheet.close();
+  document.body.classList.remove("dialog-open");
+}
+
+function renderSelectionSheet() {
+  const items = selectedItems();
+  if (!items.length) {
+    closeSelectionSheet();
+    return;
+  }
+  renderSelectedList(items);
+  selectionSummary.textContent = requestText(items);
+  generateSelectionCard(items);
+}
+
+function imageFromUrl(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = url;
+  });
+}
+
+function drawImageCover(context, image, x, y, width, height) {
+  const imageRatio = image.naturalWidth / image.naturalHeight;
+  const boxRatio = width / height;
+  let sourceWidth = image.naturalWidth;
+  let sourceHeight = image.naturalHeight;
+  let sourceX = 0;
+  let sourceY = 0;
+  if (imageRatio > boxRatio) {
+    sourceWidth = image.naturalHeight * boxRatio;
+    sourceX = (image.naturalWidth - sourceWidth) / 2;
+  } else {
+    sourceHeight = image.naturalWidth / boxRatio;
+    sourceY = (image.naturalHeight - sourceHeight) / 2;
+  }
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+}
+
+function photoLayouts(count) {
+  if (count === 1) return [{ x: 210, y: 190, width: 660, height: 880 }];
+  if (count === 2) return [65, 555].map((x) => ({ x, y: 235, width: 460, height: 613 }));
+  if (count === 3) return [55, 375, 695].map((x) => ({ x, y: 255, width: 300, height: 400 }));
+  if (count === 4) return [
+    { x: 150, y: 185, width: 375, height: 500 }, { x: 555, y: 185, width: 375, height: 500 },
+    { x: 150, y: 710, width: 375, height: 500 }, { x: 555, y: 710, width: 375, height: 500 },
+  ];
+  return Array.from({ length: count }, (_, index) => ({
+    x: 55 + (index % 3) * 320,
+    y: 190 + Math.floor(index / 3) * 425,
+    width: 300,
+    height: 400,
+  }));
+}
+
+async function generateSelectionCard(items) {
+  const currentGeneration = ++generationId;
+  selectionCardBlob = null;
+  selectionGenerating.hidden = false;
+  selectionCard.style.opacity = "0";
+  const visibleItems = items.slice(0, 6);
+
+  try {
+    const images = await Promise.all(visibleItems.map((item) => imageFromUrl(item.thumb)));
+    if (currentGeneration !== generationId) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1440;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#f3f1eb";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.fillStyle = "#171714";
+    context.font = '600 28px -apple-system, "PingFang SC", sans-serif';
+    context.fillText("NANBO PORTRAIT", 55, 70);
+    context.font = '500 56px -apple-system, "PingFang SC", sans-serif';
+    context.fillText("我喜欢的拍摄风格", 55, 135);
+    context.font = '400 24px -apple-system, "PingFang SC", sans-serif';
+    context.fillStyle = "#77756f";
+    context.fillText(`已选择 ${items.length} 张参考照片 · 请化妆师与摄影师参考`, 55, 175);
+
+    const layouts = photoLayouts(visibleItems.length);
+    images.forEach((image, index) => {
+      const layout = layouts[index];
+      drawImageCover(context, image, layout.x, layout.y, layout.width, layout.height);
+      context.fillStyle = "rgba(0,0,0,.56)";
+      context.fillRect(layout.x, layout.y + layout.height - 48, layout.width, 48);
+      context.fillStyle = "white";
+      context.font = '500 21px Georgia, -apple-system, "PingFang SC", sans-serif';
+      context.fillText(`${visibleItems[index].code} · ${visibleItems[index].title}`, layout.x + 14, layout.y + layout.height - 17);
+    });
+
+    const styles = [...new Set(items.map((item) => item.title))];
+    const footerY = visibleItems.length === 4 ? 1255 : visibleItems.length <= 3 ? 1120 : 1095;
+    context.fillStyle = "#171714";
+    context.font = '600 26px -apple-system, "PingFang SC", sans-serif';
+    context.fillText(`偏好风格：${styles.join(" · ")}`, 55, footerY);
+    context.fillStyle = "#6e6c66";
+    context.font = '400 21px -apple-system, "PingFang SC", sans-serif';
+    const codes = items.map((item) => item.code).join("  ");
+    context.fillText(`参考编号：${codes.slice(0, 74)}${codes.length > 74 ? "…" : ""}`, 55, footerY + 45);
+    context.fillText(`重点参考以上照片的光线、色调、妆发与构图${items.length > 6 ? `（另选 ${items.length - 6} 张）` : ""}`, 55, footerY + 88);
+    context.fillStyle = "#a27f48";
+    context.fillRect(55, 1370, 970, 3);
+    context.fillStyle = "#77756f";
+    context.font = '500 18px -apple-system, "PingFang SC", sans-serif';
+    context.fillText("南铂摄影 · 男士写真 · MY PORTRAIT BRIEF", 55, 1410);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob || currentGeneration !== generationId) return null;
+    selectionCardBlob = blob;
+    if (selectionCardUrl) URL.revokeObjectURL(selectionCardUrl);
+    selectionCardUrl = URL.createObjectURL(blob);
+    selectionCard.src = selectionCardUrl;
+    selectionCard.style.opacity = "1";
+    selectionGenerating.hidden = true;
+    saveRequest.href = selectionCardUrl;
+    return blob;
+  } catch {
+    selectionGenerating.textContent = "需求图生成失败，请使用下方文字";
+    return null;
+  }
+}
+
+async function copyImageAndText() {
+  const items = selectedItems();
+  if (!items.length) return;
+  const text = requestText(items);
+  const blob = selectionCardBlob || await generateSelectionCard(items);
+
+  if (blob && navigator.clipboard?.write && window.ClipboardItem) {
+    try {
+      const clipboardItem = new ClipboardItem({
+        "image/png": blob,
+        "text/plain": new Blob([text], { type: "text/plain" }),
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      showToast("图片和文字已复制，回企业微信粘贴即可");
+      return;
+    } catch {
+      // 企业微信内置浏览器可能限制图片剪贴板，下面自动复制文字。
+    }
+  }
+  await copyText(text);
+  showToast("文字已复制；长按上方需求图保存后一起发送");
 }
 
 viewerImage.addEventListener("load", () => {
@@ -232,8 +491,19 @@ viewerStage.addEventListener("pointercancel", finishDrag);
 document.querySelector("#viewer-close").addEventListener("click", closeViewer);
 document.querySelector("#viewer-prev").addEventListener("click", () => moveViewer(-1));
 document.querySelector("#viewer-next").addEventListener("click", () => moveViewer(1));
-document.querySelector("#viewer-copy").addEventListener("click", copyCurrentPhoto);
-document.querySelector("#copy-page-message").addEventListener("click", () => copyText("你好，我看了南铂摄影的客片，想咨询男士写真。我再把喜欢的照片编号发给你。", "咨询话术已复制，回微信粘贴即可"));
+viewerLike.addEventListener("click", () => toggleFavorite(filteredItems[viewerIndex].id));
+document.querySelector("#copy-page-message").addEventListener("click", () => copyText("你好，我看了南铂摄影的客片，想咨询男士写真。我会把喜欢的风格图一起发给你。", "咨询话术已复制，回微信粘贴即可"));
+selectionBar.addEventListener("click", openSelectionSheet);
+document.querySelector("#selection-close").addEventListener("click", closeSelectionSheet);
+copyRequest.addEventListener("click", copyImageAndText);
+document.querySelector("#clear-selection").addEventListener("click", () => {
+  favoriteIds.clear();
+  updateSelectionUi();
+  closeSelectionSheet();
+  showToast("已清空，可以重新选择");
+});
+selectionSheet.addEventListener("click", (event) => { if (event.target === selectionSheet) closeSelectionSheet(); });
+selectionSheet.addEventListener("cancel", (event) => { event.preventDefault(); closeSelectionSheet(); });
 loadMoreButton.addEventListener("click", loadMore);
 viewer.addEventListener("click", (event) => { if (event.target === viewer) closeViewer(); });
 viewer.addEventListener("cancel", (event) => { event.preventDefault(); closeViewer(); });
@@ -247,3 +517,4 @@ window.addEventListener("keydown", (event) => {
 document.querySelector("#year").textContent = new Date().getFullYear();
 renderFilters();
 renderGallery();
+updateSelectionUi();

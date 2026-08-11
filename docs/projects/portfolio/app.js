@@ -95,7 +95,7 @@ function createCard(item, index) {
   image.alt = `${item.title}男士摄影样片，编号${item.code}`;
   image.width = 480;
   image.height = 640;
-  image.loading = index < 6 ? "eager" : "lazy";
+  image.loading = "lazy";
   image.decoding = "async";
   image.dataset.loading = "true";
   image.addEventListener("load", () => { image.dataset.loading = "false"; }, { once: true });

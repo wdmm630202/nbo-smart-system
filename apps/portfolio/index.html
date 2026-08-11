@@ -121,21 +121,54 @@
             <p class="eyebrow">MY PORTRAIT BRIEF</p>
             <h2 id="selection-title">我喜欢的拍摄风格</h2>
           </div>
-          <button class="sheet-close" id="selection-close" type="button" aria-label="关闭喜欢清单">×</button>
+          <div class="sheet-head-actions">
+            <button class="settings-toggle" id="settings-toggle" type="button" aria-label="设置拍摄需求" aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.9 1.9-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56v.09h-2.68V20a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.9-1.9.06-.06A1.7 1.7 0 0 0 7.8 15a1.7 1.7 0 0 0-1.56-1.03h-.09v-2.68h.09A1.7 1.7 0 0 0 7.8 10.26a1.7 1.7 0 0 0-.34-1.88l-.06-.06 1.9-1.9.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56v-.09h2.68v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.9 1.9-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.09v2.68h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+            </button>
+            <button class="sheet-close" id="selection-close" type="button" aria-label="关闭喜欢清单">×</button>
+          </div>
         </header>
+
+        <section class="brief-settings" id="brief-settings" hidden aria-label="拍摄需求设置">
+          <div class="settings-heading">
+            <div><strong>需求卡设置</strong><span>填写后会同步到图片和文字</span></div>
+            <span class="settings-badge">仅保存在本机</span>
+          </div>
+          <label class="settings-field">
+            <span>客户称呼 <small>选填</small></span>
+            <input id="customer-name" type="text" maxlength="12" placeholder="例如：张先生" autocomplete="name" />
+          </label>
+          <fieldset class="focus-settings">
+            <legend>重点参考</legend>
+            <label><input type="checkbox" name="brief-focus" value="光线与色调" checked /><span>光线与色调</span></label>
+            <label><input type="checkbox" name="brief-focus" value="妆发造型" checked /><span>妆发造型</span></label>
+            <label><input type="checkbox" name="brief-focus" value="动作与构图" checked /><span>动作与构图</span></label>
+          </fieldset>
+          <label class="settings-field">
+            <span>补充要求 <small>选填</small></span>
+            <textarea id="additional-note" maxlength="80" rows="2" placeholder="例如：希望自然一点，不要太严肃"></textarea>
+          </label>
+          <button class="settings-done" id="settings-done" type="button">完成设置</button>
+        </section>
 
         <div class="selection-card-wrap">
           <img id="selection-card" alt="客户喜欢的南铂拍摄风格图文需求卡" />
           <span id="selection-generating">正在生成图文需求…</span>
         </div>
         <div class="selected-list" id="selected-list"></div>
-        <p class="selection-summary" id="selection-summary"></p>
+        <details class="selection-text-details">
+          <summary>查看将复制的文字</summary>
+          <p class="selection-summary" id="selection-summary"></p>
+        </details>
 
         <div class="selection-actions">
           <button class="copy-request" id="copy-request" type="button">复制图片＋文字</button>
-          <a class="save-request" id="save-request" download="南铂摄影-我的拍摄需求.png">保存需求图</a>
         </div>
-        <p class="selection-tip">若企业微信限制图文剪贴板，会自动复制文字；上面的需求图可长按保存后一起发送。</p>
+        <div class="longpress-guide">
+          <span aria-hidden="true">↓</span>
+          <div><strong>长按上方需求图即可保存</strong><small>无需截图，不会打开新的下载页面</small></div>
+        </div>
+        <p class="selection-tip">若企业微信限制图片剪贴板，会自动复制文字；长按保存需求图后一起发送即可。</p>
         <button class="clear-selection" id="clear-selection" type="button">清空重新选择</button>
       </div>
     </dialog>

@@ -62,8 +62,12 @@ const selectionCard = document.querySelector("#selection-card");
 const selectionGenerating = document.querySelector("#selection-generating");
 const selectedList = document.querySelector("#selected-list");
 const selectionSummary = document.querySelector("#selection-summary");
-const saveRequest = document.querySelector("#save-request");
 const copyRequest = document.querySelector("#copy-request");
+const settingsToggle = document.querySelector("#settings-toggle");
+const briefSettingsPanel = document.querySelector("#brief-settings");
+const customerNameInput = document.querySelector("#customer-name");
+const additionalNoteInput = document.querySelector("#additional-note");
+const focusInputs = [...document.querySelectorAll('input[name="brief-focus"]')];
 const toast = document.querySelector("#toast");
 
 const PAGE_SIZE = 30;
@@ -78,6 +82,26 @@ let dragging = false;
 let selectionCardBlob = null;
 let selectionCardUrl = "";
 let generationId = 0;
+let settingsRefreshTimer;
+let lastCopiedSignature = "";
+let lastCopyMode = "";
+
+function readBriefSettings() {
+  const defaults = { name: "", focus: ["光线与色调", "妆发造型", "动作与构图"], note: "" };
+  try {
+    const stored = JSON.parse(localStorage.getItem("nanbo-brief-settings") || "null");
+    if (!stored || typeof stored !== "object") return defaults;
+    return {
+      name: typeof stored.name === "string" ? stored.name.slice(0, 12) : "",
+      focus: Array.isArray(stored.focus) ? stored.focus.filter((value) => defaults.focus.includes(value)) : defaults.focus,
+      note: typeof stored.note === "string" ? stored.note.slice(0, 80) : "",
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+let briefSettings = readBriefSettings();
 
 function readFavorites() {
   try {
@@ -92,6 +116,52 @@ const favoriteIds = readFavorites();
 
 function selectedItems() {
   return [...favoriteIds].map((id) => itemById.get(id)).filter(Boolean);
+}
+
+function briefSignature(items = selectedItems()) {
+  return JSON.stringify({ ids: items.map((item) => item.id), ...briefSettings });
+}
+
+function hydrateSettingsForm() {
+  customerNameInput.value = briefSettings.name;
+  additionalNoteInput.value = briefSettings.note;
+  focusInputs.forEach((input) => { input.checked = briefSettings.focus.includes(input.value); });
+}
+
+function resetCopyButton() {
+  lastCopyMode = "";
+  copyRequest.disabled = false;
+  copyRequest.classList.remove("is-success");
+  copyRequest.textContent = "复制图片＋文字";
+}
+
+function updateCopyButton() {
+  const copied = lastCopiedSignature && lastCopiedSignature === briefSignature();
+  copyRequest.disabled = Boolean(copied);
+  copyRequest.classList.toggle("is-success", Boolean(copied));
+  copyRequest.textContent = copied
+    ? lastCopyMode === "text" ? "✓ 文字已复制，请长按保存需求图" : "✓ 图文已复制，可回微信粘贴"
+    : "复制图片＋文字";
+}
+
+function saveBriefSettings() {
+  briefSettings = {
+    name: customerNameInput.value.trim().slice(0, 12),
+    focus: focusInputs.filter((input) => input.checked).map((input) => input.value),
+    note: additionalNoteInput.value.trim().slice(0, 80),
+  };
+  localStorage.setItem("nanbo-brief-settings", JSON.stringify(briefSettings));
+  selectionCardBlob = null;
+  lastCopiedSignature = "";
+  resetCopyButton();
+}
+
+function scheduleSettingsRefresh() {
+  saveBriefSettings();
+  window.clearTimeout(settingsRefreshTimer);
+  settingsRefreshTimer = window.setTimeout(() => {
+    if (selectionSheet.open) renderSelectionSheet();
+  }, 220);
 }
 
 function categoryCount(categoryId) {
@@ -199,6 +269,8 @@ function toggleFavorite(id) {
   const wasSelected = favoriteIds.has(id);
   if (wasSelected) favoriteIds.delete(id);
   else favoriteIds.add(id);
+  lastCopiedSignature = "";
+  resetCopyButton();
   navigator.vibrate?.(wasSelected ? 4 : 8);
   updateSelectionUi();
   showToast(wasSelected ? "已取消喜欢" : `已加入喜欢 · 共 ${favoriteIds.size} 张`);
@@ -268,12 +340,15 @@ async function copyText(text, successMessage) {
 function requestText(items = selectedItems()) {
   const styles = [...new Set(items.map((item) => item.title))];
   const codes = items.map((item) => item.code).join("、");
-  return [
-    "你好，这是我喜欢的南铂客片方向：",
+  const lines = [
+    briefSettings.name ? `你好，我是${briefSettings.name}，这是我喜欢的南铂客片方向：` : "你好，这是我喜欢的南铂客片方向：",
     `偏好风格：${styles.join("、")}`,
     `参考编号：${codes}`,
-    "我更喜欢以上照片的光线、色调、妆发和构图，请化妆师与摄影师结合我的个人条件参考。",
-  ].join("\n");
+  ];
+  if (briefSettings.focus.length) lines.push(`重点参考：${briefSettings.focus.join("、")}`);
+  if (briefSettings.note) lines.push(`补充要求：${briefSettings.note}`);
+  lines.push("请化妆师与摄影师结合我的个人条件参考。请以本人实际条件与现场沟通为准。");
+  return lines.join("\n");
 }
 
 function renderSelectedList(items) {
@@ -297,6 +372,9 @@ function renderSelectedList(items) {
 
 function openSelectionSheet() {
   if (!favoriteIds.size) return;
+  hydrateSettingsForm();
+  briefSettingsPanel.hidden = true;
+  settingsToggle.setAttribute("aria-expanded", "false");
   renderSelectionSheet();
   if (!selectionSheet.open) selectionSheet.showModal();
   document.body.classList.add("dialog-open");
@@ -315,6 +393,7 @@ function renderSelectionSheet() {
   }
   renderSelectedList(items);
   selectionSummary.textContent = requestText(items);
+  updateCopyButton();
   generateSelectionCard(items);
 }
 
@@ -350,8 +429,8 @@ function photoLayouts(count) {
   if (count === 2) return [65, 555].map((x) => ({ x, y: 235, width: 460, height: 613 }));
   if (count === 3) return [55, 375, 695].map((x) => ({ x, y: 255, width: 300, height: 400 }));
   if (count === 4) return [
-    { x: 150, y: 185, width: 375, height: 500 }, { x: 555, y: 185, width: 375, height: 500 },
-    { x: 150, y: 710, width: 375, height: 500 }, { x: 555, y: 710, width: 375, height: 500 },
+    { x: 190, y: 180, width: 330, height: 440 }, { x: 560, y: 180, width: 330, height: 440 },
+    { x: 190, y: 650, width: 330, height: 440 }, { x: 560, y: 650, width: 330, height: 440 },
   ];
   return Array.from({ length: count }, (_, index) => ({
     x: 55 + (index % 3) * 320,
@@ -375,22 +454,33 @@ async function generateSelectionCard(items) {
     canvas.width = 1080;
     canvas.height = 1440;
     const context = canvas.getContext("2d");
-    context.fillStyle = "#f3f1eb";
+    context.fillStyle = "#f5f2eb";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
+    context.fillStyle = "rgba(162,127,72,.055)";
+    context.font = "italic 520px Georgia, serif";
+    context.fillText("N", 690, 1415);
+    context.fillStyle = "#a27f48";
+    context.fillRect(55, 42, 4, 32);
     context.fillStyle = "#171714";
     context.font = '600 28px -apple-system, "PingFang SC", sans-serif';
-    context.fillText("NANBO PORTRAIT", 55, 70);
+    context.fillText("NANBO PORTRAIT", 76, 69);
     context.font = '500 56px -apple-system, "PingFang SC", sans-serif';
     context.fillText("我喜欢的拍摄风格", 55, 135);
     context.font = '400 24px -apple-system, "PingFang SC", sans-serif';
     context.fillStyle = "#77756f";
-    context.fillText(`已选择 ${items.length} 张参考照片 · 请化妆师与摄影师参考`, 55, 175);
+    const customerPrefix = briefSettings.name ? `${briefSettings.name} · ` : "";
+    context.fillText(`${customerPrefix}已选择 ${items.length} 张参考照片 · 请化妆师与摄影师参考`, 55, 175);
 
     const layouts = photoLayouts(visibleItems.length);
     images.forEach((image, index) => {
       const layout = layouts[index];
+      context.save();
+      context.shadowColor = "rgba(35,29,20,.16)";
+      context.shadowBlur = 18;
+      context.shadowOffsetY = 7;
       drawImageCover(context, image, layout.x, layout.y, layout.width, layout.height);
+      context.restore();
       context.fillStyle = "rgba(0,0,0,.56)";
       context.fillRect(layout.x, layout.y + layout.height - 48, layout.width, 48);
       context.fillStyle = "white";
@@ -399,7 +489,7 @@ async function generateSelectionCard(items) {
     });
 
     const styles = [...new Set(items.map((item) => item.title))];
-    const footerY = visibleItems.length === 4 ? 1255 : visibleItems.length <= 3 ? 1120 : 1095;
+    const footerY = visibleItems.length === 4 ? 1140 : visibleItems.length <= 3 ? 1120 : 1095;
     context.fillStyle = "#171714";
     context.font = '600 26px -apple-system, "PingFang SC", sans-serif';
     context.fillText(`偏好风格：${styles.join(" · ")}`, 55, footerY);
@@ -407,7 +497,9 @@ async function generateSelectionCard(items) {
     context.font = '400 21px -apple-system, "PingFang SC", sans-serif';
     const codes = items.map((item) => item.code).join("  ");
     context.fillText(`参考编号：${codes.slice(0, 74)}${codes.length > 74 ? "…" : ""}`, 55, footerY + 45);
-    context.fillText(`重点参考以上照片的光线、色调、妆发与构图${items.length > 6 ? `（另选 ${items.length - 6} 张）` : ""}`, 55, footerY + 88);
+    const focusText = briefSettings.focus.length ? briefSettings.focus.join("、") : "以上照片的整体感觉";
+    context.fillText(`重点参考：${focusText}${items.length > 6 ? `（另选 ${items.length - 6} 张）` : ""}`, 55, footerY + 88);
+    if (briefSettings.note) context.fillText(`补充要求：${briefSettings.note.slice(0, 42)}`, 55, footerY + 128);
     context.fillStyle = "#a27f48";
     context.fillRect(55, 1370, 970, 3);
     context.fillStyle = "#77756f";
@@ -421,8 +513,8 @@ async function generateSelectionCard(items) {
     selectionCardUrl = URL.createObjectURL(blob);
     selectionCard.src = selectionCardUrl;
     selectionCard.style.opacity = "1";
+    selectionCard.dataset.cardReady = "true";
     selectionGenerating.hidden = true;
-    saveRequest.href = selectionCardUrl;
     return blob;
   } catch {
     selectionGenerating.textContent = "需求图生成失败，请使用下方文字";
@@ -433,6 +525,7 @@ async function generateSelectionCard(items) {
 async function copyImageAndText() {
   const items = selectedItems();
   if (!items.length) return;
+  if (lastCopiedSignature === briefSignature(items)) return;
   const text = requestText(items);
   const blob = selectionCardBlob || await generateSelectionCard(items);
 
@@ -443,6 +536,10 @@ async function copyImageAndText() {
         "text/plain": new Blob([text], { type: "text/plain" }),
       });
       await navigator.clipboard.write([clipboardItem]);
+      lastCopiedSignature = briefSignature(items);
+      lastCopyMode = "rich";
+      updateCopyButton();
+      navigator.vibrate?.(10);
       showToast("图片和文字已复制，回企业微信粘贴即可");
       return;
     } catch {
@@ -450,6 +547,11 @@ async function copyImageAndText() {
     }
   }
   await copyText(text);
+  lastCopiedSignature = briefSignature(items);
+  lastCopyMode = "text";
+  copyRequest.disabled = true;
+  copyRequest.classList.add("is-success");
+  copyRequest.textContent = "✓ 文字已复制，请长按保存需求图";
   showToast("文字已复制；长按上方需求图保存后一起发送");
 }
 
@@ -495,9 +597,25 @@ viewerLike.addEventListener("click", () => toggleFavorite(filteredItems[viewerIn
 document.querySelector("#copy-page-message").addEventListener("click", () => copyText("你好，我看了南铂摄影的客片，想咨询男士写真。我会把喜欢的风格图一起发给你。", "咨询话术已复制，回微信粘贴即可"));
 selectionBar.addEventListener("click", openSelectionSheet);
 document.querySelector("#selection-close").addEventListener("click", closeSelectionSheet);
+settingsToggle.addEventListener("click", () => {
+  const willOpen = briefSettingsPanel.hidden;
+  briefSettingsPanel.hidden = !willOpen;
+  settingsToggle.setAttribute("aria-expanded", String(willOpen));
+  if (willOpen) customerNameInput.focus({ preventScroll: true });
+});
+document.querySelector("#settings-done").addEventListener("click", () => {
+  briefSettingsPanel.hidden = true;
+  settingsToggle.setAttribute("aria-expanded", "false");
+  settingsToggle.focus({ preventScroll: true });
+});
+customerNameInput.addEventListener("input", scheduleSettingsRefresh);
+additionalNoteInput.addEventListener("input", scheduleSettingsRefresh);
+focusInputs.forEach((input) => input.addEventListener("change", scheduleSettingsRefresh));
 copyRequest.addEventListener("click", copyImageAndText);
 document.querySelector("#clear-selection").addEventListener("click", () => {
   favoriteIds.clear();
+  lastCopiedSignature = "";
+  resetCopyButton();
   updateSelectionUi();
   closeSelectionSheet();
   showToast("已清空，可以重新选择");
@@ -515,6 +633,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 document.querySelector("#year").textContent = new Date().getFullYear();
+hydrateSettingsForm();
 renderFilters();
 renderGallery();
 updateSelectionUi();

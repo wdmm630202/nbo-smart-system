@@ -34,7 +34,7 @@
         </section>
 
         <section class="quick-panel" aria-label="快捷服务">
-          <a href="#styles"><span class="quick-icon">⌁</span><strong>挑风格</strong><small>4 种方向</small></a>
+          <a href="#styles"><span class="quick-icon">⌁</span><strong>挑主题</strong><small>23 个主题</small></a>
           <a href="#works"><span class="quick-icon">▦</span><strong>看客片</strong><small>158 张</small></a>
           <button id="quick-favorites" type="button"><span class="quick-icon">♡</span><strong>我的喜欢</strong><small>生成需求</small></button>
           <a href="#prep"><span class="quick-icon">✓</span><strong>拍前准备</strong><small>到店不慌</small></a>
@@ -42,31 +42,37 @@
 
         <section class="story-strip" aria-label="南铂服务理念">
           <div><span>NANBO STANDARD</span><strong>不是套模板，是先知道你喜欢什么。</strong></div>
-          <p>选择喜欢的光线、情绪和造型，到店直接给化妆师与摄影师参考。</p>
+          <p>先选内景或外景，再选拳击荷尔蒙、商务总裁、城市夜景等主题，到店沟通更准确。</p>
         </section>
 
         <section class="style-section" id="styles" aria-labelledby="styles-title">
           <header class="section-title">
-            <div><p>CHOOSE YOUR DIRECTION</p><h2 id="styles-title">男生写真，也可以很好选。</h2></div>
+            <div><p>SCENE → THEME → STYLE</p><h2 id="styles-title">先选场景，<br />再选主题。</h2></div>
             <a href="#works">全部客片 ↘</a>
           </header>
           <div class="style-rail">
-            <button class="style-card" type="button" data-category-link="business">
+            <button class="style-card" type="button" data-scene-link="indoor">
               <img src="../portfolio/assets/photos/thumbs/photo-137.webp" alt="商务质感男士写真" loading="lazy" />
-              <span><small>01 / PERSONAL BRAND</small><strong>商务质感</strong><em>利落、可靠、有气场</em></span>
+              <span><small>01 / INDOOR · 120 PHOTOS</small><strong>内景主题</strong><em>灯光可控 · 造型完整 · 13 个主题</em></span>
             </button>
-            <button class="style-card" type="button" data-category-link="relaxed">
-              <img src="../portfolio/assets/photos/thumbs/photo-037.webp" alt="自然松弛男士写真" loading="lazy" />
-              <span><small>02 / EASY PORTRAIT</small><strong>自然松弛</strong><em>清爽、随性、不端着</em></span>
+            <button class="style-card" type="button" data-scene-link="outdoor">
+              <img src="../portfolio/assets/photos/thumbs/photo-111.webp" alt="城市机车外景男士写真" loading="lazy" />
+              <span><small>02 / OUTDOOR · 38 PHOTOS</small><strong>外景主题</strong><em>环境真实 · 行走自然 · 10 个主题</em></span>
             </button>
-            <button class="style-card" type="button" data-category-link="mood">
-              <img src="../portfolio/assets/photos/thumbs/photo-077.webp" alt="情绪光影男士写真" loading="lazy" />
-              <span><small>03 / CINEMATIC LIGHT</small><strong>情绪光影</strong><em>克制、安静、有故事</em></span>
-            </button>
-            <button class="style-card" type="button" data-category-link="creative">
-              <img src="../portfolio/assets/photos/thumbs/photo-127.webp" alt="创意主题男士写真" loading="lazy" />
-              <span><small>04 / CREATIVE STORY</small><strong>创意主题</strong><em>鲜明、特别、有记忆点</em></span>
-            </button>
+          </div>
+          <div class="theme-directory" aria-label="内景与外景主题快速选择">
+            <article class="theme-group">
+              <header><span>01</span><div><strong>内景主题</strong><small>INDOOR COLLECTION</small></div></header>
+              <div class="theme-shortcuts">
+                <button type="button" data-theme-link="business-boss">商务总裁</button><button type="button" data-theme-link="magazine">杂志肖像</button><button type="button" data-theme-link="light-mood">光影情绪</button><button type="button" data-theme-link="retro-hk">复古港风</button><button type="button" data-theme-link="home-korean">居家韩系</button><button type="button" data-theme-link="floral-boy">花艺少年</button><button type="button" data-theme-link="boxing">拳击荷尔蒙</button><button type="button" data-theme-link="sport-style">运动型格</button><button type="button" data-theme-link="cyberpunk">赛博朋克</button><button type="button" data-theme-link="wuxia">国风武侠</button><button type="button" data-theme-link="celebration">生日节日</button><button type="button" data-theme-link="concept">创意概念</button><button type="button" data-theme-link="pet">宠物合拍</button>
+              </div>
+            </article>
+            <article class="theme-group">
+              <header><span>02</span><div><strong>外景主题</strong><small>OUTDOOR COLLECTION</small></div></header>
+              <div class="theme-shortcuts">
+                <button type="button" data-theme-link="city-street">都市街拍</button><button type="button" data-theme-link="daily-walk">日常漫游</button><button type="button" data-theme-link="moto">机车型格</button><button type="button" data-theme-link="city-night">城市夜景</button><button type="button" data-theme-link="forest">森系文艺</button><button type="button" data-theme-link="campus">校园少年</button><button type="button" data-theme-link="formal-outdoor">正装外景</button><button type="button" data-theme-link="wuxia-outdoor">国风外景</button><button type="button" data-theme-link="travel">旅行叙事</button><button type="button" data-theme-link="sport-documentary">运动纪实</button>
+              </div>
+            </article>
           </div>
         </section>
 
@@ -84,7 +90,10 @@
             <div><p>REAL CLIENT GALLERY</p><h2 id="works-title">真实男士客片</h2></div>
             <span>轻点看大图<br />爱心加入喜欢</span>
           </header>
-          <nav class="filter-bar" aria-label="按风格筛选"><div class="filters" id="filters"></div></nav>
+          <nav class="filter-bar" aria-label="按场景和主题筛选">
+            <div class="filter-level"><span>场景</span><div class="filters" id="filters"></div></div>
+            <div class="filter-level"><span>主题</span><div class="filters theme-filters" id="theme-filters"></div></div>
+          </nav>
           <div class="gallery-status"><span id="gallery-summary">全部作品</span><span id="gallery-progress">显示 0 / 158</span></div>
           <div class="gallery-grid" id="gallery-grid" aria-live="polite"></div>
           <div class="load-area"><button class="load-more" id="load-more" type="button"><span>继续浏览更多真实客片</span><small id="load-remaining"></small></button></div>

@@ -1,9 +1,14 @@
+const sceneConfig = [
+  { id: "all", label: "全部", description: "158 张真实客片" },
+  { id: "indoor", label: "内景", description: "灯光、造型与布景更可控" },
+  { id: "outdoor", label: "外景", description: "环境、行走与故事感更自然" },
+];
+
 const categoryConfig = [
-  { id: "all", label: "全部作品", description: "158 张精选样片" },
-  { id: "business", label: "商务质感", description: "利落、稳重、有质感" },
-  { id: "relaxed", label: "自然松弛", description: "清爽、自然、不用端着" },
-  { id: "mood", label: "情绪光影", description: "克制、安静、有故事感" },
-  { id: "creative", label: "创意主题", description: "鲜明、特别、有记忆点" },
+  { id: "business", label: "商务", description: "利落、稳重、有气场" },
+  { id: "relaxed", label: "松弛", description: "清爽、自然、不用端着" },
+  { id: "mood", label: "情绪", description: "克制、安静、有故事" },
+  { id: "creative", label: "创意", description: "鲜明、特别、有记忆点" },
 ];
 
 // 每个数字代表原始双图系列，确保同一组照片归入同一种风格。
@@ -14,23 +19,62 @@ const categorySeries = {
   creative: new Set([1, 2, 4, 5, 8, 10, 14, 24, 37, 40, 48, 51, 52, 56, 57, 60, 62, 63, 64, 65, 66, 67, 72, 75, 77, 78]),
 };
 
+// 主题是客户会使用的短名；场景与气质用于专业分层。
+// 每个数字代表一组双图，79 组全部且只归入一个主题。
+const themeConfig = [
+  { id: "business-boss", scene: "indoor", label: "商务总裁", description: "西装、职业与气场", series: [3, 9, 11, 20, 46] },
+  { id: "magazine", scene: "indoor", label: "杂志肖像", description: "时装、高级与镜头张力", series: [5, 6, 26, 50, 58, 64, 67, 69, 70] },
+  { id: "light-mood", scene: "indoor", label: "光影情绪", description: "明暗层次与故事感", series: [15, 17, 34, 35, 36, 47, 59, 73] },
+  { id: "retro-hk", scene: "indoor", label: "复古港风", description: "暖调、旧时光与电影感", series: [16, 18, 74] },
+  { id: "home-korean", scene: "indoor", label: "居家韩系", description: "干净、生活感与松弛感", series: [32, 33, 54, 71] },
+  { id: "floral-boy", scene: "indoor", label: "花艺少年", description: "鲜明色彩与柔和气质", series: [2, 38, 65] },
+  { id: "boxing", scene: "indoor", label: "拳击荷尔蒙", description: "肌肉线条与力量感", series: [8, 77] },
+  { id: "sport-style", scene: "indoor", label: "运动型格", description: "网球、滑板与少年感", series: [61, 63, 76, 79] },
+  { id: "cyberpunk", scene: "indoor", label: "赛博朋克", description: "霓虹、色光与未来感", series: [7, 42, 66, 72] },
+  { id: "wuxia", scene: "indoor", label: "国风武侠", description: "东方造型与侠气", series: [13, 48, 52, 75] },
+  { id: "celebration", scene: "indoor", label: "生日节日", description: "生日、新年与冬日限定", series: [4, 10, 14, 41, 78] },
+  { id: "concept", scene: "indoor", label: "创意概念", description: "道具、投影与实验画面", series: [1, 37, 45, 49, 51, 60, 62, 68] },
+  { id: "pet", scene: "indoor", label: "宠物合拍", description: "人与宠物的真实互动", series: [12] },
+  { id: "city-street", scene: "outdoor", label: "都市街拍", description: "建筑线条与城市时装", series: [19, 28] },
+  { id: "daily-walk", scene: "outdoor", label: "日常漫游", description: "自然光、行走与松弛感", series: [22, 23, 25, 30, 31, 53] },
+  { id: "moto", scene: "outdoor", label: "机车型格", description: "金属、速度与痞帅感", series: [24, 56] },
+  { id: "city-night", scene: "outdoor", label: "城市夜景", description: "雨夜、霓虹与情绪氛围", series: [43, 44, 55] },
+  { id: "forest", scene: "outdoor", label: "森系文艺", description: "绿意、逆光与安静氛围", series: [39] },
+  { id: "campus", scene: "outdoor", label: "校园少年", description: "乐器、青春与阳光感", series: [27] },
+  { id: "formal-outdoor", scene: "outdoor", label: "正装外景", description: "职业形象与城市光线", series: [21] },
+  { id: "wuxia-outdoor", scene: "outdoor", label: "国风外景", description: "古建筑、园林与东方意境", series: [40] },
+  { id: "travel", scene: "outdoor", label: "旅行叙事", description: "远方、风景与人物故事", series: [29] },
+  { id: "sport-documentary", scene: "outdoor", label: "运动纪实", description: "棒球、场地与动态感", series: [57] },
+].map((theme) => ({ ...theme, series: new Set(theme.series) }));
+
 const titleByCategory = Object.fromEntries(categoryConfig.map((item) => [item.id, item.label]));
+const sceneById = Object.fromEntries(sceneConfig.map((item) => [item.id, item]));
+const themeById = Object.fromEntries(themeConfig.map((item) => [item.id, item]));
 const featuredIds = [137, 37, 115, 127, 111, 77, 107, 51, 81, 129, 11, 59, 93, 139, 147, 157, 45, 49, 73, 99, 21, 65, 85, 119, 13, 95, 105, 123, 143, 31];
 
 function categoryForSeries(series) {
   return Object.entries(categorySeries).find(([, numbers]) => numbers.has(series))?.[0] || "creative";
 }
 
+function themeForSeries(series) {
+  return themeConfig.find((theme) => theme.series.has(series));
+}
+
 function itemFromId(id) {
   const series = Math.ceil(id / 2);
   const category = categoryForSeries(series);
+  const theme = themeForSeries(series);
   const code = `NB-${String(id).padStart(3, "0")}`;
   return {
     id,
     code,
     series,
     category,
-    title: titleByCategory[category],
+    scene: theme.scene,
+    sceneTitle: sceneById[theme.scene].label,
+    theme: theme.id,
+    title: theme.label,
+    styleTitle: titleByCategory[category],
     thumb: `../portfolio/assets/photos/thumbs/photo-${String(id).padStart(3, "0")}.webp`,
     full: `../portfolio/assets/photos/full/photo-${String(id).padStart(3, "0")}.jpg`,
   };
@@ -42,6 +86,7 @@ const galleryItems = [...featuredIds, ...remainingA, ...variantB].map(itemFromId
 const itemById = new Map(galleryItems.map((item) => [item.id, item]));
 
 const filters = document.querySelector("#filters");
+const themeFilters = document.querySelector("#theme-filters");
 const galleryGrid = document.querySelector("#gallery-grid");
 const gallerySummary = document.querySelector("#gallery-summary");
 const galleryProgress = document.querySelector("#gallery-progress");
@@ -72,7 +117,8 @@ const focusInputs = [...document.querySelectorAll('input[name="brief-focus"]')];
 const toast = document.querySelector("#toast");
 
 const PAGE_SIZE = 30;
-let activeCategory = "all";
+let activeScene = "all";
+let activeTheme = "all";
 let filteredItems = [...galleryItems];
 let visibleCount = PAGE_SIZE;
 let viewerIndex = 0;
@@ -178,19 +224,55 @@ function scheduleSettingsRefresh() {
   }, 220);
 }
 
-function categoryCount(categoryId) {
-  return categoryId === "all" ? galleryItems.length : galleryItems.filter((item) => item.category === categoryId).length;
+function sceneCount(sceneId) {
+  return sceneId === "all" ? galleryItems.length : galleryItems.filter((item) => item.scene === sceneId).length;
+}
+
+function themeCount(themeId) {
+  return galleryItems.filter((item) => item.theme === themeId).length;
+}
+
+function themesForActiveScene() {
+  return activeScene === "all" ? themeConfig : themeConfig.filter((theme) => theme.scene === activeScene);
+}
+
+function applyGalleryFilters() {
+  filteredItems = galleryItems.filter((item) => {
+    const matchesScene = activeScene === "all" || item.scene === activeScene;
+    const matchesTheme = activeTheme === "all" || item.theme === activeTheme;
+    return matchesScene && matchesTheme;
+  });
 }
 
 function renderFilters() {
-  filters.replaceChildren(...categoryConfig.map((category) => {
+  filters.replaceChildren(...sceneConfig.map((scene) => {
     const button = document.createElement("button");
-    button.className = "filter-button";
+    button.className = "scene-filter-button";
     button.type = "button";
-    button.dataset.category = category.id;
-    button.setAttribute("aria-pressed", String(activeCategory === category.id));
-    button.innerHTML = `${category.label}<span>${categoryCount(category.id)}</span>`;
-    button.addEventListener("click", () => setCategory(category.id));
+    button.dataset.scene = scene.id;
+    button.setAttribute("aria-pressed", String(activeScene === scene.id));
+    button.innerHTML = `<strong>${scene.label}</strong><span>${sceneCount(scene.id)}</span>`;
+    button.addEventListener("click", () => setScene(scene.id));
+    return button;
+  }));
+
+  const themes = themesForActiveScene();
+  const allButton = document.createElement("button");
+  allButton.className = "theme-filter-button";
+  allButton.type = "button";
+  allButton.dataset.theme = "all";
+  allButton.setAttribute("aria-pressed", String(activeTheme === "all"));
+  allButton.innerHTML = `<strong>${activeScene === "all" ? "全部主题" : `${sceneById[activeScene].label}全部`}</strong><span>${sceneCount(activeScene)}</span>`;
+  allButton.addEventListener("click", () => setTheme("all"));
+
+  themeFilters.replaceChildren(allButton, ...themes.map((theme) => {
+    const button = document.createElement("button");
+    button.className = "theme-filter-button";
+    button.type = "button";
+    button.dataset.theme = theme.id;
+    button.setAttribute("aria-pressed", String(activeTheme === theme.id));
+    button.innerHTML = `<strong>${theme.label}</strong><span>${themeCount(theme.id)}</span>`;
+    button.addEventListener("click", () => setTheme(theme.id));
     return button;
   }));
 }
@@ -224,7 +306,10 @@ function createCard(item, index) {
   const code = document.createElement("span");
   code.className = "photo-code";
   code.textContent = item.code;
-  photoButton.append(image, code);
+  const theme = document.createElement("span");
+  theme.className = "photo-theme";
+  theme.textContent = item.title;
+  photoButton.append(image, theme, code);
 
   const likeButton = document.createElement("button");
   likeButton.className = "like-button";
@@ -241,18 +326,35 @@ function createCard(item, index) {
 function renderGallery() {
   const shownItems = filteredItems.slice(0, visibleCount);
   galleryGrid.replaceChildren(...shownItems.map(createCard));
-  const category = categoryConfig.find((item) => item.id === activeCategory) || categoryConfig[0];
-  gallerySummary.textContent = `${category.label} · ${category.description}`;
+  const scene = sceneById[activeScene] || sceneConfig[0];
+  const theme = themeById[activeTheme];
+  gallerySummary.textContent = theme
+    ? `${scene.label} · ${theme.label} · ${theme.description}`
+    : `${scene.label} · ${scene.description}`;
   galleryProgress.textContent = `显示 ${shownItems.length} / ${filteredItems.length}`;
   const remaining = Math.max(0, filteredItems.length - shownItems.length);
   loadRemaining.textContent = remaining ? `还有 ${remaining} 张` : "";
   loadMoreButton.hidden = remaining === 0;
 }
 
-function setCategory(categoryId) {
-  activeCategory = categoryId;
+function setScene(sceneId) {
+  activeScene = sceneById[sceneId] ? sceneId : "all";
+  activeTheme = "all";
   visibleCount = PAGE_SIZE;
-  filteredItems = categoryId === "all" ? [...galleryItems] : galleryItems.filter((item) => item.category === categoryId);
+  applyGalleryFilters();
+  renderFilters();
+  renderGallery();
+}
+
+function setTheme(themeId) {
+  if (themeId !== "all" && themeById[themeId]) {
+    activeTheme = themeId;
+    activeScene = themeById[themeId].scene;
+  } else {
+    activeTheme = "all";
+  }
+  visibleCount = PAGE_SIZE;
+  applyGalleryFilters();
   renderFilters();
   renderGallery();
 }
@@ -371,11 +473,15 @@ async function copyText(text, successMessage) {
 }
 
 function requestText(items = selectedItems()) {
-  const styles = [...new Set(items.map((item) => item.title))];
+  const scenes = [...new Set(items.map((item) => item.sceneTitle))];
+  const themes = [...new Set(items.map((item) => item.title))];
+  const styles = [...new Set(items.map((item) => item.styleTitle))];
   const codes = items.map((item) => item.code).join("、");
   const lines = [
     briefSettings.name ? `你好，我是${briefSettings.name}，这是我喜欢的南铂客片方向：` : "你好，这是我喜欢的南铂客片方向：",
-    `偏好风格：${styles.join("、")}`,
+    `拍摄场景：${scenes.join("、")}`,
+    `偏好主题：${themes.join("、")}`,
+    `气质方向：${styles.join("、")}`,
     `首选参考：${items[0].code} · ${items[0].title}`,
     `参考编号：${codes}`,
   ];
@@ -622,11 +728,13 @@ async function generateSelectionCard(items) {
       context.fillText(`${visibleItems[index].code} · ${visibleItems[index].title}`, layout.x + 16, layout.y + layout.height - 22);
     });
 
-    const styles = [...new Set(items.map((item) => item.title))];
+    const scenes = [...new Set(items.map((item) => item.sceneTitle))];
+    const themes = [...new Set(items.map((item) => item.title))];
+    const styles = [...new Set(items.map((item) => item.styleTitle))];
     context.fillStyle = "rgba(255,253,248,.96)";
     context.strokeStyle = "rgba(23,23,20,.12)";
     context.lineWidth = 2;
-    roundedRectPath(context, 60, 1040, 960, 270, 24);
+    roundedRectPath(context, 60, 1040, 960, 300, 24);
     context.fill();
     context.stroke();
 
@@ -637,7 +745,7 @@ async function generateSelectionCard(items) {
     context.font = '700 18px -apple-system, "PingFang SC", sans-serif';
     context.fillText(`首选参考  ${visibleItems[0].code} · ${visibleItems[0].title}`, 88, 1087);
 
-    const stylesText = `偏好风格  ${styles.join(" · ")}`;
+    const stylesText = `${scenes.join(" / ")}  ·  ${themes.join(" · ")}`;
     context.fillStyle = "#171714";
     setFittedFont(context, stylesText, 850, 36, 27, 650);
     context.fillText(stylesText, 88, 1145);
@@ -646,11 +754,12 @@ async function generateSelectionCard(items) {
     const codes = items.map((item) => item.code).join("  ");
     context.fillText(`参考编号  ${codes.slice(0, 65)}${codes.length > 65 ? "…" : ""}`, 88, 1195);
     const focusText = briefSettings.focus.length ? briefSettings.focus.join("、") : "以上照片的整体感觉";
-    context.fillText(`拍摄重点  ${focusText}${items.length > 6 ? `（另选 ${items.length - 6} 张）` : ""}`, 88, 1240);
+    context.fillText(`气质方向  ${styles.join("、")}`, 88, 1240);
+    context.fillText(`拍摄重点  ${focusText}${items.length > 6 ? `（另选 ${items.length - 6} 张）` : ""}`, 88, 1278);
     if (briefSettings.note) {
       context.fillStyle = "#4f4d47";
       setFittedFont(context, `补充要求  ${briefSettings.note.slice(0, 42)}`, 850, 22, 17, 500);
-      context.fillText(`补充要求  ${briefSettings.note.slice(0, 42)}`, 88, 1282);
+      context.fillText(`补充要求  ${briefSettings.note.slice(0, 42)}`, 88, 1318);
     }
 
     context.fillStyle = "#a27f48";
@@ -762,9 +871,15 @@ viewerLike.addEventListener("click", () => toggleFavorite(filteredItems[viewerIn
 selectionBar.addEventListener("click", openSelectionSheet);
 document.querySelector("#favorite-tab").addEventListener("click", openFavoritesOrGuide);
 document.querySelector("#quick-favorites").addEventListener("click", openFavoritesOrGuide);
-document.querySelectorAll("[data-category-link]").forEach((button) => {
+document.querySelectorAll("[data-scene-link]").forEach((button) => {
   button.addEventListener("click", () => {
-    setCategory(button.dataset.categoryLink);
+    setScene(button.dataset.sceneLink);
+    document.querySelector("#works").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+document.querySelectorAll("[data-theme-link]").forEach((button) => {
+  button.addEventListener("click", () => {
+    setTheme(button.dataset.themeLink);
     document.querySelector("#works").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 });

@@ -73,6 +73,17 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .style-card small { color: rgba(255,255,255,.57); font-size: .48rem; letter-spacing: .15em; }
 .style-card strong { margin-top: .42rem; font-family: Georgia, "Songti SC", serif; font-size: 1.48rem; font-weight: 400; }
 .style-card em { margin-top: .24rem; color: rgba(255,255,255,.7); font-size: .62rem; font-style: normal; }
+.theme-directory { display: grid; gap: .8rem; margin: 1.15rem 1rem 0; }
+.theme-group { overflow: hidden; border: 1px solid var(--line); border-radius: 1.15rem; background: rgba(255,255,255,.58); }
+.theme-group header { display: flex; align-items: center; gap: .75rem; padding: .9rem 1rem .8rem; border-bottom: 1px solid var(--line); }
+.theme-group header > span { display: grid; width: 2rem; height: 2rem; flex: 0 0 auto; place-items: center; border-radius: 50%; color: white; background: var(--ink); font-family: Georgia,serif; font-size: .62rem; }
+.theme-group header > div { display: grid; gap: .12rem; }
+.theme-group header strong { font-family: Georgia,"Songti SC",serif; font-size: 1rem; font-weight: 400; }
+.theme-group header small { color: var(--subtle); font-size: .46rem; letter-spacing: .14em; }
+.theme-shortcuts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); padding: .45rem; }
+.theme-shortcuts button { min-width: 0; padding: .66rem .2rem; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: transparent; font-size: .6rem; white-space: nowrap; }
+.theme-shortcuts button:nth-child(3n) { border-right: 0; }
+.theme-shortcuts button:active { color: white; border-color: var(--ink); background: var(--ink); transform: scale(.97); }
 
 .fit-guide { display: grid; grid-template-columns: 1.05fr .95fr; margin: 0 1rem; overflow: hidden; border-radius: 1.15rem; color: white; background: #11120f; }
 .fit-copy { display: flex; flex-direction: column; justify-content: center; padding: 1.2rem; }
@@ -84,13 +95,19 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 
 .works { padding-top: 5rem; }
 .works-title { margin-bottom: 1.35rem; }
-.filter-bar { position: sticky; z-index: 12; top: 4.1rem; margin-bottom: .8rem; padding: .62rem .75rem; overflow: hidden; border-block: 1px solid var(--line); background: rgba(245,244,239,.9); -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); }
+.filter-bar { position: sticky; z-index: 12; top: 4.1rem; display: grid; gap: .52rem; margin-bottom: .8rem; padding: .58rem .75rem .66rem; overflow: hidden; border-block: 1px solid var(--line); background: rgba(245,244,239,.93); -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); }
+.filter-level { display: grid; grid-template-columns: 2rem minmax(0,1fr); align-items: center; gap: .38rem; }
+.filter-level > span { color: var(--subtle); font-size: .5rem; font-weight: 700; letter-spacing: .08em; }
 .filters { display: flex; gap: .38rem; overflow-x: auto; scrollbar-width: none; }
 .filters::-webkit-scrollbar { display: none; }
-.filter-button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .42rem; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.65); font-size: .66rem; }
-.filter-button span { color: var(--subtle); font-family: Georgia, serif; font-size: .57rem; }
-.filter-button[aria-pressed="true"] { color: white; border-color: var(--ink); background: var(--ink); }
-.filter-button[aria-pressed="true"] span { color: rgba(255,255,255,.55); }
+.scene-filter-button, .theme-filter-button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .4rem; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.7); }
+.scene-filter-button { min-height: 2.2rem; padding: .55rem .76rem; }
+.theme-filter-button { min-height: 1.8rem; padding: .38rem .62rem; }
+.scene-filter-button strong { font-size: .68rem; }
+.theme-filter-button strong { font-size: .58rem; font-weight: 600; }
+.scene-filter-button span, .theme-filter-button span { color: var(--subtle); font-family: Georgia,serif; font-size: .5rem; }
+.scene-filter-button[aria-pressed="true"], .theme-filter-button[aria-pressed="true"] { color: white; border-color: var(--ink); background: var(--ink); }
+.scene-filter-button[aria-pressed="true"] span, .theme-filter-button[aria-pressed="true"] span { color: rgba(255,255,255,.55); }
 .gallery-status { display: flex; justify-content: space-between; padding: 0 .8rem .7rem; color: var(--subtle); font-size: .56rem; letter-spacing: .05em; }
 .gallery-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .2rem; padding: 0 .2rem; }
 .gallery-card { position: relative; min-width: 0; overflow: hidden; background: #dddcd7; }
@@ -99,6 +116,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .photo-button img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .48s cubic-bezier(.2,.8,.2,1), opacity .25s ease; }
 .photo-button img[data-loading="true"] { opacity: 0; }
 .photo-button:active img { transform: scale(1.035); }
+.photo-theme { position: absolute; z-index: 2; bottom: .28rem; left: .32rem; max-width: calc(100% - 3.6rem); overflow: hidden; color: rgba(255,255,255,.92); font-size: .47rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .photo-code { position: absolute; z-index: 2; right: .32rem; bottom: .28rem; color: rgba(255,255,255,.9); font-family: Georgia, serif; font-size: .47rem; letter-spacing: .1em; }
 .like-button { position: absolute; z-index: 4; top: .3rem; right: .3rem; display: grid; width: 1.85rem; height: 1.85rem; padding: 0; place-items: center; border: 1px solid rgba(255,255,255,.5); border-radius: 50%; color: white; background: rgba(17,17,15,.35); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); font-size: .92rem; transition: transform .14s ease, background .14s ease; }
 .like-button:active { transform: scale(.84); }
@@ -253,7 +271,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
   .campaign { min-height: 39rem; }
   .quick-panel { width: calc(100% - 3rem); }
   .style-card { width: 18rem; }
-  .gallery-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: .45rem; padding: 0 1rem; }
+  .theme-directory { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gallery-grid { gap: .45rem; padding: 0 1rem; }
   .viewer-arrow { display: grid; }
 }
 @media (min-width: 900px) {

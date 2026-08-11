@@ -77,7 +77,9 @@ let visibleCount = PAGE_SIZE;
 let viewerIndex = 0;
 let toastTimer;
 let dragStartX = 0;
+let dragStartY = 0;
 let dragDeltaX = 0;
+let dragDeltaY = 0;
 let dragging = false;
 let selectionCardBlob = null;
 let selectionCardUrl = "";
@@ -566,35 +568,43 @@ viewerImage.addEventListener("error", () => {
 
 viewerStage.addEventListener("pointerdown", (event) => {
   if (event.pointerType === "mouse" && event.button !== 0) return;
+  if (event.target.closest("button")) return;
   dragging = true;
   dragStartX = event.clientX;
+  dragStartY = event.clientY;
   dragDeltaX = 0;
+  dragDeltaY = 0;
   viewerStage.setPointerCapture?.(event.pointerId);
 });
 
 viewerStage.addEventListener("pointermove", (event) => {
   if (!dragging) return;
   dragDeltaX = event.clientX - dragStartX;
+  dragDeltaY = event.clientY - dragStartY;
   viewerImage.style.transform = `translateX(${dragDeltaX * .55}px)`;
   viewerImage.style.opacity = String(Math.max(.55, 1 - Math.abs(dragDeltaX) / 500));
 });
 
-function finishDrag(event) {
+function finishDrag(event, cancelled = false) {
   if (!dragging) return;
   dragging = false;
   viewerStage.releasePointerCapture?.(event.pointerId);
   viewerImage.style.transform = "";
   viewerImage.style.opacity = "";
+  if (cancelled) return;
+  if (Math.abs(dragDeltaX) <= 10 && Math.abs(dragDeltaY) <= 10) {
+    closeViewer();
+    return;
+  }
   if (Math.abs(dragDeltaX) > 55) moveViewer(dragDeltaX < 0 ? 1 : -1);
 }
 
 viewerStage.addEventListener("pointerup", finishDrag);
-viewerStage.addEventListener("pointercancel", finishDrag);
+viewerStage.addEventListener("pointercancel", (event) => finishDrag(event, true));
 document.querySelector("#viewer-close").addEventListener("click", closeViewer);
 document.querySelector("#viewer-prev").addEventListener("click", () => moveViewer(-1));
 document.querySelector("#viewer-next").addEventListener("click", () => moveViewer(1));
 viewerLike.addEventListener("click", () => toggleFavorite(filteredItems[viewerIndex].id));
-document.querySelector("#copy-page-message").addEventListener("click", () => copyText("你好，我看了南铂摄影的客片，想咨询男士写真。我会把喜欢的风格图一起发给你。", "咨询话术已复制，回微信粘贴即可"));
 selectionBar.addEventListener("click", openSelectionSheet);
 document.querySelector("#selection-close").addEventListener("click", closeSelectionSheet);
 settingsToggle.addEventListener("click", () => {

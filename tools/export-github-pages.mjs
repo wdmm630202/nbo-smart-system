@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -119,4 +119,9 @@ for (const asset of ["review-example-portrait.webp", "review-example-bts.webp", 
   await copyFile(join(root, "apps/reviews/nfc/assets", asset), join(reviewNfcAssetsDir, asset));
 }
 
-console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版`);
+await cp(join(root, "apps/portfolio"), join(docs, "projects/portfolio"), {
+  recursive: true,
+  force: true,
+});
+
+console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 1 个客片作品页`);

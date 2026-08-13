@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="南铂写真复刻台：上传参考效果图和本人写真，生成保真人物的复刻方案。" />
+    <title>南铂写真复刻台</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand" aria-label="南铂写真复刻台">
+        <span class="brand-mark" aria-hidden="true">N</span>
+        <span>
+          <strong>南铂写真复刻台</strong>
+          <small>真实人物 · 参考效果</small>
+        </span>
+      </div>
+      <div class="top-actions">
+        <a class="quiet-button system-home" href="../../" aria-label="返回南铂智能系统">
+          <span>返回总台</span>
+        </a>
+        <button class="quiet-button" id="historyButton" type="button" aria-label="查看历史">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5M12 7v5l3 2"/></svg>
+          <span>历史</span>
+        </button>
+        <button class="quiet-button" id="settingsButton" type="button" aria-label="打开设置">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+          <span>设置</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero">
+        <div class="eyebrow"><span></span> 南铂 AI 写真工作流</div>
+        <h1>把喜欢的效果，<br /><em>留给真实的你。</em></h1>
+        <p>参考图只借灯光、色调、构图和氛围；你自己的写真负责五官、体型与真实皮肤。</p>
+        <ol class="steps" aria-label="操作步骤">
+          <li class="active"><span>1</span> 放入两张图</li>
+          <li><span>2</span> 分析效果</li>
+          <li><span>3</span> 生成写真</li>
+        </ol>
+      </section>
+
+      <section class="workspace-grid">
+        <article class="glass-card upload-card" id="referenceCard">
+          <div class="card-heading">
+            <div>
+              <span class="number-pill">01</span>
+              <h2>参考效果图</h2>
+            </div>
+            <span class="status-chip" id="referenceStatus">等待图片</span>
+          </div>
+          <p class="card-help">选中你喜欢的灯光、构图、色调或场景。</p>
+          <label class="dropzone" id="referenceDropzone">
+            <input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" />
+            <span class="preview-wrap">
+              <img id="referencePreview" alt="参考效果图预览" />
+              <span class="empty-state">
+                <span class="upload-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v4h14v-4"/></svg>
+                </span>
+                <strong>选择或拖入参考图</strong>
+                <small>JPG、PNG、WebP</small>
+              </span>
+            </span>
+          </label>
+          <button class="link-button hidden" id="loadRemoteButton" type="button">载入刚才右键选中的网页图片</button>
+        </article>
+
+        <article class="glass-card upload-card" id="portraitCard">
+          <div class="card-heading">
+            <div>
+              <span class="number-pill">02</span>
+              <h2>本人写真</h2>
+            </div>
+            <span class="status-chip safe" id="portraitStatus">人物源图</span>
+          </div>
+          <p class="card-help">优先使用清晰原片或精修片，脸部和皮肤细节越完整越好。</p>
+          <label class="dropzone" id="portraitDropzone">
+            <input id="portraitInput" type="file" accept="image/png,image/jpeg,image/webp" />
+            <span class="preview-wrap">
+              <img id="portraitPreview" alt="本人写真预览" />
+              <span class="empty-state">
+                <span class="upload-icon portrait-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.8-4.2 3.3-6.3 7.5-6.3s6.7 2.1 7.5 6.3"/></svg>
+                </span>
+                <strong>选择或拖入本人写真</strong>
+                <small>建议脸部清晰、无重度磨皮</small>
+              </span>
+            </span>
+          </label>
+        </article>
+      </section>
+
+      <section class="glass-card controls-card">
+        <div class="control-block mode-block">
+          <div class="section-label">
+            <span class="number-pill">03</span>
+            <div>
+              <h2>选择保真方式</h2>
+              <p>默认保护真实人物，不让参考图“夺走”你的脸。</p>
+            </div>
+          </div>
+          <div class="segmented" role="radiogroup" aria-label="保真方式">
+            <label>
+              <input type="radio" name="mode" value="faithful" checked />
+              <span><strong>保真优先</strong><small>锁定五官与皮肤</small></span>
+            </label>
+            <label>
+              <input type="radio" name="mode" value="balanced" />
+              <span><strong>平衡模式</strong><small>允许调整姿势构图</small></span>
+            </label>
+            <label>
+              <input type="radio" name="mode" value="effect" />
+              <span><strong>效果优先</strong><small>人物可能被重绘</small></span>
+            </label>
+          </div>
+          <div class="truth-note" id="truthNote">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/><path d="M12 10v6m0-9h.01"/></svg>
+            <span><strong>真实边界：</strong>AI 会重新生成画面。保真优先能最大程度保持皮肤纹理，但只有“不改变人物像素”的局部合成才能做到百分之百保留实拍皮肤。</span>
+          </div>
+        </div>
+
+        <div class="control-block transfer-block">
+          <h3>想借用参考图的哪些部分？</h3>
+          <div class="check-grid">
+            <label><input type="checkbox" name="transfer" value="lighting" checked /><span>灯光</span></label>
+            <label><input type="checkbox" name="transfer" value="color" checked /><span>色调</span></label>
+            <label><input type="checkbox" name="transfer" value="composition" checked /><span>构图</span></label>
+            <label><input type="checkbox" name="transfer" value="background" checked /><span>背景</span></label>
+            <label><input type="checkbox" name="transfer" value="pose" /><span>姿势</span></label>
+            <label><input type="checkbox" name="transfer" value="wardrobe" /><span>服装</span></label>
+          </div>
+          <label class="notes-field">
+            <span>补充要求（可选）</span>
+            <textarea id="notesInput" rows="3" placeholder="例如：保留黑色西装，不改变发型，输出竖版 2:3……"></textarea>
+          </label>
+        </div>
+
+        <div class="action-row">
+          <button class="secondary-button" id="promptButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>
+            先生成复刻指令
+          </button>
+          <button class="primary-button" id="analyzeButton" type="button">
+            <span class="button-label">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.4 4.2L18 9l-4.6 1.8L12 15l-1.4-4.2L6 9l4.6-1.8L12 3Z"/><path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg>
+              AI 分析参考效果
+            </span>
+            <span class="button-progress" aria-hidden="true"></span>
+          </button>
+          <button class="generate-button" id="generateButton" type="button" disabled>
+            生成写真效果图
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="glass-card result-card hidden" id="resultCard" aria-live="polite">
+        <div class="result-header">
+          <div>
+            <span class="number-pill">04</span>
+            <h2>复刻方案</h2>
+          </div>
+          <div class="result-tabs" role="tablist">
+            <button class="active" data-tab="summary" type="button">分析</button>
+            <button data-tab="prompt" type="button">提示词</button>
+            <button data-tab="image" type="button">效果图</button>
+          </div>
+        </div>
+        <div class="tab-panel" data-panel="summary">
+          <div class="analysis-grid" id="analysisGrid"></div>
+          <div class="warning-box hidden" id="warningBox"></div>
+        </div>
+        <div class="tab-panel hidden" data-panel="prompt">
+          <div class="prompt-toolbar">
+            <span>南铂保真复刻指令</span>
+            <button class="copy-button" id="copyPromptButton" type="button">复制提示词</button>
+          </div>
+          <pre id="promptOutput"></pre>
+          <details>
+            <summary>查看负面约束</summary>
+            <pre id="negativeOutput"></pre>
+          </details>
+        </div>
+        <div class="tab-panel hidden image-panel" data-panel="image">
+          <div class="generated-placeholder" id="generatedPlaceholder">
+            <span>完成分析后，点击“生成写真效果图”</span>
+          </div>
+          <img id="generatedImage" alt="AI 生成的写真效果图" />
+          <div class="image-actions hidden" id="imageActions">
+            <button class="secondary-button" id="downloadButton" type="button">下载结果</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>南铂摄影 · 本地优先</span>
+      <span>图片只有在你主动点击 AI 分析或生成时才发送到所配置的模型服务。</span>
+    </footer>
+
+    <dialog id="settingsDialog">
+      <form method="dialog" class="dialog-card" id="settingsForm">
+        <div class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">模型设置</span>
+            <h2>连接你的 AI 服务</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="关闭设置" type="submit">×</button>
+        </div>
+        <p class="privacy-line">API Key 仅保存在当前 Chrome 本机。正式商用建议改为南铂自己的服务器中转，不在插件里保存长期密钥。</p>
+        <label>
+          <span>OpenAI API Key</span>
+          <input id="apiKeyInput" type="password" autocomplete="off" placeholder="sk-…" />
+        </label>
+        <label>
+          <span>分析模型</span>
+          <input id="analysisModelInput" type="text" value="gpt-5.4-mini" />
+        </label>
+        <label>
+          <span>接口地址</span>
+          <input id="baseUrlInput" type="url" value="https://api.openai.com/v1" />
+        </label>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="testConnectionButton" value="default" type="button">测试连接</button>
+          <button class="secondary-button" value="cancel" type="submit">取消</button>
+          <button class="primary-button" id="saveSettingsButton" value="default" type="button">保存到本机</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="historyDialog">
+      <div class="dialog-card history-dialog">
+        <div class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">本地记录</span>
+            <h2>最近的复刻方案</h2>
+          </div>
+          <button class="icon-button" id="closeHistoryButton" aria-label="关闭历史" type="button">×</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+        <button class="link-button danger-link" id="clearHistoryButton" type="button">清空本地历史</button>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

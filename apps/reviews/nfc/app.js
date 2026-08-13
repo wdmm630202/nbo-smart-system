@@ -75,7 +75,7 @@
     }));
   }
 
-  function useVariant(index) {
+  function applyVariant(index) {
     const item = variants[index];
     if (!item) return;
     $("#review").value = item.text;
@@ -86,18 +86,18 @@
     if (!selected || !selectedPackage) return;
     variants = makeVariants();
     $("#variants").innerHTML = variants.map((item, index) => `<button class="variant${index === 0 ? " active" : ""}" type="button" data-index="${index}"><div><b>${item.name}</b><span>${item.text}</span></div><i>✓</i></button>`).join("");
-    document.querySelectorAll(".variant").forEach((node) => node.addEventListener("click", () => useVariant(Number(node.dataset.index))));
+    document.querySelectorAll(".variant").forEach((node) => node.addEventListener("click", () => applyVariant(Number(node.dataset.index))));
     $("#result").classList.add("show");
     const order = getPackage();
     $("#package-summary").textContent = `${order.price} · ${order.title}`;
-    useVariant(0);
+    applyVariant(0);
   }
 
   async function copyReview(message) {
     const text = $("#review").value.trim();
     if (!text) { toast("请先选择真实经历"); return false; }
     try { await navigator.clipboard.writeText(text); }
-    catch (_error) {
+    catch {
       const area = document.createElement("textarea");
       area.value = text;
       area.style.cssText = "position:fixed;opacity:0";

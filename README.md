@@ -5,7 +5,7 @@
 - 固定网站：<https://wdmm630202.github.io/nbo-smart-system/>
 - 源代码由 GitHub 长期保存，可在新电脑重新克隆。
 - `docs/` 是无服务器静态版本，不依赖原电脑在线。
-- 14 张项目卡片都是直达链接；不需要展开详情，也不再使用“本机运行”入口。
+- 15 张项目卡片都是直达链接；不需要展开详情，也不再使用“本机运行”入口。
 - Stash 卡片直接显示真实管理界面预览；点击整张卡片进入受安全登录保护的云端运行中心。
 - 网站内容更新后运行 `pnpm pages:build`，再提交并推送即可同步固定网站。
 
@@ -25,6 +25,7 @@
 - NBO 灵感封面：<https://wdmm630202.github.io/nbo-cover-copy/>
 - 南铂客户选片中心：<https://wdmm630202.github.io/nbo-smart-system/p/>
 - 南铂成交洞察后台：<https://wdmm630202.github.io/nbo-smart-system/i/>
+- 南铂写真复刻台：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-recreation/>（无 API 可生成复刻指令；AI 分析和出图需要可用模型与额度）
 
 其余项目的独立入口统一使用：
 

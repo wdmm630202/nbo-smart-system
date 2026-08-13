@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -234,6 +234,21 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/i/",
     linkLabel: "打开成交洞察后台",
   },
+  {
+    id: "photo-recreation",
+    index: "15",
+    name: "南铂写真复刻台",
+    eyebrow: "PHOTO RECREATION STUDIO",
+    category: "网页",
+    status: "指令可用",
+    summary: "上传参考效果图和本人写真，提炼灯光、色调、构图与保真人物的复刻方案。",
+    detail: "无 API 时可直接生成保真复刻指令；AI 分析与效果图需要另外配置可用模型与额度。图片默认只在当前浏览器处理，主动调用 AI 时才发送到所配置的接口。",
+    tags: ["双图工作流", "保真优先", "复刻指令"],
+    tone: "sand",
+    visual: "recreate",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/photo-recreation/",
+    linkLabel: "打开写真复刻台",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -254,6 +269,7 @@ function ProjectVisual({ project }: { project: Project }) {
     reviews: "★★★★★",
     portfolio: "158",
     insights: "↑",
+    recreate: "2→1",
   };
 
   if (project.preview) {

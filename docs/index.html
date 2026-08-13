@@ -61,7 +61,7 @@ a { text-decoration: none; }
 .project-preview { width: 100%; height: 100%; display: block; object-fit: cover; object-position: top center; transition: transform 180ms ease-out; }
 .project-card:hover .project-preview { transform: scale(1.025); }
 .preview-badge { position: absolute; z-index: 3; right: 10px; bottom: 10px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.75); border-radius: 99px; color: white; background: rgba(16,24,36,.74); backdrop-filter: blur(12px) saturate(150%); box-shadow: 0 4px 14px rgba(20,30,45,.16); font-size: 7px; font-style: normal; font-weight: 800; letter-spacing: .04em; }
-.visual-studio>span { background: #bd6545; }.visual-server>span { background: #497bc5; }.visual-workflow>span { background: #785c9d; }.visual-odds>span { background: #8f803f; }.visual-video>span { background: #8e4d5b; }.visual-crm>span { background: #4f8884; }.visual-agent>span { background: #9a5749; }.visual-expand>span { background: #755a9b; font-size: 17px; }.visual-meter>span { background: #444a53; font-size: 18px; }.visual-risk>span { background: #718743; }.visual-reviews>span { background: #b97437; font-size: 10px; letter-spacing: .08em; }
+.visual-studio>span { background: #bd6545; }.visual-server>span { background: #497bc5; }.visual-workflow>span { background: #785c9d; }.visual-odds>span { background: #8f803f; }.visual-video>span { background: #8e4d5b; }.visual-crm>span { background: #4f8884; }.visual-agent>span { background: #9a5749; }.visual-expand>span { background: #755a9b; font-size: 17px; }.visual-meter>span { background: #444a53; font-size: 18px; }.visual-risk>span { background: #718743; }.visual-reviews>span { background: #b97437; font-size: 10px; letter-spacing: .08em; }.visual-portfolio>span { background:#3f4b58; font-size:18px; }.visual-insights>span { background:#1d593b; }
 .project-eyebrow { color: #747981; font-size: 7px; font-weight: 800; letter-spacing: .17em; }
 .project-copy h3 { margin: 7px 0; font-size: clamp(18px, 1.35vw, 24px); line-height: 1.12; letter-spacing: -.035em; }
 .project-copy p { margin: 0; display: -webkit-box; overflow: hidden; color: #666b73; font-size: 10px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -70,7 +70,7 @@ a { text-decoration: none; }
 .open-project { position: absolute; right: 13px; bottom: 13px; display: flex; align-items: center; gap: 7px; color: #777b82; font-size: 8px; font-weight: 750; }
 .open-project b { width: 23px; height: 23px; display: grid; place-items: center; border-radius: 8px; color: white; background: #171a1f; }
 
-.tone-mint{background:linear-gradient(145deg,#dfeee6,#edf0ec 56%,#d8e0dd)}.tone-peach{background:linear-gradient(145deg,#f5e0d3,#eeece5 55%,#ead9d1)}.tone-sky{background:linear-gradient(145deg,#dfe9f5,#e8edf3 55%,#d8e2ec)}.tone-lilac{background:linear-gradient(145deg,#e8e0f4,#ece9ef 55%,#ded8e8)}.tone-butter{background:linear-gradient(145deg,#f1e8c8,#eeece2 55%,#e7dfbd)}.tone-rose{background:linear-gradient(145deg,#f2dcdf,#eeeaeb 55%,#e5d3d9)}.tone-aqua{background:linear-gradient(145deg,#d8ecea,#e9eeee 55%,#cee0df)}.tone-coral{background:linear-gradient(145deg,#f0d9d0,#eee9e5 55%,#e3cec6)}.tone-violet{background:linear-gradient(145deg,#e5dcf2,#e9e7ee 55%,#d9d0e8)}.tone-graphite{background:linear-gradient(145deg,#dfe1e4,#eaebec 55%,#d5d8dc)}.tone-lime{background:linear-gradient(145deg,#e4ebd1,#eceee7 55%,#d9e2c3)}.tone-orange{background:linear-gradient(145deg,#f3dfcc,#eee9e2 55%,#e8d2bc)}
+.tone-mint{background:linear-gradient(145deg,#dfeee6,#edf0ec 56%,#d8e0dd)}.tone-peach{background:linear-gradient(145deg,#f5e0d3,#eeece5 55%,#ead9d1)}.tone-sky{background:linear-gradient(145deg,#dfe9f5,#e8edf3 55%,#d8e2ec)}.tone-lilac{background:linear-gradient(145deg,#e8e0f4,#ece9ef 55%,#ded8e8)}.tone-butter{background:linear-gradient(145deg,#f1e8c8,#eeece2 55%,#e7dfbd)}.tone-rose{background:linear-gradient(145deg,#f2dcdf,#eeeaeb 55%,#e5d3d9)}.tone-aqua{background:linear-gradient(145deg,#d8ecea,#e9eeee 55%,#cee0df)}.tone-coral{background:linear-gradient(145deg,#f0d9d0,#eee9e5 55%,#e3cec6)}.tone-violet{background:linear-gradient(145deg,#e5dcf2,#e9e7ee 55%,#d9d0e8)}.tone-graphite{background:linear-gradient(145deg,#dfe1e4,#eaebec 55%,#d5d8dc)}.tone-lime{background:linear-gradient(145deg,#e4ebd1,#eceee7 55%,#d9e2c3)}.tone-orange{background:linear-gradient(145deg,#f3dfcc,#eee9e2 55%,#e8d2bc)}.tone-silver{background:linear-gradient(145deg,#dce2e8,#eef0ed 55%,#d2d9df)}.tone-forest{background:linear-gradient(145deg,#d7e7dd,#e8ede8 55%,#cbded2)}
 
 @media(max-width:1250px) { .project-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media(max-width:900px) { .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -100,7 +100,7 @@ main{min-height:100vh}.static-page .top-nav{position:sticky;top:10px;margin:10px
   <main>
     <nav class="top-nav" aria-label="系统导航"><a class="brand" href="#top"><span>N</span><b>NBO南铂智能系统</b></a><a class="sync-link" href="https://github.com/wdmm630202/nbo-smart-system"><i></i>GitHub 永久备份</a></nav>
     <section class="work-section" id="top">
-      <header class="results-header"><div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>打开即看结果 · 电脑、手机均可使用</span></div><div class="result-count"><strong>12</strong><span>全部系统</span></div></header>
+      <header class="results-header"><div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>打开即看结果 · 电脑、手机均可使用</span></div><div class="result-count"><strong>14</strong><span>全部系统</span></div></header>
       <div class="project-grid">
   <a class="project-card tone-mint" href="https://stash-status.nanbostudio.com/" aria-label="打开网络中心：南铂 Stash 长期运行中心">
     <div class="project-card-top"><span class="project-index">01</span><span class="project-status"><i></i>云端运行</span></div>
@@ -172,6 +172,18 @@ main{min-height:100vh}.static-page .top-nav{position:sticky;top:10px;margin:10px
     <div class="project-card-top"><span class="project-index">12</span><span class="project-status"><i></i>已上线</span></div>
     <div class="project-visual visual-reviews"><span>★★★★★</span><small>网页</small></div>
     <div class="project-copy"><span class="project-eyebrow">REAL REVIEW ASSISTANT</span><h3>南铂真实好评助手</h3><p>AI热门场景一键生成真实评价参考，并直达微信或企业微信。</p><div class="tag-row"><span>AI热门</span><span>微信直达</span><span>真实评价</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-silver" href="https://wdmm630202.github.io/nbo-smart-system/p/" aria-label="打开客户选片中心：南铂客户选片中心">
+    <div class="project-card-top"><span class="project-index">13</span><span class="project-status"><i></i>已上线</span></div>
+    <div class="project-visual visual-portfolio"><span>158</span><small>网页</small></div>
+    <div class="project-copy"><span class="project-eyebrow">CLIENT PORTFOLIO</span><h3>南铂客户选片中心</h3><p>客户用手机或电脑浏览真实客片、筛选主题并整理拍摄偏好。</p><div class="tag-row"><span>真实客片</span><span>选风格</span><span>跨设备</span></div></div>
+    <span class="open-project">立即打开 <b>↗</b></span>
+  </a>
+  <a class="project-card tone-forest" href="https://wdmm630202.github.io/nbo-smart-system/i/" aria-label="打开成交洞察后台：南铂成交洞察后台">
+    <div class="project-card-top"><span class="project-index">14</span><span class="project-status"><i></i>内部使用</span></div>
+    <div class="project-visual visual-insights"><span>↑</span><small>网页</small></div>
+    <div class="project-copy"><span class="project-eyebrow">CONVERSION INSIGHTS</span><h3>南铂成交洞察后台</h3><p>查看匿名浏览时长、热门作品、主题偏好与接近咨询的成交信号。</p><div class="tag-row"><span>匿名统计</span><span>成交信号</span><span>速度体验</span></div></div>
     <span class="open-project">立即打开 <b>↗</b></span>
   </a></div>
     </section>

@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -204,6 +204,36 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/reviews/",
     linkLabel: "打开好评系统",
   },
+  {
+    id: "portfolio-v2",
+    index: "13",
+    name: "南铂客户选片中心",
+    eyebrow: "CLIENT PORTFOLIO",
+    category: "网页",
+    status: "已上线",
+    summary: "客户用手机或电脑浏览真实客片、筛选主题并整理拍摄偏好。",
+    detail: "固定网址长期使用，当前收录 158 张真实客片和 23 个主题；优先保证首屏速度、触摸交互和跨设备访问体验。",
+    tags: ["真实客片", "选风格", "跨设备"],
+    tone: "silver",
+    visual: "portfolio",
+    href: "https://wdmm630202.github.io/nbo-smart-system/p/",
+    linkLabel: "打开客户选片中心",
+  },
+  {
+    id: "portfolio-insights",
+    index: "14",
+    name: "南铂成交洞察后台",
+    eyebrow: "CONVERSION INSIGHTS",
+    category: "网页",
+    status: "内部使用",
+    summary: "查看匿名浏览时长、热门作品、主题偏好与接近咨询的成交信号。",
+    detail: "把访问、有效停留、作品打开、收藏和复制拍摄需求整理成可执行建议；数据仅用于优化客片顺序、渠道和咨询流程。",
+    tags: ["匿名统计", "成交信号", "速度体验"],
+    tone: "forest",
+    visual: "insights",
+    href: "https://wdmm630202.github.io/nbo-smart-system/i/",
+    linkLabel: "打开成交洞察后台",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -222,6 +252,8 @@ function ProjectVisual({ project }: { project: Project }) {
     meter: "72%",
     risk: "−18",
     reviews: "★★★★★",
+    portfolio: "158",
+    insights: "↑",
   };
 
   if (project.preview) {

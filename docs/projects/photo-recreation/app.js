@@ -4,6 +4,19 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 const extensionStorage = globalThis.chrome?.storage?.local;
 const extensionPermissions = globalThis.chrome?.permissions;
 
+const providerDefaults = {
+  gemini: {
+    analysisModel: "gemini-3.6-flash",
+    imageModel: "gemini-3.1-flash-image",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta"
+  },
+  openai: {
+    analysisModel: "gpt-5.4-mini",
+    imageModel: "gpt-5.4-mini",
+    baseUrl: "https://api.openai.com/v1"
+  }
+};
+
 const state = {
   reference: null,
   portrait: null,
@@ -13,9 +26,9 @@ const state = {
   generated: "",
   pendingReferenceUrl: "",
   settings: {
+    provider: "gemini",
     apiKey: "",
-    analysisModel: "gpt-5.4-mini",
-    baseUrl: "https://api.openai.com/v1"
+    ...providerDefaults.gemini
   },
   history: []
 };
@@ -317,22 +330,153 @@ function parseModelJson(text) {
   }
 }
 
-async function callResponses(payload) {
+function inferProvider(settings) {
+  if (settings?.provider === "gemini" || settings?.provider === "openai") return settings.provider;
+  const signature = `${settings?.baseUrl || ""} ${settings?.analysisModel || ""}`;
+  return /generativelanguage\.googleapis\.com|\bgemini-/i.test(signature) ? "gemini" : "openai";
+}
+
+function currentDefaults(provider = state.settings.provider) {
+  return providerDefaults[provider] || providerDefaults.gemini;
+}
+
+function normalizedModelName(model) {
+  return String(model || "").trim().replace(/^models\//, "");
+}
+
+function readableApiError(data, status, provider) {
+  const raw = data?.error?.message || data?.message || `接口请求失败（${status}）`;
+  if (/API key not valid|API_KEY_INVALID|invalid api key/i.test(raw)) {
+    return `API Key 无效，请检查是否复制完整，并确认它是 ${provider === "gemini" ? "Google Gemini" : "OpenAI"} 的 Key。`;
+  }
+  if (status === 429) return "当前 API 额度不足或请求过于频繁，请检查计费与额度后再试。";
+  if (status === 403) return `当前 API Key 没有访问该模型的权限。${provider === "gemini" ? "请检查 Google AI Studio 里的 Key 和项目权限。" : ""}`;
+  if (status === 404) return "没有找到这个模型或接口。请使用设置里的默认模型名称和接口地址。";
+  return raw;
+}
+
+async function requestJson(url, options, provider) {
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch {
+    const service = provider === "gemini" ? "Google Gemini" : "OpenAI";
+    throw new Error(`无法连接 ${service}。请检查网络、接口地址，或浏览器是否拦截请求。`);
+  }
+  const rawBody = await response.text().catch(() => "");
+  let data = {};
+  try { data = rawBody ? JSON.parse(rawBody) : {}; }
+  catch { data = rawBody ? { message: rawBody.slice(0, 500) } : {}; }
+  if (!response.ok) throw new Error(readableApiError(data, response.status, provider));
+  return data;
+}
+
+async function callOpenAIResponses(payload) {
   const base = state.settings.baseUrl.replace(/\/$/, "");
-  const response = await fetch(`${base}/responses`, {
+  return requestJson(`${base}/responses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${state.settings.apiKey}`
     },
     body: JSON.stringify(payload)
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = data.error?.message || `接口请求失败（${response.status}）`;
-    throw new Error(message);
+  }, "openai");
+}
+
+function geminiBaseUrl() {
+  return state.settings.baseUrl.replace(/\/+$/, "").replace(/\/models$/, "");
+}
+
+function dataUrlParts(dataUrl) {
+  const match = /^data:([^;,]+);base64,(.+)$/s.exec(dataUrl || "");
+  if (!match) throw new Error("图片数据无法读取，请重新选择图片。");
+  return { mimeType: match[1], data: match[2] };
+}
+
+function geminiInlineImage(dataUrl) {
+  const image = dataUrlParts(dataUrl);
+  return { inline_data: { mime_type: image.mimeType, data: image.data } };
+}
+
+function geminiInteractionImage(dataUrl) {
+  const image = dataUrlParts(dataUrl);
+  return { type: "image", mime_type: image.mimeType, data: image.data };
+}
+
+async function callGeminiGenerateContent({ model, parts, generationConfig }) {
+  const modelName = normalizedModelName(model);
+  return requestJson(`${geminiBaseUrl()}/models/${encodeURIComponent(modelName)}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": state.settings.apiKey
+    },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts }],
+      ...(generationConfig ? { generationConfig } : {})
+    })
+  }, "gemini");
+}
+
+async function callGeminiInteraction({ model, prompt, images }) {
+  return requestJson(`${geminiBaseUrl()}/interactions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": state.settings.apiKey
+    },
+    body: JSON.stringify({
+      model: normalizedModelName(model),
+      input: [{ type: "text", text: prompt }, ...images.map(geminiInteractionImage)],
+      response_format: { type: "image", mime_type: "image/png", aspect_ratio: "3:4" },
+      store: false
+    })
+  }, "gemini");
+}
+
+function extractGeminiText(response) {
+  return (response.candidates || [])
+    .flatMap((candidate) => candidate.content?.parts || [])
+    .map((part) => part.text)
+    .filter((text) => typeof text === "string")
+    .join("\n");
+}
+
+function extractGeminiImage(response) {
+  const image = response.output_image || response.outputImage;
+  if (image?.data) return `data:${image.mime_type || image.mimeType || "image/png"};base64,${image.data}`;
+  const part = (response.candidates || [])
+    .flatMap((candidate) => candidate.content?.parts || [])
+    .find((item) => item.inlineData?.data || item.inline_data?.data);
+  const inline = part?.inlineData || part?.inline_data;
+  return inline?.data ? `data:${inline.mimeType || inline.mime_type || "image/png"};base64,${inline.data}` : "";
+}
+
+async function analyzeWithConfiguredProvider() {
+  if (state.settings.provider === "gemini") {
+    const response = await callGeminiGenerateContent({
+      model: state.settings.analysisModel,
+      parts: [
+        { text: analysisRequestPrompt() },
+        geminiInlineImage(state.portrait.dataUrl),
+        geminiInlineImage(state.reference.dataUrl)
+      ],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    return parseModelJson(extractGeminiText(response));
   }
-  return data;
+  const response = await callOpenAIResponses({
+    model: state.settings.analysisModel,
+    input: [{
+      role: "user",
+      content: [
+        { type: "input_text", text: analysisRequestPrompt() },
+        { type: "input_image", image_url: state.portrait.dataUrl, detail: "high" },
+        { type: "input_image", image_url: state.reference.dataUrl, detail: "high" }
+      ]
+    }]
+  });
+  return parseModelJson(extractOutputText(response));
 }
 
 async function analyzeImages() {
@@ -343,18 +487,7 @@ async function analyzeImages() {
   showToast("正在读取参考图的光线、构图和色调……", 3600);
 
   try {
-    const response = await callResponses({
-      model: state.settings.analysisModel || "gpt-5.4-mini",
-      input: [{
-        role: "user",
-        content: [
-          { type: "input_text", text: analysisRequestPrompt() },
-          { type: "input_image", image_url: state.portrait.dataUrl, detail: "high" },
-          { type: "input_image", image_url: state.reference.dataUrl, detail: "high" }
-        ]
-      }]
-    });
-    const analysis = parseModelJson(extractOutputText(response));
+    const analysis = await analyzeWithConfiguredProvider();
     renderAnalysis(analysis);
     await saveHistory("AI 已分析", analysis);
     switchTab("summary");
@@ -381,25 +514,31 @@ async function generateImage() {
   $("#generatedPlaceholder").textContent = "正在保持五官与皮肤质感，并迁移参考效果……";
 
   try {
-    const response = await callResponses({
-      model: state.settings.analysisModel || "gpt-5.4-mini",
-      input: [{
-        role: "user",
-        content: [
-          { type: "input_text", text: imageGenerationPrompt() },
-          { type: "input_image", image_url: state.portrait.dataUrl, detail: "high" },
-          { type: "input_image", image_url: state.reference.dataUrl, detail: "high" }
-        ]
-      }],
-      tools: [{ type: "image_generation" }]
-    });
-
-    const imageCall = (response.output || []).find((item) => item.type === "image_generation_call" && item.result);
-    if (!imageCall) {
-      throw new Error(extractOutputText(response) || "模型没有返回图片，请调整要求后重试。 ");
+    if (state.settings.provider === "gemini") {
+      const response = await callGeminiInteraction({
+        model: state.settings.imageModel || providerDefaults.gemini.imageModel,
+        prompt: imageGenerationPrompt(),
+        images: [state.portrait.dataUrl, state.reference.dataUrl]
+      });
+      state.generated = extractGeminiImage(response);
+      if (!state.generated) throw new Error("模型已响应，但没有返回图片。请把“出图模型”设为 gemini-3.1-flash-image。");
+    } else {
+      const response = await callOpenAIResponses({
+        model: state.settings.imageModel || state.settings.analysisModel,
+        input: [{
+          role: "user",
+          content: [
+            { type: "input_text", text: imageGenerationPrompt() },
+            { type: "input_image", image_url: state.portrait.dataUrl, detail: "high" },
+            { type: "input_image", image_url: state.reference.dataUrl, detail: "high" }
+          ]
+        }],
+        tools: [{ type: "image_generation" }]
+      });
+      const imageCall = (response.output || []).find((item) => item.type === "image_generation_call" && item.result);
+      if (!imageCall) throw new Error(extractOutputText(response) || "模型没有返回图片，请调整要求后重试。");
+      state.generated = `data:image/png;base64,${imageCall.result}`;
     }
-
-    state.generated = `data:image/png;base64,${imageCall.result}`;
     $("#generatedImage").src = state.generated;
     $("#generatedImage").classList.add("visible");
     $("#generatedPlaceholder").classList.add("hidden");
@@ -484,28 +623,57 @@ async function importRemoteReference() {
 
 async function loadStoredState() {
   const stored = await storageGet(["nboSettings", "nboHistory", "pendingReferenceUrl", "pendingReferenceAt"]);
-  if (stored.nboSettings) state.settings = { ...state.settings, ...stored.nboSettings };
+  if (stored.nboSettings) {
+    const provider = stored.nboSettings.provider || inferProvider(stored.nboSettings);
+    state.settings = { ...currentDefaults(provider), ...stored.nboSettings, provider };
+  }
   if (Array.isArray(stored.nboHistory)) state.history = stored.nboHistory;
   if (stored.pendingReferenceUrl && Date.now() - Number(stored.pendingReferenceAt || 0) < 20 * 60 * 1000) {
     state.pendingReferenceUrl = stored.pendingReferenceUrl;
     $("#loadRemoteButton").classList.remove("hidden");
   }
+  $("#providerInput").value = state.settings.provider;
   $("#apiKeyInput").value = state.settings.apiKey || "";
-  $("#analysisModelInput").value = state.settings.analysisModel || "gpt-5.4-mini";
-  $("#baseUrlInput").value = state.settings.baseUrl || "https://api.openai.com/v1";
+  $("#analysisModelInput").value = state.settings.analysisModel || currentDefaults().analysisModel;
+  $("#imageModelInput").value = state.settings.imageModel || currentDefaults().imageModel;
+  $("#baseUrlInput").value = state.settings.baseUrl || currentDefaults().baseUrl;
+  updateProviderUi();
+}
+
+function updateProviderUi(resetFields = false) {
+  const provider = $("#providerInput").value === "openai" ? "openai" : "gemini";
+  const defaults = currentDefaults(provider);
+  if (resetFields) {
+    $("#analysisModelInput").value = defaults.analysisModel;
+    $("#imageModelInput").value = defaults.imageModel;
+    $("#baseUrlInput").value = defaults.baseUrl;
+  }
+  $("#apiKeyLabel").textContent = provider === "gemini" ? "Google Gemini API Key" : "OpenAI API Key";
+  $("#apiKeyInput").placeholder = provider === "gemini" ? "粘贴 Gemini API Key" : "sk-…";
+  $("#providerHint").textContent = provider === "gemini"
+    ? "Gemini 将使用分析模型读图，使用出图模型生成效果图。"
+    : "OpenAI 将使用 Responses API 分析图片并调用图像生成工具。";
+}
+
+function settingsFromForm() {
+  const provider = $("#providerInput").value === "openai" ? "openai" : "gemini";
+  const defaults = currentDefaults(provider);
+  return {
+    provider,
+    apiKey: $("#apiKeyInput").value.trim(),
+    analysisModel: $("#analysisModelInput").value.trim() || defaults.analysisModel,
+    imageModel: $("#imageModelInput").value.trim() || defaults.imageModel,
+    baseUrl: $("#baseUrlInput").value.trim().replace(/\/$/, "") || defaults.baseUrl
+  };
 }
 
 async function saveSettings() {
-  const baseUrl = $("#baseUrlInput").value.trim().replace(/\/$/, "");
-  if (!/^https:\/\//i.test(baseUrl)) {
+  const settings = settingsFromForm();
+  if (!/^https:\/\//i.test(settings.baseUrl)) {
     showToast("接口地址必须使用 https://");
     return;
   }
-  state.settings = {
-    apiKey: $("#apiKeyInput").value.trim(),
-    analysisModel: $("#analysisModelInput").value.trim() || "gpt-5.4-mini",
-    baseUrl
-  };
+  state.settings = settings;
   await storageSet({ nboSettings: state.settings });
   $("#settingsDialog").close();
   showToast(state.settings.apiKey ? "模型设置已保存在本机" : "设置已保存；AI 功能仍需要 API Key");
@@ -513,30 +681,33 @@ async function saveSettings() {
 
 async function testConnection() {
   const button = $("#testConnectionButton");
-  const baseUrl = $("#baseUrlInput").value.trim().replace(/\/$/, "");
-  const apiKey = $("#apiKeyInput").value.trim();
-  if (!apiKey) {
+  const settings = settingsFromForm();
+  if (!settings.apiKey) {
     showToast("请先填写 API Key");
     return;
   }
-  if (!/^https:\/\//i.test(baseUrl)) {
+  if (!/^https:\/\//i.test(settings.baseUrl)) {
     showToast("接口地址必须使用 https://");
     return;
   }
 
-  state.settings = {
-    apiKey,
-    analysisModel: $("#analysisModelInput").value.trim() || "gpt-5.4-mini",
-    baseUrl
-  };
+  state.settings = settings;
   button.disabled = true;
   button.textContent = "测试中…";
   try {
-    await callResponses({
-      model: state.settings.analysisModel,
-      input: "Reply with exactly: OK",
-      max_output_tokens: 16
-    });
+    if (state.settings.provider === "gemini") {
+      await callGeminiGenerateContent({
+        model: state.settings.analysisModel,
+        parts: [{ text: "Reply with exactly: OK" }],
+        generationConfig: { maxOutputTokens: 16 }
+      });
+    } else {
+      await callOpenAIResponses({
+        model: state.settings.analysisModel,
+        input: "Reply with exactly: OK",
+        max_output_tokens: 16
+      });
+    }
     await storageSet({ nboSettings: state.settings });
     showToast("连接成功，密钥已保存到本机", 4200);
   } catch (error) {
@@ -558,6 +729,7 @@ function bindEvents() {
     if (state.analysis) renderAnalysis(state.analysis);
   }));
   $("#settingsButton").addEventListener("click", () => $("#settingsDialog").showModal());
+  $("#providerInput").addEventListener("change", () => updateProviderUi(true));
   $("#testConnectionButton").addEventListener("click", testConnection);
   $("#saveSettingsButton").addEventListener("click", saveSettings);
   $("#historyButton").addEventListener("click", () => {

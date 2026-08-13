@@ -63,7 +63,15 @@ test("写真复刻台发布完整静态功能文件", async () => {
   assert.match(html, /南铂写真复刻台/);
   assert.match(html, /src="app\.js"/);
   assert.match(html, /先生成复刻指令/);
+  assert.match(html, /Google Gemini/);
+  assert.match(html, /gemini-3\.1-flash-image/);
   assert.match(app, /function templateAnalysis/);
+  assert.match(app, /x-goog-api-key/);
+  assert.match(app, /:generateContent/);
+  assert.match(app, /\/interactions/);
+  assert.match(app, /geminiInlineImage/);
+  assert.match(app, /无法连接/);
+  assert.doesNotMatch(app, /AIza[0-9A-Za-z_-]{20,}/);
   assert.match(css, /@media \(max-width: 590px\)/);
 });
 

@@ -215,19 +215,31 @@
           </div>
           <button class="icon-button" value="cancel" aria-label="关闭设置" type="submit">×</button>
         </div>
-        <p class="privacy-line">API Key 仅保存在当前 Chrome 本机。正式商用建议改为南铂自己的服务器中转，不在插件里保存长期密钥。</p>
+        <p class="privacy-line">API Key 仅保存在当前浏览器本机。正式商用建议改为南铂自己的服务器中转，不在网页里保存长期密钥。</p>
         <label>
-          <span>OpenAI API Key</span>
-          <input id="apiKeyInput" type="password" autocomplete="off" placeholder="sk-…" />
+          <span>AI 服务</span>
+          <select id="providerInput">
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI</option>
+          </select>
+        </label>
+        <label>
+          <span id="apiKeyLabel">Google Gemini API Key</span>
+          <input id="apiKeyInput" type="password" autocomplete="off" placeholder="粘贴 API Key" />
         </label>
         <label>
           <span>分析模型</span>
-          <input id="analysisModelInput" type="text" value="gpt-5.4-mini" />
+          <input id="analysisModelInput" type="text" value="gemini-3.6-flash" />
+        </label>
+        <label>
+          <span>出图模型</span>
+          <input id="imageModelInput" type="text" value="gemini-3.1-flash-image" />
         </label>
         <label>
           <span>接口地址</span>
-          <input id="baseUrlInput" type="url" value="https://api.openai.com/v1" />
+          <input id="baseUrlInput" type="url" value="https://generativelanguage.googleapis.com/v1beta" />
         </label>
+        <p class="provider-hint" id="providerHint">Gemini 将使用分析模型读图，使用出图模型生成效果图。</p>
         <div class="dialog-actions">
           <button class="secondary-button" id="testConnectionButton" value="default" type="button">测试连接</button>
           <button class="secondary-button" value="cancel" type="submit">取消</button>

@@ -19,7 +19,7 @@
 ## 两种使用方式
 
 - 无 API：上传参考图和本人写真后，点击“先生成复刻指令”，复制到支持多图编辑的生成工具。
-- 有 API：在“设置”里填写自己的 OpenAI API Key，再使用 AI 分析与生成。
+- 有 API：在“设置”里选择 Google Gemini 或 OpenAI，填写自己的 API Key，再使用 AI 分析与生成。Gemini 默认用 `gemini-3.6-flash` 读图分析，用 `gemini-3.1-flash-image` 生成效果图。
 
 图片默认只保存在当前页面内；只有主动点击 AI 分析或生成时，图片才会发送到所配置的 API。API Key 保存于 Chrome 本地存储。正式商用版应改为南铂自有服务器中转，不在浏览器里长期保存密钥。
 

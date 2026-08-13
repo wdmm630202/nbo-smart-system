@@ -28,14 +28,19 @@ body {
     linear-gradient(155deg, #f8f6f1 0%, #eee9e0 100%);
 }
 
-button, input, textarea { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button { color: inherit; }
 a { color: inherit; text-decoration: none; }
 
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 textarea:focus-visible,
 label:has(input:focus-visible) {
+  outline: 3px solid rgba(199, 92, 55, 0.28);
+  outline-offset: 3px;
+}
+label:has(select:focus-visible) {
   outline: 3px solid rgba(199, 92, 55, 0.28);
   outline-offset: 3px;
 }
@@ -315,7 +320,7 @@ h2, h3, p { margin-top: 0; }
 .check-grid input:checked + span { color: var(--accent-dark); border-color: rgba(199,92,55,.25); background: rgba(199,92,55,.09); }
 .notes-field { display: grid; gap: 8px; margin-top: 17px; }
 .notes-field > span, .dialog-card label > span { color: #6f6a62; font-size: 11px; font-weight: 700; }
-textarea, .dialog-card input {
+textarea, .dialog-card input, .dialog-card select {
   width: 100%;
   border: 1px solid var(--hairline);
   border-radius: 14px;
@@ -382,7 +387,9 @@ dialog::backdrop { background: rgba(36,32,27,.35); backdrop-filter: blur(9px); }
 .icon-button { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 50%; color: #686159; background: rgba(72,65,56,.07); font-size: 23px; line-height: 1; }
 .privacy-line { margin: 18px 0; padding: 12px 14px; border-radius: 13px; color: #765e3e; background: rgba(221,173,99,.12); font-size: 10px; line-height: 1.55; }
 .dialog-card label { display: grid; gap: 7px; margin-top: 13px; }
-.dialog-card input { min-height: 43px; padding: 0 13px; }
+.dialog-card input, .dialog-card select { min-height: 43px; padding: 0 13px; }
+.dialog-card select { width: 100%; border: 1px solid var(--hairline); border-radius: 14px; color: var(--ink); background: rgba(255,255,255,.65); }
+.provider-hint { margin: 11px 2px 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
 .history-dialog { min-height: 300px; }
 .history-list { display: grid; gap: 9px; max-height: 55vh; margin-top: 18px; overflow: auto; }
@@ -469,9 +476,9 @@ dialog::backdrop { background: rgba(36,32,27,.35); backdrop-filter: blur(9px); }
   }
   body { background: radial-gradient(circle at 15% 0, #2b2925, transparent 35rem), linear-gradient(155deg, #1c1a18, #12110f); }
   .topbar { background: rgba(26,24,21,.72); box-shadow: 0 1px 0 rgba(255,255,255,.06); }
-  .quiet-button, .secondary-button, .segmented input:checked + span, .result-tabs button.active, .check-grid span, .analysis-item, textarea, .dialog-card input { background: rgba(255,255,255,.07); }
+  .quiet-button, .secondary-button, .segmented input:checked + span, .result-tabs button.active, .check-grid span, .analysis-item, textarea, .dialog-card input, .dialog-card select { background: rgba(255,255,255,.07); }
   .preview-wrap img { background: #171614; }
   .dialog-card { background: rgba(38,36,32,.97); }
-  textarea, .dialog-card input { color: var(--ink); }
+  textarea, .dialog-card input, .dialog-card select { color: var(--ink); }
   pre { color: #ded9d2; background: rgba(0,0,0,.16); }
 }

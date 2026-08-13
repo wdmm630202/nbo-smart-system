@@ -352,6 +352,7 @@ function readableApiError(data, status, provider) {
   if (status === 429) return "当前 API 额度不足或请求过于频繁，请检查计费与额度后再试。";
   if (status === 403) return `当前 API Key 没有访问该模型的权限。${provider === "gemini" ? "请检查 Google AI Studio 里的 Key 和项目权限。" : ""}`;
   if (status === 404) return "没有找到这个模型或接口。请使用设置里的默认模型名称和接口地址。";
+  if (status === 400 && provider === "gemini") return "Gemini 未接受本次请求。请先在设置里点“测试连接”；如果连接成功但生成仍失败，请确认出图模型是 gemini-3.1-flash-image。";
   return raw;
 }
 

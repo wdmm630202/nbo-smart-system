@@ -11,6 +11,7 @@ import { buildPortfolioItems, portfolioCatalog } from "../apps/portfolio-v2/cata
 import {
   assetPaths,
   buildPortfolioVersion,
+  onlinePortfolioUrl,
   recoverIncompletePhotoTransactions,
   replacePhoto,
   root,
@@ -87,6 +88,7 @@ test("对外固定短链接不包含内部版本路径", async () => {
   assert.doesNotMatch(shortIndex, /href="#/);
   assert.doesNotMatch(shortIndex, /__NBO_BUILD_VERSION__/);
   assert.equal(shortBuild, longBuild);
+  assert.equal(onlinePortfolioUrl, "https://wdmm630202.github.io/nbo-smart-system/p/");
 });
 
 test("发布必须包含同编号的全套图片", () => {

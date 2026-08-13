@@ -169,7 +169,7 @@ async function catalogPayload() {
     scenes: portfolioCatalog.scenes,
     themes: portfolioCatalog.themes.map(({ series, ...theme }) => ({ ...theme, count: series.length * 2 })),
     photoCount: portfolioCatalog.photoCount,
-    onlineUrl: `${onlinePortfolioUrl}?v=${version}`,
+    onlineUrl: onlinePortfolioUrl,
     version,
   };
 }
@@ -316,7 +316,7 @@ async function publishPhotos(request, response) {
       commit,
       version,
       slots,
-      onlineUrl: `${onlinePortfolioUrl}?v=${version}`,
+      onlineUrl: onlinePortfolioUrl,
       message: "GitHub 已接收，正在更新网站",
       status: await repositoryStatus(),
     });
@@ -338,7 +338,7 @@ async function deployStatus(response, url) {
       ready: online.version === version,
       expectedVersion: version,
       onlineVersion: online.version || "",
-      onlineUrl: `${onlinePortfolioUrl}?v=${version}`,
+      onlineUrl: onlinePortfolioUrl,
     });
   } catch (error) {
     json(response, 200, { ok: true, ready: false, expectedVersion: version, onlineVersion: "", waitingReason: error.message });

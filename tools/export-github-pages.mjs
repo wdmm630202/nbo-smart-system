@@ -17,7 +17,7 @@ const match = source.match(/const projects: Project\[\] = (\[[\s\S]*?\n\]);\n\nc
 if (!match) throw new Error("无法读取项目数据");
 
 const projects = Function(`"use strict"; return (${match[1]});`)();
-const marks = { network: "N", studio: "15", server: "99", workflow: "◇", odds: "2:1", video: "▶", crm: "透明", agent: "AI", expand: "9:16", meter: "72%", risk: "−18", reviews: "★★★★★", portfolio: "158", insights: "↑", recreate: "2→1" };
+const marks = { network: "N", studio: "15", server: "99", workflow: "◇", odds: "2:1", video: "▶", crm: "透明", agent: "AI", expand: "9:16", meter: "72%", risk: "−18", reviews: "★★★★★", portfolio: "158", insights: "↑", recreate: "2→1", sorter: "RAW" };
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
 const cards = projects.map((project) => {
@@ -130,6 +130,10 @@ const photoRecreationDir = join(docs, "projects/photo-recreation");
 await rm(photoRecreationDir, { recursive: true, force: true });
 await cp(join(root, "apps/photo-recreation"), photoRecreationDir, { recursive: true, force: true });
 
+const photoVideoSorterDir = join(docs, "projects/photo-video-sorter");
+await rm(photoVideoSorterDir, { recursive: true, force: true });
+await cp(join(root, "apps/photo-video-sorter"), photoVideoSorterDir, { recursive: true, force: true });
+
 await rm(join(docs, "projects/portfolio"), { recursive: true, force: true });
 await cp(join(root, "apps/portfolio"), join(docs, "projects/portfolio"), {
   recursive: true,
@@ -179,5 +183,5 @@ for (const filename of ["index.html"]) {
   await writeFile(target, content.replaceAll("__NBO_INSIGHTS_VERSION__", portfolioBuildVersion));
 }
 
-console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 写真复刻台 + 客片 V1/V2 + 固定短链接 /p/ + 固定成交洞察 /i/`);
+console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 写真复刻台 + 照片视频一键分类 + 客片 V1/V2 + 固定短链接 /p/ + 固定成交洞察 /i/`);
 console.log(`客片 V2 资源版本：${portfolioBuildVersion}`);

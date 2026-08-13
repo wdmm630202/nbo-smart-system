@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -249,6 +249,21 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/photo-recreation/",
     linkLabel: "打开写真复刻台",
   },
+  {
+    id: "photo-video-sorter",
+    index: "16",
+    name: "照片视频一键分类",
+    eyebrow: "MAC MEDIA SORTER",
+    category: "App",
+    status: "Mac 已备份",
+    summary: "在 Finder 当前文件夹内，一键整理照片格式和 2K／3K／4K 视频。",
+    detail: "Mac 本机 App 负责移动与分类文件，线上固定页面负责版本、源码和恢复包。当前 8.1 已修复中文文件夹命名错误；重要客片第一次使用时应先在副本上验证。",
+    tags: ["Finder", "照片分类", "恢复包"],
+    tone: "navy",
+    visual: "sorter",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/photo-video-sorter/",
+    linkLabel: "打开一键分类档案",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -270,6 +285,7 @@ function ProjectVisual({ project }: { project: Project }) {
     portfolio: "158",
     insights: "↑",
     recreate: "2→1",
+    sorter: "RAW",
   };
 
   if (project.preview) {

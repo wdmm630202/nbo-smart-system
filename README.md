@@ -5,7 +5,7 @@
 - 固定网站：<https://wdmm630202.github.io/nbo-smart-system/>
 - 源代码由 GitHub 长期保存，可在新电脑重新克隆。
 - `docs/` 是无服务器静态版本，不依赖原电脑在线。
-- 15 张项目卡片都是直达链接；不需要展开详情，也不再使用“本机运行”入口。
+- 16 张项目卡片都是直达链接；不需要展开详情，也不再使用“本机运行”入口。
 - Stash 卡片直接显示真实管理界面预览；点击整张卡片进入受安全登录保护的云端运行中心。
 - 网站内容更新后运行 `pnpm pages:build`，再提交并推送即可同步固定网站。
 
@@ -26,6 +26,9 @@
 - 南铂客户选片中心：<https://wdmm630202.github.io/nbo-smart-system/p/>
 - 南铂成交洞察后台：<https://wdmm630202.github.io/nbo-smart-system/i/>
 - 南铂写真复刻台：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-recreation/>（无 API 可生成复刻指令；AI 分析和出图需要可用模型与额度）
+- 照片视频一键分类：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-video-sorter/>（线上档案与 Mac 恢复包；实际分类需在 Mac 本机运行）
+
+截图中的 4 个 Mac 工具均已登记：01 南铂 Stash 长期运行中心、04 NBO OS 珠宝修图工作流、10 Codex 余量 Pro、16 照片视频一键分类。可公开的分类工具源码与恢复包随本仓库保存；其余本机 App、工程源码和加密配置另存 GitHub 私有恢复库，不公开客户素材、明文密钥或设备令牌。
 
 其余项目的独立入口统一使用：
 

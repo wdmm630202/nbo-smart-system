@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f3ed" />
+    <title>匿名浏览统计说明 · 南铂摄影</title>
+    <style>
+      *{box-sizing:border-box}body{margin:0;color:#171714;background:#f5f3ed;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;-webkit-font-smoothing:antialiased}.shell{width:min(100% - 28px,680px);margin:0 auto;padding:24px 0 70px}.back{display:inline-flex;padding:10px 13px;border:1px solid rgba(20,20,18,.1);border-radius:99px;color:#555;text-decoration:none;background:#fbfaf6;font-size:12px}.hero{padding:50px 0 28px}.hero p{margin:0 0 10px;color:#7d856f;font-size:10px;font-weight:800;letter-spacing:.16em}.hero h1{margin:0;font-family:Georgia,"Songti SC",serif;font-size:clamp(40px,9vw,68px);font-weight:400;letter-spacing:-.05em;line-height:1}.card{margin-top:10px;padding:20px;border:1px solid rgba(20,20,18,.09);border-radius:18px;background:#fbfaf6}.card h2{margin:0 0 12px;font-size:17px}.card p,.card li{color:#686861;font-size:13px;line-height:1.8}.card ul{margin:0;padding-left:1.2em}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.actions button{padding:11px 14px;border:0;border-radius:99px;color:white;background:#171714;font:inherit;font-size:12px;font-weight:700}.actions button.secondary{color:#7c343a;background:#f0dde0}.status{margin:11px 0 0;color:#31734f!important;font-weight:700}footer{padding:24px 2px;color:#8b8b84;font-size:10px;line-height:1.7}
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <a class="back" href="./">← 返回客片</a>
+      <header class="hero"><p>NANBO PRIVACY</p><h1>匿名浏览统计说明</h1></header>
+      <section class="card"><h2>为什么记录</h2><p>南铂摄影只用这些数据判断哪些客片和主题更受欢迎、客户在哪一步离开，以及页面在真实手机上的速度是否足够快，从而优化作品顺序、沟通和咨询流程。</p></section>
+      <section class="card"><h2>记录什么</h2><ul><li>一次匿名浏览的开始时间、总停留与有效浏览时间</li><li>手机/平板/电脑、来源渠道参数、浏览深度</li><li>打开的作品编号与主题、收藏、打开或复制拍摄需求</li><li>首屏加载、交互响应和页面稳定性</li></ul></section>
+      <section class="card"><h2>明确不记录</h2><p>不记录姓名、手机号、精确位置、IP 地址、完整设备信息或设备指纹；也不会把拍摄需求里填写的称呼和备注上传。一次会话结束后，不跨网站、跨浏览器识别客户。</p></section>
+      <section class="card"><h2>保存与撤回</h2><p>数据保存不超过 90 天，仅南铂负责人登录后可查看。您可以拒绝统计而继续完整浏览，也可随时在当前浏览器停止后续统计。若需查询或提出其他要求，可直接联系向您发送本客片链接的南铂客服或摄影顾问。</p><div class="actions"><button class="secondary" id="stop" type="button">停止当前浏览器的匿名统计</button><button id="allow" type="button">同意匿名统计</button></div><p class="status" id="status" role="status" aria-live="polite"></p></section>
+      <footer>运营方：南铂摄影 · 用途仅限作品展示体验与拍摄咨询流程优化</footer>
+    </main>
+    <script>
+      const key="nanbo-anonymous-analytics-consent",status=document.querySelector("#status");
+      document.querySelector("#stop").addEventListener("click",()=>{localStorage.setItem(key,"no");sessionStorage.removeItem("nanbo-anonymous-analytics-session");status.textContent="已停止。刷新或返回客片后，不会继续发送匿名统计。"});
+      document.querySelector("#allow").addEventListener("click",()=>{localStorage.setItem(key,"yes");status.textContent="已同意。返回客片后，统计会在页面空闲时开始。"});
+    </script>
+  </body>
+</html>

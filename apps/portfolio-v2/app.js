@@ -67,6 +67,15 @@ let settingsRefreshTimer;
 let lastCopiedSignature = "";
 let lastCopyMode = "";
 
+function trackProductEvent(type, detail = {}) {
+  const event = { id: crypto.randomUUID(), type, detail, at: new Date().toISOString() };
+  if (!window.__nanboAnalyticsReady) {
+    const queue = window.__nanboAnalyticsQueue ||= [];
+    if (queue.length < 40) queue.push(event);
+  }
+  window.dispatchEvent(new CustomEvent("nanbo:analytics", { detail: event }));
+}
+
 function readBriefSettings() {
   const defaults = { name: "", focus: ["光线与色调", "妆发造型", "动作与构图"], note: "" };
   try {
@@ -276,6 +285,7 @@ function setScene(sceneId) {
   applyGalleryFilters();
   renderFilters();
   renderGallery();
+  trackProductEvent("scene_filter", { targetId: activeScene, targetLabel: sceneById[activeScene]?.label || "全部场景", scene: activeScene });
 }
 
 function setTheme(themeId) {
@@ -289,11 +299,13 @@ function setTheme(themeId) {
   applyGalleryFilters();
   renderFilters();
   renderGallery();
+  trackProductEvent("theme_filter", { targetId: activeTheme, targetLabel: themeById[activeTheme]?.label || "全部主题", theme: activeTheme, scene: activeScene });
 }
 
 function loadMore() {
   visibleCount = Math.min(visibleCount + PAGE_SIZE, filteredItems.length);
   renderGallery();
+  trackProductEvent("load_more", { targetId: String(visibleCount), theme: activeTheme, scene: activeScene });
 }
 
 function updateLikeButton(button, id) {
@@ -329,6 +341,10 @@ function toggleFavorite(id) {
   navigator.vibrate?.(wasSelected ? 4 : 8);
   updateSelectionUi();
   showToast(wasSelected ? "已取消喜欢" : `已加入喜欢 · 共 ${favoriteIds.size} 张`);
+  const item = itemById.get(id);
+  trackProductEvent(wasSelected ? "favorite_remove" : "favorite_add", {
+    targetId: item?.code || String(id), targetLabel: item?.title || "", theme: item?.theme || "", scene: item?.scene || "", favoriteCount: favoriteIds.size,
+  });
   if (selectionSheet.open) renderSelectionSheet();
 }
 
@@ -356,6 +372,7 @@ function setViewer(index) {
   viewerCode.textContent = item.code;
   viewerCount.textContent = `${viewerIndex + 1} / ${filteredItems.length}`;
   updateViewerLike();
+  trackProductEvent("photo_open", { targetId: item.code, targetLabel: item.title, theme: item.theme, scene: item.scene });
 }
 
 function updateViewerLike() {
@@ -465,6 +482,7 @@ function openSelectionSheet() {
   renderSelectionSheet();
   if (!selectionSheet.open) selectionSheet.showModal();
   document.body.classList.add("dialog-open");
+  trackProductEvent("brief_open", { targetId: String(favoriteIds.size), favoriteCount: favoriteIds.size });
 }
 
 function openFavoritesOrGuide() {
@@ -738,6 +756,7 @@ async function copyImageAndText() {
       updateCopyButton();
       navigator.vibrate?.(10);
       showToast("图片和文字已复制，回企业微信粘贴即可");
+      trackProductEvent("brief_copy", { targetId: String(items.length), favoriteCount: items.length });
       return;
     } catch {
       // 企业微信内置浏览器可能限制图片剪贴板，下面自动复制文字。
@@ -750,6 +769,7 @@ async function copyImageAndText() {
   copyRequest.classList.add("is-success");
   copyRequest.textContent = "✓ 文字已复制，请长按保存需求图";
   showToast("文字已复制；长按上方需求图保存后一起发送");
+  trackProductEvent("brief_copy", { targetId: String(items.length), favoriteCount: items.length });
 }
 
 viewerImage.addEventListener("load", () => {
@@ -867,3 +887,12 @@ hydrateSettingsForm();
 renderFilters();
 renderGallery();
 updateSelectionUi();
+
+function scheduleAnalytics() {
+  const load = () => import(`./analytics.js?v=${encodeURIComponent(buildVersion)}`).catch(() => {});
+  if ("requestIdleCallback" in window) window.requestIdleCallback(load, { timeout: 3000 });
+  else window.setTimeout(load, 1200);
+}
+
+if (document.readyState === "complete") scheduleAnalytics();
+else window.addEventListener("load", scheduleAnalytics, { once: true });

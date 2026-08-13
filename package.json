@@ -10,7 +10,7 @@
     "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
     "pages:build": "node tools/export-github-pages.mjs",
     "portfolio:manage": "node tools/portfolio-manager-server.mjs --open",
-    "portfolio:test": "node --test tests/portfolio-photo-workflow.test.mjs",
+    "portfolio:test": "node --test tests/portfolio-photo-workflow.test.mjs tests/portfolio-analytics.test.mjs",
     "portfolio:validate": "node tools/validate-portfolio-photos.mjs",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",

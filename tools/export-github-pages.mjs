@@ -147,5 +147,21 @@ await writeFile(
   `${JSON.stringify({ version: portfolioBuildVersion })}\n`,
 );
 
-console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 客片 V1/V2`);
+// 对外只公布 /p/。它使用同一份页面与资源，但地址栏不会跳到内部版本目录。
+// 以后即使 portfolio-v2 升级或改名，也只需在这里改 base，已发出的链接不变。
+const permanentPortfolioDir = join(docs, "p");
+await rm(permanentPortfolioDir, { recursive: true, force: true });
+await mkdir(permanentPortfolioDir, { recursive: true });
+const publishedPortfolioIndex = await readFile(join(docs, "projects/portfolio-v2", "index.html"), "utf8");
+const permanentPortfolioIndex = publishedPortfolioIndex.replace(
+  "<head>",
+  '<head>\n    <base href="../projects/portfolio-v2/" />',
+).replaceAll('href="#', 'href="/nbo-smart-system/p/#');
+await writeFile(join(permanentPortfolioDir, "index.html"), permanentPortfolioIndex);
+await writeFile(
+  join(permanentPortfolioDir, "build.json"),
+  `${JSON.stringify({ version: portfolioBuildVersion })}\n`,
+);
+
+console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 客片 V1/V2 + 固定短链接 /p/`);
 console.log(`客片 V2 资源版本：${portfolioBuildVersion}`);

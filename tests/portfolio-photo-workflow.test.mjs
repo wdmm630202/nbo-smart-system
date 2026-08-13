@@ -75,6 +75,20 @@ test("发布版本由代码与照片内容确定", async () => {
   assert.match(sourceIndex, /__NBO_BUILD_VERSION__/);
 });
 
+test("对外固定短链接不包含内部版本路径", async () => {
+  const [shortIndex, shortBuild, longBuild] = await Promise.all([
+    readFile(join(root, "docs/p/index.html"), "utf8"),
+    readFile(join(root, "docs/p/build.json"), "utf8"),
+    readFile(join(root, "docs/projects/portfolio-v2/build.json"), "utf8"),
+  ]);
+  assert.match(shortIndex, /<base href="\.\.\/projects\/portfolio-v2\/" \/>/);
+  assert.match(shortIndex, /rel="canonical" href="https:\/\/wdmm630202\.github\.io\/nbo-smart-system\/p\/"/);
+  assert.match(shortIndex, /href="\/nbo-smart-system\/p\/#works"/);
+  assert.doesNotMatch(shortIndex, /href="#/);
+  assert.doesNotMatch(shortIndex, /__NBO_BUILD_VERSION__/);
+  assert.equal(shortBuild, longBuild);
+});
+
 test("发布必须包含同编号的全套图片", () => {
   const normalIncomplete = validateChangedPhotoBundles([
     "apps/portfolio/assets/photos/full/photo-158.jpg",

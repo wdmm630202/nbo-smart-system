@@ -22,7 +22,8 @@ export const root = dirname(dirname(fileURLToPath(import.meta.url)));
 export const sourcePhotoRoot = join(root, "apps/portfolio/assets/photos");
 export const backupRoot = join(root, ".local/portfolio-photo-backups");
 export const transactionRoot = join(root, ".local/portfolio-photo-transactions");
-export const onlinePortfolioUrl = "https://wdmm630202.github.io/nbo-smart-system/projects/portfolio-v2/";
+// 这是对外唯一入口。内部项目目录以后可以升级，客户链接始终保持 /p/。
+export const onlinePortfolioUrl = "https://wdmm630202.github.io/nbo-smart-system/p/";
 
 const binaryCandidates = {
   ffmpeg: [

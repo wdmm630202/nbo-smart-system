@@ -49,6 +49,7 @@ const publishPrefixes = [
   "apps/portfolio/assets/photos/",
   "docs/projects/portfolio/assets/photos/",
   "docs/projects/portfolio-v2/",
+  "docs/p/",
 ];
 const allowedHosts = new Set([`${host}:${requestedPort}`, `localhost:${requestedPort}`]);
 
@@ -285,6 +286,8 @@ async function publishPhotos(request, response) {
       "docs/projects/portfolio-v2/index.html",
       "docs/projects/portfolio-v2/app.js",
       "docs/projects/portfolio-v2/build.json",
+      "docs/p/index.html",
+      "docs/p/build.json",
     ]);
     for (const sourcePath of sourceFiles) {
       const suffix = relative("apps/portfolio", sourcePath);

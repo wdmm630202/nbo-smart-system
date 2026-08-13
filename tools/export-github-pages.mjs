@@ -88,7 +88,7 @@ const html = `<!doctype html>
   <main>
     <nav class="top-nav" aria-label="系统导航"><a class="brand" href="#top"><span>N</span><b>NBO南铂智能系统</b></a><a class="sync-link" href="https://github.com/wdmm630202/nbo-smart-system"><i></i>GitHub 永久备份</a></nav>
     <section class="work-section" id="top">
-      <header class="results-header"><div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>打开即看结果 · 电脑、手机均可使用</span></div><div class="result-count"><strong>${projects.length}</strong><span>全部系统</span></div></header>
+      <header class="results-header"><div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>智能体、网页、App、自动化统一登记 · 电脑、手机均可使用</span></div><div class="result-count"><strong>${projects.length}</strong><span>全部系统</span></div></header>
       <div class="project-grid">${cards}</div>
     </section>
   </main>

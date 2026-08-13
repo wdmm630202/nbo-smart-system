@@ -315,7 +315,7 @@ export default function Home() {
 
       <section className="work-section" id="top">
         <header className="results-header">
-          <div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>打开即看结果 · 电脑、手机均可使用</span></div>
+          <div><p>NBO SYSTEM INDEX · 2026</p><h1>NBO南铂智能系统</h1><span>智能体、网页、App、自动化统一登记 · 电脑、手机均可使用</span></div>
           <div className="result-count"><strong>{visibleProjects.length}</strong><span>当前结果</span></div>
         </header>
         <div className="filter-bar" role="group" aria-label="按作品类型筛选">

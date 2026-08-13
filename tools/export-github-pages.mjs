@@ -164,5 +164,16 @@ await writeFile(
   `${JSON.stringify({ version: portfolioBuildVersion })}\n`,
 );
 
-console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 客片 V1/V2 + 固定短链接 /p/`);
+// 成交洞察前台固定放在 GitHub Pages。数据接口继续使用 Sites/D1，避免
+// chatgpt.site 的登录与安全拦截影响负责人在电脑、手机查看报表。
+const portfolioInsightsDir = join(docs, "i");
+await rm(portfolioInsightsDir, { recursive: true, force: true });
+await cp(join(root, "apps/portfolio-insights"), portfolioInsightsDir, { recursive: true, force: true });
+for (const filename of ["index.html"]) {
+  const target = join(portfolioInsightsDir, filename);
+  const content = await readFile(target, "utf8");
+  await writeFile(target, content.replaceAll("__NBO_INSIGHTS_VERSION__", portfolioBuildVersion));
+}
+
+console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 客片 V1/V2 + 固定短链接 /p/ + 固定成交洞察 /i/`);
 console.log(`客片 V2 资源版本：${portfolioBuildVersion}`);

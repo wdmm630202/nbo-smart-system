@@ -52,9 +52,12 @@ test("发布目录包含统计脚本和固定短网址隐私页", async () => {
 });
 
 test("数据接收端限制来源、体积和保存期限，报表仅负责人可见", async () => {
-  const [collector, dashboard, migration] = await Promise.all([
+  const [collector, dashboard, insightsApi, staticDashboard, staticApp, migration] = await Promise.all([
     read("app/api/portfolio-analytics/collect/route.ts"),
     read("app/i/page.tsx"),
+    read("app/api/portfolio-analytics/insights/route.ts"),
+    read("apps/portfolio-insights/index.html"),
+    read("apps/portfolio-insights/app.js"),
     read("drizzle/0000_married_ultimatum.sql"),
   ]);
 
@@ -64,6 +67,27 @@ test("数据接收端限制来源、体积和保存期限，报表仅负责人�
   assert.match(collector, /database\.batch/);
   assert.match(dashboard, /getChatGPTUser/);
   assert.match(dashboard, /PORTFOLIO_OWNER_USER_ID/);
+  assert.match(insightsApi, /PORTFOLIO_INSIGHTS_TOKEN/);
+  assert.match(insightsApi, /Authorization/);
+  assert.match(insightsApi, /crypto\.subtle\.digest/);
+  assert.match(insightsApi, /Cache-Control.*no-store/);
+  assert.match(staticDashboard, /noindex,nofollow,noarchive/);
+  assert.match(staticApp, /location\.hash/);
+  assert.match(staticApp, /Authorization: `Bearer/);
   assert.match(migration, /portfolio_sessions_started_idx/);
   assert.match(migration, /portfolio_interactions_type_target_idx/);
+});
+
+test("固定 GitHub 后台页完整导出且不公开访问钥匙", async () => {
+  const [sourceHtml, sourceApp, publishedHtml, publishedApp] = await Promise.all([
+    read("apps/portfolio-insights/index.html"),
+    read("apps/portfolio-insights/app.js"),
+    read("docs/i/index.html"),
+    read("docs/i/app.js"),
+  ]);
+
+  assert.match(sourceHtml, /__NBO_INSIGHTS_VERSION__/);
+  assert.doesNotMatch(publishedHtml, /__NBO_INSIGHTS_VERSION__/);
+  assert.match(publishedApp, /portfolio-analytics\/insights/);
+  assert.doesNotMatch(`${sourceHtml}\n${sourceApp}\n${publishedHtml}\n${publishedApp}`, /PORTFOLIO_INSIGHTS_TOKEN\s*=/);
 });

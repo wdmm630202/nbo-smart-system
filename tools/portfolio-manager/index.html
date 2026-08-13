@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f2ed" />
+    <meta name="description" content="南铂摄影本地客片管理台" />
+    <title>南铂客片管理台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#photo-library">跳到客片列表</a>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#top" aria-label="南铂客片管理台首页">
+          <span class="brand-mark" aria-hidden="true">N</span>
+          <span class="brand-copy">
+            <strong>南铂客片管理台</strong>
+            <small>本机换图 · 检查预览 · 同步网站</small>
+          </span>
+        </a>
+
+        <div class="top-actions" aria-label="网站操作">
+          <button class="button button-secondary" id="preview-button" type="button" disabled>
+            <span class="button-icon" aria-hidden="true">◇</span>
+            <span>打开本地预览</span>
+          </button>
+          <button class="button button-primary" id="publish-button" type="button" disabled>
+            <span class="button-icon" aria-hidden="true">↑</span>
+            <span>同步到网站</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero shell" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">NANBO PHOTO LIBRARY</p>
+          <h1 id="page-title">换客片，<br />三步就上线。</h1>
+          <p class="hero-lead">点开编号换图，先看本地预览，确认后再同步。网站不会在你确认前改变。</p>
+        </div>
+
+        <div class="status-card" aria-live="polite" aria-atomic="true">
+          <div class="status-heading">
+            <span class="status-indicator is-loading" id="status-indicator" aria-hidden="true"></span>
+            <div>
+              <strong id="status-title">正在连接本地图库…</strong>
+              <span id="status-description">请稍候，正在检查客片和 GitHub 状态。</span>
+            </div>
+          </div>
+
+          <dl class="status-facts">
+            <div>
+              <dt>待同步</dt>
+              <dd id="dirty-count">—</dd>
+            </div>
+            <div>
+              <dt>客片</dt>
+              <dd id="catalog-count">—</dd>
+            </div>
+            <div>
+              <dt>版本</dt>
+              <dd id="head-version">—</dd>
+            </div>
+          </dl>
+
+          <div class="branch-line">
+            <span id="branch-name">正在读取分支</span>
+            <a id="online-link" href="#" target="_blank" rel="noreferrer" hidden>打开线上网站 ↗</a>
+          </div>
+
+          <div class="safety-warning" id="unrelated-warning" role="alert" hidden>
+            <strong>发现其他未提交改动</strong>
+            <p>为了不误传其他文件，请先处理下面的改动，再同步客片。不知道怎么处理时，把此提示截图发给 Codex。</p>
+            <ul id="unrelated-files"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="deploy-panel shell" id="deploy-panel" aria-live="polite" hidden>
+        <div class="deploy-copy">
+          <p class="eyebrow">PUBLISH STATUS</p>
+          <h2 id="deploy-title">正在准备同步</h2>
+          <p id="deploy-message">请保持此页开启，完成后会自动提示。</p>
+        </div>
+        <ol class="deploy-steps" id="deploy-steps">
+          <li data-step="prepare"><span>1</span><strong>检查并推送</strong></li>
+          <li data-step="deploy"><span>2</span><strong>GitHub Pages 上线</strong></li>
+          <li data-step="verify"><span>3</span><strong>核对线上版本</strong></li>
+        </ol>
+        <div class="deploy-actions">
+          <span class="deploy-elapsed" id="deploy-elapsed"></span>
+          <a class="button button-secondary" id="deploy-online-link" href="#" target="_blank" rel="noreferrer" hidden>打开已上线网站</a>
+        </div>
+      </section>
+
+      <section class="library shell" id="photo-library" aria-labelledby="library-title">
+        <header class="library-heading">
+          <div>
+            <p class="eyebrow">PHOTO LIBRARY</p>
+            <h2 id="library-title">全部客片</h2>
+            <p>点开任意一张查看大图、替换或撤销。</p>
+          </div>
+          <strong class="result-count" id="result-count" aria-live="polite">—</strong>
+        </header>
+
+        <form class="filter-bar" id="filters" role="search">
+          <label class="search-field" for="search-input">
+            <span aria-hidden="true">⌕</span>
+            <input id="search-input" type="search" inputmode="search" autocomplete="off" placeholder="搜索编号，如 NB-037" />
+          </label>
+
+          <fieldset class="scene-filter">
+            <legend>场景</legend>
+            <div class="segmented-control" id="scene-filters" aria-label="按场景筛选"></div>
+          </fieldset>
+
+          <label class="select-field" for="theme-filter">
+            <span>主题</span>
+            <select id="theme-filter">
+              <option value="all">全部主题</option>
+            </select>
+          </label>
+
+          <label class="dirty-toggle" for="dirty-only">
+            <input id="dirty-only" type="checkbox" />
+            <span class="toggle-track" aria-hidden="true"><i></i></span>
+            <span>只看待同步</span>
+          </label>
+        </form>
+
+        <div class="global-error" id="global-error" role="alert" hidden>
+          <div>
+            <strong>暂时无法读取客片</strong>
+            <p id="global-error-message">请确认本地管理服务正在运行。</p>
+          </div>
+          <button class="button button-secondary" id="retry-button" type="button">重试</button>
+        </div>
+
+        <div class="photo-grid is-loading" id="photo-grid" aria-busy="true" aria-live="polite"></div>
+        <div class="empty-state" id="empty-state" hidden>
+          <span aria-hidden="true">◇</span>
+          <strong>没有找到匹配的客片</strong>
+          <p>试试清空搜索，或切换场景和主题。</p>
+          <button class="button button-secondary" id="clear-filters" type="button">清空筛选</button>
+        </div>
+      </section>
+    </main>
+
+    <dialog class="sheet photo-sheet" id="photo-dialog" aria-labelledby="photo-dialog-title">
+      <div class="sheet-surface">
+        <header class="sheet-header">
+          <button class="icon-button" id="photo-dialog-close" type="button" aria-label="关闭换图面板">×</button>
+          <div>
+            <span id="photo-dialog-meta">客片</span>
+            <h2 id="photo-dialog-title">查看与换图</h2>
+          </div>
+          <span class="sheet-status" id="photo-dirty-badge" hidden>待同步</span>
+        </header>
+
+        <div class="sheet-content">
+          <div class="compare-grid">
+            <figure class="preview-figure">
+              <figcaption>
+                <strong>网站当前图片</strong>
+                <span id="current-photo-label">—</span>
+              </figcaption>
+              <div class="photo-frame">
+                <img id="current-photo" alt="" />
+                <span class="image-fallback" id="current-photo-fallback" hidden>图片暂时无法加载</span>
+              </div>
+            </figure>
+
+            <figure class="preview-figure candidate-figure">
+              <figcaption>
+                <strong>要替换的新图</strong>
+                <span id="candidate-dimensions">还未选择</span>
+              </figcaption>
+              <label class="drop-zone" id="drop-zone" for="photo-file">
+                <input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+                <img id="candidate-photo" alt="待替换客片预览" hidden />
+                <span class="drop-prompt" id="drop-prompt">
+                  <b aria-hidden="true">+</b>
+                  <strong>点击选图，或拖到这里</strong>
+                  <small>3:4 竖图 · 至少 900×1200 像素</small>
+                </span>
+              </label>
+            </figure>
+          </div>
+
+          <div class="file-feedback" id="file-feedback" role="status" aria-live="polite">
+            <span aria-hidden="true">i</span>
+            <p>换图只改这个编号，不会改主题、顺序或其他客片。</p>
+          </div>
+
+          <div class="sheet-actions">
+            <button class="button button-danger-subtle" id="undo-button" type="button" hidden>撤销本次换图</button>
+            <span class="action-spacer"></span>
+            <button class="button button-secondary" id="choose-another-button" type="button" hidden>重新选图</button>
+            <button class="button button-primary" id="replace-button" type="button" disabled>确认替换</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="sheet confirm-sheet" id="publish-dialog" aria-labelledby="publish-dialog-title">
+      <div class="sheet-surface compact-surface">
+        <header class="sheet-header">
+          <button class="icon-button" id="publish-dialog-close" type="button" aria-label="关闭同步确认">×</button>
+          <div>
+            <span>FINAL CHECK</span>
+            <h2 id="publish-dialog-title">确认同步到网站？</h2>
+          </div>
+        </header>
+
+        <div class="sheet-content publish-confirm-content">
+          <div class="publish-summary">
+            <span class="publish-count" id="publish-count">0</span>
+            <div>
+              <strong>张客片将同步</strong>
+              <p id="publish-slots">—</p>
+            </div>
+          </div>
+
+          <div class="confirm-note">
+            <strong>同步后，打开网站的客户会看到新图。</strong>
+            <p>请先检查人物、精修、裁切和发布授权。GitHub Pages 通常需要几分钟上线。</p>
+          </div>
+
+          <button class="preview-check-button" id="confirm-preview-button" type="button">
+            <span aria-hidden="true">◇</span>
+            <span><strong>再看一遍本地预览</strong><small>在新标签页打开</small></span>
+            <b aria-hidden="true">↗</b>
+          </button>
+
+          <label class="approval-check" for="publish-approval">
+            <input id="publish-approval" type="checkbox" />
+            <span aria-hidden="true">✓</span>
+            <strong>我已检查本地预览，并确认这些客片可以公开展示。</strong>
+          </label>
+
+          <div class="publish-error" id="publish-error" role="alert" hidden></div>
+
+          <div class="sheet-actions">
+            <button class="button button-secondary" id="publish-cancel" type="button">暂不同步</button>
+            <span class="action-spacer"></span>
+            <button class="button button-primary" id="publish-confirm" type="button" disabled>确认同步到网站</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <noscript>
+      <div class="noscript">请在浏览器中开启 JavaScript，再使用客片管理台。</div>
+    </noscript>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

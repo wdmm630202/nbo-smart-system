@@ -2,7 +2,14 @@ import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { buildPortfolioVersion, validatePortfolioLibrary } from "./portfolio-photo-lib.mjs";
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const portfolioValidation = await validatePortfolioLibrary();
+if (!portfolioValidation.ok) {
+  throw new Error(`客片库校验失败：\n${portfolioValidation.errors.map((message) => `- ${message}`).join("\n")}`);
+}
+const portfolioBuildVersion = await buildPortfolioVersion();
 const source = await readFile(join(root, "app/page.tsx"), "utf8");
 const css = await readFile(join(root, "app/globals.css"), "utf8");
 const match = source.match(/const projects: Project\[\] = (\[[\s\S]*?\n\]);\n\nconst filters/);
@@ -130,5 +137,15 @@ await cp(join(root, "apps/portfolio-v2"), join(docs, "projects/portfolio-v2"), {
   recursive: true,
   force: true,
 });
+for (const filename of ["index.html", "app.js"]) {
+  const target = join(docs, "projects/portfolio-v2", filename);
+  const content = await readFile(target, "utf8");
+  await writeFile(target, content.replaceAll("__NBO_BUILD_VERSION__", portfolioBuildVersion));
+}
+await writeFile(
+  join(docs, "projects/portfolio-v2", "build.json"),
+  `${JSON.stringify({ version: portfolioBuildVersion })}\n`,
+);
 
 console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 客片 V1/V2`);
+console.log(`客片 V2 资源版本：${portfolioBuildVersion}`);

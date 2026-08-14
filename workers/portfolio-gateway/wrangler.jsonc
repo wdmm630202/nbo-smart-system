@@ -4,6 +4,13 @@
   "main": "worker.js",
   "compatibility_date": "2026-08-14",
   "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nanbo-portfolio-analytics",
+      "database_id": "1f0ace6f-8004-4ee2-abc4-d0794dba2bdb"
+    }
+  ],
   "routes": [
     {
       "pattern": "p.nanbostudio.com",

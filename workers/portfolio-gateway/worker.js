@@ -1,7 +1,8 @@
+import { collectAnalytics } from "./analytics.js";
+
 const ORIGIN = "https://wdmm630202.github.io";
 const REPOSITORY_BASE = "/nbo-smart-system";
 const PORTFOLIO_BASE = `${REPOSITORY_BASE}/p`;
-const ANALYTICS_ORIGIN = "https://data.nanbostudio.com";
 const ANALYTICS_PATH = "/api/portfolio-analytics/collect";
 
 export function originPathFor(pathname) {
@@ -40,21 +41,10 @@ function rewriteHtml(response, publicOrigin) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const publicUrl = new URL(request.url);
     if (publicUrl.pathname === ANALYTICS_PATH) {
-      if (request.method !== "POST" && request.method !== "OPTIONS") {
-        return new Response("Method Not Allowed", { status: 405, headers: { Allow: "POST, OPTIONS" } });
-      }
-      const analyticsUrl = new URL(ANALYTICS_PATH, ANALYTICS_ORIGIN);
-      const analyticsHeaders = new Headers(request.headers);
-      analyticsHeaders.set("Origin", publicUrl.origin);
-      return fetch(new Request(analyticsUrl.toString(), {
-        method: request.method,
-        headers: analyticsHeaders,
-        body: request.method === "POST" ? request.body : null,
-        redirect: "follow",
-      }));
+      return collectAnalytics(request, env?.DB);
     }
 
     if (request.method !== "GET" && request.method !== "HEAD") {

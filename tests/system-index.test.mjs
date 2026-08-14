@@ -26,11 +26,17 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
   assert.match(source, /南铂成交洞察后台/);
   assert.match(source, /南铂写真复刻台/);
   assert.match(source, /照片视频一键分类/);
+  assert.match(source, /南铂摄影 ERP/);
+  assert.match(source, /https:\/\/nanbo-photo-erp-2026\.wdmm630202\.chatgpt\.site/);
   assert.match(published, /南铂客户选片中心/);
   assert.match(published, /南铂成交洞察后台/);
   assert.match(published, /南铂写真复刻台/);
   assert.match(published, /照片视频一键分类/);
+  assert.match(published, /南铂摄影 ERP/);
+  assert.match(published, /https:\/\/nanbo-photo-erp-2026\.wdmm630202\.chatgpt\.site/);
   assert.match(readme, /南铂智能系统是唯一项目总目录/);
+  assert.match(readme, /南铂摄影 ERP/);
+  assert.match(readme, /https:\/\/nanbo-photo-erp-2026\.wdmm630202\.chatgpt\.site/);
 });
 
 test("截图中的四个 Mac 工具都已登记并可恢复", async () => {

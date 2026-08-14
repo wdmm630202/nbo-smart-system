@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -264,6 +264,21 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/photo-video-sorter/",
     linkLabel: "打开一键分类档案",
   },
+  {
+    id: "erp",
+    index: "17",
+    name: "南铂摄影 ERP",
+    eyebrow: "BUSINESS OPERATIONS ERP",
+    category: "网页",
+    status: "私有运行",
+    summary: "把客户、订单、拍摄流程、财务和团队权限放进同一个电脑与手机工作台。",
+    detail: "最高管理员、经理、普通员工三层权限；历史 Excel 迁移先审核、后导入。当前线上版只展示合成数据，真实客户资料保持本机只读，待私有访问名单确认后迁移。",
+    tags: ["客户订单", "流程协同", "三层权限"],
+    tone: "sky",
+    visual: "erp",
+    href: "https://nanbo-photo-erp-2026.wdmm630202.chatgpt.site",
+    linkLabel: "打开南铂摄影 ERP",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -286,6 +301,7 @@ function ProjectVisual({ project }: { project: Project }) {
     insights: "↑",
     recreate: "2→1",
     sorter: "RAW",
+    erp: "ERP",
   };
 
   if (project.preview) {

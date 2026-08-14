@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -279,6 +279,21 @@ const projects: Project[] = [
     href: "https://nanbo-photo-erp-2026.wdmm630202.chatgpt.site",
     linkLabel: "打开南铂摄影 ERP",
   },
+  {
+    id: "nanbo-select",
+    index: "18",
+    name: "南铂店内选片系统",
+    eyebrow: "IN-STORE PHOTO SELECTOR",
+    category: "App",
+    status: "Intel Mac V1",
+    summary: "店内电脑或 NAS 本地读取高清图，客户全屏选片，结果离线优先回传 ERP。",
+    detail: "客户只需左右浏览、Delete 删掉当前图、Space 查看细节；隐藏管理台提供恢复、对比、备注、导出和 ERP 冲突处理。原片不上传，异常退出可继续上次进度。",
+    tags: ["本地高清", "全屏锁定", "ERP 回传"],
+    tone: "graphite",
+    visual: "select",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/nanbo-select/",
+    linkLabel: "打开选片系统下载页",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -302,6 +317,7 @@ function ProjectVisual({ project }: { project: Project }) {
     recreate: "2→1",
     sorter: "RAW",
     erp: "ERP",
+    select: "DEL",
   };
 
   if (project.preview) {

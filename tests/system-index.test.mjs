@@ -37,6 +37,23 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
   assert.match(readme, /南铂智能系统是唯一项目总目录/);
   assert.match(readme, /南铂摄影 ERP/);
   assert.match(readme, /https:\/\/nanbo-photo-erp-2026\.wdmm630202\.chatgpt\.site/);
+  assert.match(source, /南铂店内选片系统/);
+  assert.match(source, /\/nbo-smart-system\/projects\/nanbo-select\//);
+  assert.match(published, /南铂店内选片系统/);
+  assert.match(readme, /南铂店内选片系统/);
+});
+
+test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {
+  const [page, installerStat] = await Promise.all([
+    read("docs/projects/nanbo-select/index.html"),
+    stat(new URL("../docs/projects/nanbo-select/downloads/NANBO-SELECT-1.0.0-Intel-Mac.dmg", import.meta.url)),
+  ]);
+
+  assert.match(page, /NANBO SELECT 1\.0\.0/);
+  assert.match(page, /店内 Mac 或 NAS 本地读取/);
+  assert.match(page, /NANBO-SELECT-1\.0\.0-Intel-Mac\.dmg/);
+  assert.match(page, /等待签名发布/);
+  assert.ok(installerStat.size > 1_000_000);
 });
 
 test("截图中的四个 Mac 工具都已登记并可恢复", async () => {

@@ -534,7 +534,9 @@ export async function buildPortfolioVersion() {
     join(root, "apps/portfolio-v2/index.html"),
     join(root, "apps/portfolio-v2/styles.css"),
     join(root, "apps/portfolio-v2/app.js"),
+    join(root, "apps/portfolio-v2/analytics.js"),
     join(root, "apps/portfolio-v2/catalog.js"),
+    join(root, "apps/portfolio-v2/privacy.html"),
   ];
   for (let id = 1; id <= portfolioCatalog.photoCount; id += 1) {
     const paths = assetPaths(id);

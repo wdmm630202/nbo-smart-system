@@ -1,0 +1,16 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "nanbo-portfolio-gateway",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-14",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "p.nanbostudio.com",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

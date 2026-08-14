@@ -44,10 +44,13 @@ const EVENT_TYPES = new Set([
   "brief_open",
   "brief_copy",
 ]);
-const PRODUCTION_ORIGIN = "https://wdmm630202.github.io";
+const PRODUCTION_ORIGINS = new Set([
+  "https://wdmm630202.github.io",
+  "https://p.nanbostudio.com",
+]);
 
 function isAllowedOrigin(origin: string | null) {
-  if (origin === PRODUCTION_ORIGIN) return true;
+  if (origin && PRODUCTION_ORIGINS.has(origin)) return true;
   if (!origin) return false;
   try {
     const url = new URL(origin);

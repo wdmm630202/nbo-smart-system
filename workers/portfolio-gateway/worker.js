@@ -1,7 +1,7 @@
 const ORIGIN = "https://wdmm630202.github.io";
 const REPOSITORY_BASE = "/nbo-smart-system";
 const PORTFOLIO_BASE = `${REPOSITORY_BASE}/p`;
-const ANALYTICS_ORIGIN = "https://nanbo-digital-systems.wdmm630202.chatgpt.site";
+const ANALYTICS_ORIGIN = "https://data.nanbostudio.com";
 const ANALYTICS_PATH = "/api/portfolio-analytics/collect";
 
 export function originPathFor(pathname) {

@@ -5,6 +5,8 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
+const ERP_URL = "https://erp.nanbostudio.com";
+const legacyErpUrl = ["nanbo-photo-erp-2026", "wdmm630202", "chatgpt.site"].join(".");
 
 test("南铂智能系统登记所有已上线核心入口", async () => {
   const [source, published, readme] = await Promise.all([
@@ -26,17 +28,34 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
   assert.match(source, /南铂成交洞察后台/);
   assert.match(source, /南铂写真复刻台/);
   assert.match(source, /照片视频一键分类/);
-  assert.match(source, /南铂摄影 ERP/);
-  assert.match(source, /https:\/\/nanbo-photo-erp-2026\.wdmm630202\.chatgpt\.site/);
+  const erpCard = source.match(/id: "erp",[\s\S]*?linkLabel: "打开南铂摄影 ERP",/);
+  assert.ok(erpCard, "ERP card exists");
+  assert.match(erpCard[0], new RegExp(ERP_URL));
+  assert.match(erpCard[0], /status: "内部账号运行中"/);
+  for (const detail of [
+    "管理员、经理、普通员工",
+    "电脑与手机",
+    "自有域名",
+    "私有会话",
+    "\\/login",
+    "老板账号恢复路径由 Cloudflare Access 保护",
+  ]) {
+    assert.match(erpCard[0], new RegExp(detail), detail);
+  }
   assert.match(published, /南铂客户选片中心/);
   assert.match(published, /南铂成交洞察后台/);
   assert.match(published, /南铂写真复刻台/);
   assert.match(published, /照片视频一键分类/);
   assert.match(published, /南铂摄影 ERP/);
-  assert.match(published, /https:\/\/nanbo-photo-erp-2026\.wdmm630202\.chatgpt\.site/);
+  assert.match(published, new RegExp(ERP_URL));
+  assert.match(published, /内部账号运行中/);
   assert.match(readme, /南铂智能系统是唯一项目总目录/);
   assert.match(readme, /南铂摄影 ERP/);
-  assert.match(readme, /https:\/\/nanbo-photo-erp-2026\.wdmm630202\.chatgpt\.site/);
+  assert.match(readme, new RegExp(ERP_URL));
+  assert.match(readme, /内部账号运行中/);
+  for (const document of [source, published, readme]) {
+    assert.equal(document.includes(legacyErpUrl), false, "legacy ERP URL is removed");
+  }
   assert.match(source, /南铂店内选片系统/);
   assert.match(source, /\/nbo-smart-system\/projects\/nanbo-select\//);
   assert.match(published, /南铂店内选片系统/);

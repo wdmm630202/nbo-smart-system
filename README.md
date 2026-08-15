@@ -27,7 +27,7 @@
 - 南铂成交洞察后台：<https://wdmm630202.github.io/nbo-smart-system/i/>
 - 南铂写真复刻台：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-recreation/>（无 API 可生成复刻指令；AI 分析和出图需要可用模型与额度）
 - 照片视频一键分类：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-video-sorter/>（线上档案与 Mac 恢复包；实际分类需在 Mac 本机运行）
-- 南铂摄影 ERP：<https://erp.nanbostudio.com>（内部账号运行中；`/` 会跳转内部 `/login`。管理员、经理、普通员工可在电脑/手机使用自有域名私有会话；老板账号恢复路径由 Cloudflare Access 保护。当前为合成数据演示，真实客户资料保持本机只读、未导入）
+- 南铂摄影 ERP：<https://erp.nanbostudio.com>（内部账号运行中；`/` 会跳转内部 `/login`。最高管理员、经理、普通员工可在电脑/手机使用自有域名私有会话；老板账号恢复路径由 Cloudflare Access 保护。当前为合成数据演示，真实客户资料保持本机只读、未导入）
 - 南铂店内选片系统：<https://wdmm630202.github.io/nbo-smart-system/projects/nanbo-select/>（店内本地高清选片；Intel Mac V1 恢复包）
 
 截图中的 4 个 Mac 工具均已登记：01 南铂 Stash 长期运行中心、04 NBO OS 珠宝修图工作流、10 Codex 余量 Pro、16 照片视频一键分类。可公开的分类工具源码与恢复包随本仓库保存；其余本机 App、工程源码和加密配置另存 GitHub 私有恢复库，不公开客户素材、明文密钥或设备令牌。

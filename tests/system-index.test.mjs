@@ -33,7 +33,7 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
   assert.match(erpCard[0], new RegExp(ERP_URL));
   assert.match(erpCard[0], /status: "内部账号运行中"/);
   for (const detail of [
-    "管理员、经理、普通员工",
+    "最高管理员、经理、普通员工",
     "电脑与手机",
     "自有域名",
     "私有会话",
@@ -49,10 +49,12 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
   assert.match(published, /南铂摄影 ERP/);
   assert.match(published, new RegExp(ERP_URL));
   assert.match(published, /内部账号运行中/);
+  assert.match(published, /最高管理员、经理、普通员工/);
   assert.match(readme, /南铂智能系统是唯一项目总目录/);
   assert.match(readme, /南铂摄影 ERP/);
   assert.match(readme, new RegExp(ERP_URL));
   assert.match(readme, /内部账号运行中/);
+  assert.match(readme, /最高管理员、经理、普通员工/);
   for (const document of [source, published, readme]) {
     assert.equal(document.includes(legacyErpUrl), false, "legacy ERP URL is removed");
   }

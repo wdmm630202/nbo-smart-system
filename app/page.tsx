@@ -271,7 +271,7 @@ const projects: Project[] = [
     eyebrow: "BUSINESS OPERATIONS ERP",
     category: "网页",
     status: "内部账号运行中",
-    summary: "管理员、经理、普通员工在同一个电脑与手机工作台管理客户、订单、拍摄流程与财务；访问首页会跳转内部 /login。",
+    summary: "最高管理员、经理、普通员工在同一个电脑与手机工作台管理客户、订单、拍摄流程与财务；访问首页会跳转内部 /login。",
     detail: "自有域名使用私有会话承载内部账号；老板账号恢复路径由 Cloudflare Access 保护。当前线上版只展示合成数据，真实客户资料保持本机只读，尚未导入。",
     tags: ["客户订单", "流程协同", "三层权限"],
     tone: "sky",

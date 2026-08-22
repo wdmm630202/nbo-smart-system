@@ -39,6 +39,8 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
     "私有会话",
     "\\/login",
     "老板账号恢复路径由 Cloudflare Access 保护",
+    "客户历史面板",
+    "累计消费",
   ]) {
     assert.match(erpCard[0], new RegExp(detail), detail);
   }
@@ -50,11 +52,15 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
   assert.match(published, new RegExp(ERP_URL));
   assert.match(published, /内部账号运行中/);
   assert.match(published, /最高管理员、经理、普通员工/);
+  assert.match(published, /客户历史面板/);
+  assert.match(published, /累计消费/);
   assert.match(readme, /南铂智能系统是唯一项目总目录/);
   assert.match(readme, /南铂摄影 ERP/);
   assert.match(readme, new RegExp(ERP_URL));
   assert.match(readme, /内部账号运行中/);
   assert.match(readme, /最高管理员、经理、普通员工/);
+  assert.match(readme, /客户历史面板/);
+  assert.match(readme, /累计消费/);
   for (const document of [source, published, readme]) {
     assert.equal(document.includes(legacyErpUrl), false, "legacy ERP URL is removed");
   }

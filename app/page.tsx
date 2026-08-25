@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -294,6 +294,21 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/nanbo-select/",
     linkLabel: "打开选片系统下载页",
   },
+  {
+    id: "music-hub",
+    index: "19",
+    name: "NBO 音乐中枢",
+    eyebrow: "PORTABLE MUSIC HUB",
+    category: "App",
+    status: "本机运行",
+    summary: "Docker 运行的可迁移私人音乐库，为 LX Music 和未来授权渠道保留稳定接口。",
+    detail: "Navidrome 本机入口为 http://127.0.0.1:4533，Provider Gateway 健康入口为 http://127.0.0.1:23333/health。音乐、歌单和数据保存在容器外，可整体备份并迁移到新电脑。",
+    tags: ["Docker", "本地音乐", "可迁移"],
+    tone: "aqua",
+    visual: "music",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/music-hub/",
+    linkLabel: "打开音乐中枢档案",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -318,6 +333,7 @@ function ProjectVisual({ project }: { project: Project }) {
     sorter: "RAW",
     erp: "ERP",
     select: "DEL",
+    music: "♫",
   };
 
   if (project.preview) {

@@ -70,6 +70,26 @@ test("南铂智能系统登记所有已上线核心入口", async () => {
   assert.match(readme, /南铂店内选片系统/);
 });
 
+test("NBO 音乐中枢登记本机入口和迁移用途", async () => {
+  const [source, published, readme] = await Promise.all([
+    read("app/page.tsx"),
+    read("docs/index.html"),
+    read("README.md"),
+  ]);
+
+  for (const document of [source, published, readme]) {
+    assert.match(document, /NBO 音乐中枢/);
+  }
+  const card = source.match(/id: "music-hub",[\s\S]*?linkLabel: "打开音乐中枢档案",/);
+  assert.ok(card, "music hub card exists");
+  assert.match(card[0], /category: "App"/);
+  assert.match(card[0], /status: "本机运行"/);
+  assert.match(card[0], /Docker/);
+  assert.match(card[0], /127\.0\.0\.1:4533/);
+  assert.match(card[0], /127\.0\.0\.1:23333\/health/);
+  assert.match(card[0], /projects\/music-hub\//);
+});
+
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {
   const [page, installerStat] = await Promise.all([
     read("docs/projects/nanbo-select/index.html"),

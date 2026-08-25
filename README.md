@@ -5,7 +5,7 @@
 - 固定网站：<https://wdmm630202.github.io/nbo-smart-system/>
 - 源代码由 GitHub 长期保存，可在新电脑重新克隆。
 - `docs/` 是无服务器静态版本，不依赖原电脑在线。
-- 18 张项目卡片都是直达链接；不需要展开详情，也不再使用“本机运行”入口。
+- 19 张项目卡片都是直达链接；不需要展开详情。
 - Stash 卡片直接显示真实管理界面预览；点击整张卡片进入受安全登录保护的云端运行中心。
 - 网站内容更新后运行 `pnpm pages:build`，再提交并推送即可同步固定网站。
 
@@ -29,6 +29,7 @@
 - 照片视频一键分类：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-video-sorter/>（线上档案与 Mac 恢复包；实际分类需在 Mac 本机运行）
 - 南铂摄影 ERP：<https://erp.nanbostudio.com>（内部账号运行中；`/` 会跳转内部 `/login`。最高管理员、经理、普通员工可在电脑/手机使用自有域名私有会话；老板账号恢复路径由 Cloudflare Access 保护。客户历史面板会将同一客户的独立订单集中显示，并汇总累计消费、实收、待收与拍摄历史）
 - 南铂店内选片系统：<https://wdmm630202.github.io/nbo-smart-system/projects/nanbo-select/>（店内本地高清选片；Intel Mac V1 恢复包）
+- NBO 音乐中枢：<https://wdmm630202.github.io/nbo-smart-system/projects/music-hub/>（Docker 本机运行；Navidrome `127.0.0.1:4533`；网关健康 `127.0.0.1:23333/health`；支持整体备份和换电脑恢复）
 
 截图中的 4 个 Mac 工具均已登记：01 南铂 Stash 长期运行中心、04 NBO OS 珠宝修图工作流、10 Codex 余量 Pro、16 照片视频一键分类。可公开的分类工具源码与恢复包随本仓库保存；其余本机 App、工程源码和加密配置另存 GitHub 私有恢复库，不公开客户素材、明文密钥或设备令牌。
 

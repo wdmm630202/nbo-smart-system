@@ -17,7 +17,7 @@ const match = source.match(/const projects: Project\[\] = (\[[\s\S]*?\n\]);\n\nc
 if (!match) throw new Error("无法读取项目数据");
 
 const projects = Function(`"use strict"; return (${match[1]});`)();
-const marks = { network: "N", studio: "15", server: "99", workflow: "◇", odds: "2:1", video: "▶", crm: "透明", agent: "AI", expand: "9:16", meter: "72%", risk: "−18", reviews: "★★★★★", portfolio: "158", insights: "↑", recreate: "2→1", sorter: "RAW", erp: "ERP", select: "DEL" };
+const marks = { network: "N", studio: "15", server: "99", workflow: "◇", odds: "2:1", video: "▶", crm: "透明", agent: "AI", expand: "9:16", meter: "72%", risk: "−18", reviews: "★★★★★", portfolio: "158", insights: "↑", recreate: "2→1", sorter: "RAW", erp: "ERP", select: "DEL", music: "♫" };
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
 const cards = projects.map((project) => {

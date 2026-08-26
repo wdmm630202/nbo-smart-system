@@ -90,6 +90,22 @@ test("NBO 音乐中枢登记本机入口和迁移用途", async () => {
   assert.match(card[0], /projects\/music-hub\//);
 });
 
+test("NBO 音源雷达登记安全边界和固定入口", async () => {
+  const [source, published, readme] = await Promise.all([
+    read("app/page.tsx"),
+    read("docs/index.html"),
+    read("README.md"),
+  ]);
+  for (const document of [source, published, readme]) assert.match(document, /NBO 音源雷达/);
+  const card = source.match(/id: "source-radar",[\s\S]*?linkLabel: "打开音源雷达档案",/);
+  assert.ok(card, "source radar card exists");
+  assert.match(card[0], /category: "自动化"/);
+  assert.match(card[0], /status: "每日扫描"/);
+  assert.match(card[0], /127\.0\.0\.1:23333\/radar/);
+  assert.match(card[0], /不执行、不自动导入/);
+  assert.match(card[0], /projects\/source-radar\//);
+});
+
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {
   const [page, installerStat] = await Promise.all([
     read("docs/projects/nanbo-select/index.html"),

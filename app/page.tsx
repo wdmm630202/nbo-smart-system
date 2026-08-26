@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music" | "radar";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -309,6 +309,21 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/music-hub/",
     linkLabel: "打开音乐中枢档案",
   },
+  {
+    id: "source-radar",
+    index: "20",
+    name: "NBO 音源雷达",
+    eyebrow: "SAFE SOURCE DISCOVERY",
+    category: "自动化",
+    status: "每日扫描",
+    summary: "自动发现 GitHub 公开候选项目，记录活跃度、许可证、更新和历史观测。",
+    detail: "本机仪表盘为 http://127.0.0.1:23333/radar。系统只收集仓库元数据，不下载、不执行、不自动导入网友音源；发现评分不代表可播放、安全或合法。",
+    tags: ["GitHub", "每日扫描", "只读安全"],
+    tone: "mint",
+    visual: "radar",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/source-radar/",
+    linkLabel: "打开音源雷达档案",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -334,6 +349,7 @@ function ProjectVisual({ project }: { project: Project }) {
     erp: "ERP",
     select: "DEL",
     music: "♫",
+    radar: "8",
   };
 
   if (project.preview) {

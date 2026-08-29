@@ -161,15 +161,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .wechat-contact-card::before { position: absolute; z-index: -1; top: -5rem; left: -4rem; width: 13rem; height: 13rem; border-radius: 50%; background: radial-gradient(circle,rgba(169,137,85,.15),transparent 68%); content: ""; }
 .wechat-contact-card:active { border-color: rgba(197,165,105,.58); background: linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.03)); transform: scale(.985); }
 .wechat-contact-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; }
-.wechat-contact-kicker { color: #c5a569; font-family: Georgia,serif; font-size: .47rem; font-weight: 700; letter-spacing: .2em; }
-.wechat-contact-copy > strong { margin-top: .72rem; font-family: Georgia,"Songti SC",serif; font-size: clamp(1.12rem,5.3vw,1.45rem); font-weight: 400; letter-spacing: -.035em; line-height: 1.16; }
+.wechat-contact-copy > strong { font-family: Georgia,"Songti SC",serif; font-size: clamp(1.12rem,5.3vw,1.45rem); font-weight: 400; letter-spacing: -.035em; line-height: 1.16; }
 .wechat-contact-link { display: flex; max-width: 100%; align-items: center; gap: .42rem; margin-top: .9rem; padding: .52rem .58rem; border-radius: 999px; color: #141510; background: #f5f3ed; font-size: .56rem; font-weight: 720; box-shadow: 0 7px 22px rgba(0,0,0,.18); }
 .wechat-contact-link i { flex: 0 0 auto; padding: .22rem .34rem; border-radius: 999px; color: white; background: #23a849; font-size: .43rem; font-style: normal; letter-spacing: .06em; }
 .wechat-contact-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wechat-contact-link b { flex: 0 0 auto; color: #8f7448; font-size: .72rem; font-weight: 400; }
 .wechat-contact-copy > small { margin-top: .58rem; color: rgba(255,255,255,.43); font-size: .48rem; letter-spacing: .07em; line-height: 1.5; }
 .wechat-qr-frame { display: grid; min-width: 0; gap: .42rem; padding: .45rem .45rem .5rem; border: 1px solid rgba(255,255,255,.7); border-radius: .95rem; color: #6f6d66; background: #f7f6f1; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
-.wechat-qr-frame img { width: 100%; height: auto; aspect-ratio: 1; border-radius: .52rem; background: white; }
+.wechat-qr-frame img { width: 100%; height: auto; aspect-ratio: 1; border-radius: .52rem; background: white; -webkit-touch-callout: default; }
 .wechat-qr-frame small { font-size: .45rem; font-weight: 650; letter-spacing: .12em; text-align: center; }
 
 .viewer { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; color: white; background: #090a08; }

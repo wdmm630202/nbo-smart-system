@@ -159,7 +159,7 @@ test("发布目录包含统计脚本和固定短网址隐私页", async () => {
   assert.match(permanentPrivacy, /匿名浏览统计说明/);
 });
 
-test("客片前台页脚可点击直达企业微信", async () => {
+test("客片前台页脚区分微信内轻点和长按识别", async () => {
   const [sourceHtml, publishedHtml, permanentHtml, permanentPrivacy, sourceCss, publishedCss, sourceQr, publishedQr] = await Promise.all([
     read("apps/portfolio-v2/index.html"),
     read("docs/projects/portfolio-v2/index.html"),
@@ -179,7 +179,9 @@ test("客片前台页脚可点击直达企业微信", async () => {
     assert.match(footer, /NANBO STUDIO/);
     assert.match(footer, /class="wechat-contact-card"/);
     assert.match(footer, /href="https:\/\/work\.weixin\.qq\.com\/ct\/wcdeb20d42a1baad7b131c4aab095bea3a51"/);
-    assert.match(footer, /点击直达企业微信/);
+    assert.match(footer, /微信内轻点添加/);
+    assert.match(footer, /长按识别二维码/);
+    assert.doesNotMatch(footer, /PRIVATE APPOINTMENT|wechat-contact-kicker/);
     assert.doesNotMatch(footer, /匿名统计/);
   }
   assert.match(footers[0], /src="wechat-contact-qr\.png\?v=__NBO_BUILD_VERSION__"/);

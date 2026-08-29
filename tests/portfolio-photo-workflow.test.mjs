@@ -78,6 +78,26 @@ test("发布版本由代码与照片内容确定", async () => {
   assert.match(sourceIndex, /wechat-share\.js\?v=__NBO_BUILD_VERSION__/);
 });
 
+test("企业微信二维码跟随客片版本刷新", async () => {
+  const qrPath = join(root, "apps/portfolio-v2/wechat-contact-qr.png");
+  const [sourceIndex, originalQr, before] = await Promise.all([
+    readFile(join(root, "apps/portfolio-v2/index.html"), "utf8"),
+    readFile(qrPath),
+    buildPortfolioVersion(),
+  ]);
+  assert.match(sourceIndex, /wechat-contact-qr\.png\?v=__NBO_BUILD_VERSION__/);
+
+  const changedQr = Buffer.from(originalQr);
+  changedQr[changedQr.length - 1] ^= 1;
+  try {
+    await writeFile(qrPath, changedQr);
+    const after = await buildPortfolioVersion();
+    assert.notEqual(after, before, "更换企业微信二维码后必须生成新的发布版本");
+  } finally {
+    await writeFile(qrPath, originalQr);
+  }
+});
+
 test("微信分享客户端进入内容版本并完整发布", async () => {
   const [source, published, shortHtml, longHtml, sourceImage, publishedImage] = await Promise.all([
     readFile(join(root, "apps/portfolio-v2/wechat-share.js"), "utf8"),

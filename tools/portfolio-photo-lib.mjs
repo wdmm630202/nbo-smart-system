@@ -537,6 +537,7 @@ export async function buildPortfolioVersion() {
     join(root, "apps/portfolio-v2/analytics.js"),
     join(root, "apps/portfolio-v2/catalog.js"),
     join(root, "apps/portfolio-v2/wechat-share.js"),
+    join(root, "apps/portfolio-v2/wechat-contact-qr.png"),
     join(root, "apps/portfolio-v2/privacy.html"),
     join(root, "apps/portfolio-v2/share-card.jpg"),
   ];

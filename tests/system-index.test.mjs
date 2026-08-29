@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -108,11 +108,13 @@ test("NBO 音源雷达登记安全边界和固定入口", async () => {
 
 test("封面卡片统一显示为自媒体封面制作", async () => {
   const officialUrl = "https://wdmm630202.github.io/nbo-cover-copy/cover.html";
-  const [source, publishedIndex, sourceRedirect, publishedRedirect] = await Promise.all([
+  const [source, publishedIndex, sourceRedirect, publishedRedirect, sourceFiles, publishedFiles] = await Promise.all([
     read("app/page.tsx"),
     read("docs/index.html"),
     read("apps/xhs-cover/index.html"),
     read("docs/projects/xhs-cover/index.html"),
+    readdir(new URL("../apps/xhs-cover/", import.meta.url)),
+    readdir(new URL("../docs/projects/xhs-cover/", import.meta.url)),
   ]);
   const card = source.match(/id: "xhs-cover",[\s\S]*?linkLabel: "打开自媒体封面制作",/);
   assert.ok(card, "xhs cover card exists");
@@ -135,6 +137,8 @@ test("封面卡片统一显示为自媒体封面制作", async () => {
     assert.match(redirect, /href="https:\/\/wdmm630202\.github\.io\/nbo-cover-copy\/cover\.html"/);
     assert.doesNotMatch(redirect, /src\/app\.js/);
   }
+  assert.deepEqual(sourceFiles, ["index.html"]);
+  assert.deepEqual(publishedFiles, ["index.html"]);
 });
 
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {

@@ -28,7 +28,7 @@
 - 南铂写真复刻台：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-recreation/>（无 API 可生成复刻指令；AI 分析和出图需要可用模型与额度）
 - 照片视频一键分类：<https://wdmm630202.github.io/nbo-smart-system/projects/photo-video-sorter/>（线上档案与 Mac 恢复包；实际分类需在 Mac 本机运行）
 - 南铂摄影 ERP：<https://erp.nanbostudio.com>（内部账号运行中；`/` 会跳转内部 `/login`。最高管理员、经理、普通员工可在电脑/手机使用自有域名私有会话；老板账号恢复路径由 Cloudflare Access 保护。客户历史面板会将同一客户的独立订单集中显示，并汇总累计消费、实收、待收与拍摄历史）
-- 南铂店内选片系统：<https://wdmm630202.github.io/nbo-smart-system/projects/nanbo-select/>（店内本地高清选片；Intel Mac V1 恢复包）
+- 南铂店内选片系统：<https://wdmm630202.github.io/nbo-smart-system/projects/nanbo-select/>（店内本地高清选片；Intel Mac 1.0.1 恢复包）
 - NBO 音乐中枢：<https://wdmm630202.github.io/nbo-smart-system/projects/music-hub/>（Docker 本机运行；Navidrome `127.0.0.1:4533`；网关健康 `127.0.0.1:23333/health`；支持整体备份和换电脑恢复）
 - NBO 音源雷达：<https://wdmm630202.github.io/nbo-smart-system/projects/source-radar/>（每日只读扫描 GitHub 元数据；本机仪表盘 `127.0.0.1:23333/radar`；不执行、不自动导入网友音源）
 - 小红书真实客片封面：<https://wdmm630202.github.io/nbo-smart-system/projects/xhs-cover/>（Mac、Windows 直接打开；照片只在浏览器本地处理；导出 1080×1440 PNG）

@@ -127,12 +127,13 @@ test("小红书真实客片封面工具可跨电脑使用且照片只在浏览�
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {
   const [page, installerStat] = await Promise.all([
     read("docs/projects/nanbo-select/index.html"),
-    stat(new URL("../docs/projects/nanbo-select/downloads/NANBO-SELECT-1.0.0-Intel-Mac.dmg", import.meta.url)),
+    stat(new URL("../docs/projects/nanbo-select/downloads/NANBO-SELECT-1.0.1-Intel-Mac.dmg", import.meta.url)),
   ]);
 
-  assert.match(page, /NANBO SELECT 1\.0\.0/);
+  assert.match(page, /NANBO SELECT 1\.0\.1/);
   assert.match(page, /店内 Mac 或 NAS 本地读取/);
-  assert.match(page, /NANBO-SELECT-1\.0\.0-Intel-Mac\.dmg/);
+  assert.match(page, /NANBO-SELECT-1\.0\.1-Intel-Mac\.dmg/);
+  assert.match(page, /已修复本地照片显示/);
   assert.match(page, /等待签名发布/);
   assert.ok(installerStat.size > 1_000_000);
 });

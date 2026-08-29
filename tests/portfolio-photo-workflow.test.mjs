@@ -94,8 +94,8 @@ test("微信分享客户端进入内容版本并完整发布", async () => {
   for (const html of [shortHtml, longHtml]) {
     assert.match(html, /wechat-share\.js\?v=pv2-[a-f0-9]{12}/);
     assert.match(html, /share-card-square\.jpg\?v=pv2-[a-f0-9]{12}/);
-    assert.match(html, /<meta property="og:title" content="南铂摄影｜268元拍2套｜先选风格，预约专属拍摄" \/>/);
-    assert.match(html, /<meta property="og:description" content="浏览真实男士客片，找到适合你的场景与表达。在线确认风格与需求，到店从容完成拍摄。" \/>/);
+    assert.match(html, /<meta property="og:title" content="南铂摄影｜268元拍2套｜先选风格，再预约时间到店开拍" \/>/);
+    assert.match(html, /<meta property="og:description" content="浏览真实男士客片，找到适合你的场景与表达。在线确认风格与需求，到店完成拍摄。" \/>/);
     assert.doesNotMatch(html, /__NBO_BUILD_VERSION__/);
   }
 });

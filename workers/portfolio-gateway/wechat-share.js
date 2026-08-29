@@ -1,6 +1,5 @@
 const PUBLIC_ORIGIN = "https://p.nanbostudio.com";
-const ACCESS_TOKEN_CACHE_KEY = "wechat:access-token";
-const JSAPI_TICKET_CACHE_KEY = "wechat:jsapi-ticket";
+const BROKER_RESPONSE_FIELDS = ["appId", "nonceStr", "signature", "timestamp", "url"];
 
 export class WechatShareError extends Error {
   constructor(code, status = 400) {
@@ -23,72 +22,76 @@ export function normalizeWechatPageUrl(rawUrl) {
   }
 }
 
-export async function createWechatSignature({ ticket, nonceStr, timestamp, url }) {
-  const source = `jsapi_ticket=${ticket}&noncestr=${nonceStr}&timestamp=${timestamp}&url=${url}`;
-  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(source));
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function readCachedValue(cache, key) {
-  const entry = await cache.get(key, { type: "json" });
-  return typeof entry?.value === "string" && entry.value ? entry.value : null;
-}
-
-async function cacheValue(cache, key, value, expiresIn) {
-  const expirationTtl = Math.max(60, Number(expiresIn) - 300);
-  await cache.put(key, JSON.stringify({ value }), { expirationTtl });
-}
-
-function throwWechatApiError(payload) {
-  if (payload?.errcode === 40164) {
-    throw new WechatShareError("wechat_ip_not_allowed", 503);
+function brokerEndpoint(env) {
+  try {
+    const endpoint = new URL(env.WECHAT_BROKER_URL);
+    if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password) {
+      throw new Error("rejected");
+    }
+    endpoint.pathname = "/v1/signature";
+    endpoint.search = "";
+    endpoint.hash = "";
+    return endpoint.toString();
+  } catch {
+    throw new WechatShareError("wechat_broker_unavailable", 503);
   }
-  if ([40013, 40125, 41002, 41004].includes(payload?.errcode)) {
-    throw new WechatShareError("wechat_credentials_unavailable", 503);
-  }
-  throw new WechatShareError("wechat_api_unavailable", 503);
 }
 
-export async function getWechatAccessToken(env, fetchImpl = fetch) {
-  const cached = await readCachedValue(env.WECHAT_CACHE, ACCESS_TOKEN_CACHE_KEY);
-  if (cached) return cached;
+function isValidBrokerPayload(payload, expectedUrl) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  const fields = Object.keys(payload).sort();
+  if (
+    fields.length !== BROKER_RESPONSE_FIELDS.length ||
+    fields.some((field, index) => field !== BROKER_RESPONSE_FIELDS[index])
+  ) {
+    return false;
+  }
+  return (
+    typeof payload.appId === "string" &&
+    payload.appId.length > 0 &&
+    Number.isInteger(payload.timestamp) &&
+    payload.timestamp > 0 &&
+    typeof payload.nonceStr === "string" &&
+    payload.nonceStr.length > 0 &&
+    typeof payload.signature === "string" &&
+    /^[a-f0-9]{40}$/.test(payload.signature) &&
+    payload.url === expectedUrl
+  );
+}
 
-  const response = await fetchImpl("https://api.weixin.qq.com/cgi-bin/stable_token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "client_credential",
-      appid: env.WECHAT_APP_ID,
-      secret: env.WECHAT_APP_SECRET,
-      force_refresh: false,
-    }),
-  });
-  const payload = await response.json();
-  if (!payload.access_token) {
-    throwWechatApiError(payload);
+export async function fetchBrokerSignature(env, url, fetchImpl = fetch) {
+  if (typeof env?.WECHAT_BROKER_SECRET !== "string" || !env.WECHAT_BROKER_SECRET) {
+    throw new WechatShareError("wechat_broker_unavailable", 503);
   }
 
-  await cacheValue(env.WECHAT_CACHE, ACCESS_TOKEN_CACHE_KEY, payload.access_token, payload.expires_in);
-  return payload.access_token;
-}
-
-export async function getWechatJsapiTicket(env, accessToken, fetchImpl = fetch) {
-  const cached = await readCachedValue(env.WECHAT_CACHE, JSAPI_TICKET_CACHE_KEY);
-  if (cached) return cached;
-
-  const endpoint = new URL("https://api.weixin.qq.com/cgi-bin/ticket/getticket");
-  endpoint.searchParams.set("access_token", accessToken);
-  endpoint.searchParams.set("type", "jsapi");
-  const response = await fetchImpl(endpoint);
-  const payload = await response.json();
-  if (!payload.ticket) {
-    throwWechatApiError(payload);
+  let response;
+  try {
+    response = await fetchImpl(brokerEndpoint(env), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.WECHAT_BROKER_SECRET}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url }),
+    });
+  } catch {
+    throw new WechatShareError("wechat_broker_unavailable", 503);
   }
 
-  await cacheValue(env.WECHAT_CACHE, JSAPI_TICKET_CACHE_KEY, payload.ticket, payload.expires_in);
-  return payload.ticket;
+  if (!response.ok) {
+    throw new WechatShareError("wechat_broker_unavailable", 503);
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new WechatShareError("wechat_broker_unavailable", 503);
+  }
+  if (!isValidBrokerPayload(payload, url)) {
+    throw new WechatShareError("wechat_broker_unavailable", 503);
+  }
+  return payload;
 }
 
 function jsonResponse(payload, status = 200, extraHeaders = {}) {
@@ -118,24 +121,12 @@ export async function handleWechatSignature(request, env, deps = {}) {
 
   try {
     const url = normalizeWechatPageUrl(rawUrl);
-    const fetchImpl = deps.fetchImpl ?? fetch;
-    const accessToken = await getWechatAccessToken(env, fetchImpl);
-    const ticket = await getWechatJsapiTicket(env, accessToken, fetchImpl);
-    const timestamp = Math.floor((deps.now?.() ?? Date.now()) / 1000);
-    const nonceStr = deps.nonceStr?.() ?? crypto.randomUUID().replaceAll("-", "");
-    const signature = await createWechatSignature({ ticket, nonceStr, timestamp, url });
-
-    return jsonResponse({
-      appId: env.WECHAT_APP_ID,
-      timestamp,
-      nonceStr,
-      signature,
-      url,
-    });
+    const payload = await fetchBrokerSignature(env, url, deps.fetchImpl ?? fetch);
+    return jsonResponse(payload);
   } catch (error) {
     if (error instanceof WechatShareError) {
       return jsonResponse({ error: error.code }, error.status);
     }
-    return jsonResponse({ error: "wechat_api_unavailable" }, 503);
+    return jsonResponse({ error: "wechat_broker_unavailable" }, 503);
   }
 }

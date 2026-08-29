@@ -4,24 +4,14 @@
   "main": "worker.js",
   "compatibility_date": "2026-08-14",
   "workers_dev": true,
-  "vars": {
-    "WECHAT_APP_ID": "wx7b493c6208a47b88"
-  },
   "secrets": {
-    "required": ["PORTFOLIO_INSIGHTS_TOKEN", "WECHAT_APP_SECRET"]
+    "required": ["PORTFOLIO_INSIGHTS_TOKEN", "WECHAT_BROKER_SECRET"]
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "nanbo-portfolio-analytics",
       "database_id": "1f0ace6f-8004-4ee2-abc4-d0794dba2bdb"
-    }
-  ],
-  "kv_namespaces": [
-    {
-      "binding": "WECHAT_CACHE",
-      "id": "bc41530b24484a37924c04b1c7af1c8b",
-      "remote": true
     }
   ],
   "routes": [

@@ -10,4 +10,6 @@
 - 统计写入接口固定为 `https://p.nanbostudio.com/api/portfolio-analytics/collect`，只接受看样站与本地预览来源。
 - 后台读取接口固定为 `https://p.nanbostudio.com/api/portfolio-analytics/insights`，直接读取同一份 D1 数据，并要求 `PORTFOLIO_INSIGHTS_TOKEN` Bearer 鉴权。
 - 后台访问码只保存在 Cloudflare Secret 和负责人设备上，不写入源码或 GitHub Pages。
+- 微信网页分享签名由同域 `/api/wechat-share/signature` 提供；Worker 通过 `WECHAT_BROKER_URL` 和 `WECHAT_BROKER_SECRET` 调用微信云托管签名中转。
+- Worker 不保存服务号 AppSecret、`access_token` 或 `jsapi_ticket`，也不再需要 API IP 白名单。
 - 入口缓存 10 分钟；照片更新仍以 GitHub Pages 发布流程为准。

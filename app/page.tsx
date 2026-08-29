@@ -329,17 +329,17 @@ const projects: Project[] = [
   {
     id: "xhs-cover",
     index: "21",
-    name: "小红书真实客片封面",
-    eyebrow: "XIAOHONGSHU COVER STUDIO",
+    name: "自媒体封面制作",
+    eyebrow: "SOCIAL MEDIA COVER STUDIO",
     category: "网页",
     status: "已上线",
-    summary: "替换成片和拍摄前素颜照，直接导出 1080×1440 高清小红书封面。",
-    detail: "固定虚线对比框、放大素颜照与四边溶图已经写入模板。照片只在当前浏览器本地处理，不上传服务器；Mac、Windows 电脑都可直接打开使用。",
-    tags: ["3:4 高清", "真实对比", "本地处理"],
+    summary: "小红书、抖音、视频号封面统一在这里制作，支持真实前后对比、9种版式和三平台高清导出。",
+    detail: "整合真实前后对比、9种版式与三平台尺寸导出。照片只在当前浏览器本地处理，不上传服务器；Mac、Windows 电脑都可直接打开使用。",
+    tags: ["三平台封面", "9种版式", "高清导出"],
     tone: "butter",
     visual: "xhs",
     href: "https://wdmm630202.github.io/nbo-cover-copy/cover.html",
-    linkLabel: "打开南铂封面制作台",
+    linkLabel: "打开自媒体封面制作",
   },
 ];
 

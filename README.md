@@ -31,7 +31,7 @@
 - 南铂店内选片系统：<https://wdmm630202.github.io/nbo-smart-system/projects/nanbo-select/>（店内本地高清选片；Intel Mac 1.0.1 恢复包）
 - NBO 音乐中枢：<https://wdmm630202.github.io/nbo-smart-system/projects/music-hub/>（Docker 本机运行；Navidrome `127.0.0.1:4533`；网关健康 `127.0.0.1:23333/health`；支持整体备份和换电脑恢复）
 - NBO 音源雷达：<https://wdmm630202.github.io/nbo-smart-system/projects/source-radar/>（每日只读扫描 GitHub 元数据；本机仪表盘 `127.0.0.1:23333/radar`；不执行、不自动导入网友音源）
-- 南铂统一封面制作台：<https://wdmm630202.github.io/nbo-cover-copy/cover.html>（已整合真实前后对比、九种版式与三平台导出；旧地址自动跳转到这里）
+- 自媒体封面制作：<https://wdmm630202.github.io/nbo-cover-copy/cover.html>（已整合真实前后对比、九种版式与三平台导出；旧地址自动跳转到这里）
 
 截图中的 4 个 Mac 工具均已登记：01 南铂 Stash 长期运行中心、04 NBO OS 珠宝修图工作流、10 Codex 余量 Pro、16 照片视频一键分类。可公开的分类工具源码与恢复包随本仓库保存；其余本机 App、工程源码和加密配置另存 GitHub 私有恢复库，不公开客户素材、明文密钥或设备令牌。
 

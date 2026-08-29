@@ -106,7 +106,7 @@ test("NBO 音源雷达登记安全边界和固定入口", async () => {
   assert.match(card[0], /projects\/source-radar\//);
 });
 
-test("旧真实客片封面入口统一迁移到南铂封面制作台", async () => {
+test("封面卡片统一显示为自媒体封面制作", async () => {
   const officialUrl = "https://wdmm630202.github.io/nbo-cover-copy/cover.html";
   const [source, publishedIndex, sourceRedirect, publishedRedirect] = await Promise.all([
     read("app/page.tsx"),
@@ -114,10 +114,21 @@ test("旧真实客片封面入口统一迁移到南铂封面制作台", async ()
     read("apps/xhs-cover/index.html"),
     read("docs/projects/xhs-cover/index.html"),
   ]);
-  const card = source.match(/id: "xhs-cover",[\s\S]*?linkLabel: "打开南铂封面制作台",/);
+  const card = source.match(/id: "xhs-cover",[\s\S]*?linkLabel: "打开自媒体封面制作",/);
   assert.ok(card, "xhs cover card exists");
   assert.match(card[0], new RegExp(officialUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(publishedIndex, /href="https:\/\/wdmm630202\.github\.io\/nbo-cover-copy\/cover\.html"[^>]*aria-label="打开南铂封面制作台：小红书真实客片封面"/);
+  for (const wording of [
+    'name: "自媒体封面制作"',
+    'eyebrow: "SOCIAL MEDIA COVER STUDIO"',
+    "小红书、抖音、视频号封面统一在这里制作",
+    'tags: ["三平台封面", "9种版式", "高清导出"]',
+  ]) {
+    assert.match(card[0], new RegExp(wording.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), wording);
+  }
+  assert.match(publishedIndex, /href="https:\/\/wdmm630202\.github\.io\/nbo-cover-copy\/cover\.html"[^>]*aria-label="打开自媒体封面制作：自媒体封面制作"/);
+  assert.match(publishedIndex, /aria-label="自媒体封面统一制作界面"/);
+  assert.match(publishedIndex, /<b>自媒体封面制作<\/b>/);
+  assert.doesNotMatch(publishedIndex, /<h3>小红书真实客片封面<\/h3>/);
   for (const redirect of [sourceRedirect, publishedRedirect]) {
     assert.match(redirect, /http-equiv="refresh"/i);
     assert.match(redirect, /location\.replace\("https:\/\/wdmm630202\.github\.io\/nbo-cover-copy\/cover\.html"\)/);
@@ -219,7 +230,7 @@ test("总台每张卡片直接展示能说明用途的应用界面", async () =>
     "店内全屏选片界面",
     "私人音乐库播放界面",
     "音源项目安全扫描界面",
-    "小红书真实客片封面制作界面",
+    "自媒体封面统一制作界面",
   ]) {
     assert.match(published, new RegExp(`aria-label="${description}"`), description);
   }

@@ -147,10 +147,10 @@ const interfaces = {
       <div class="repo-list"><p><i></i><b>music-provider-a</b><span>活跃 92</span><em>MIT</em></p><p><i></i><b>audio-source-kit</b><span>活跃 84</span><em>Apache</em></p><p><i></i><b>stream-helper</b><span>待复核</span><em>未知</em></p></div>`, { kind: "radar", status: "扫描完成" }),
   },
   xhs: {
-    label: "小红书真实客片封面制作界面",
-    markup: chrome("小红书真实客片封面", `
+    label: "自媒体封面统一制作界面",
+    markup: chrome("自媒体封面制作", `
       <div class="xhs-editor"><div class="xhs-cover">${portrait}<div class="xhs-before">${beforePortrait}<span>拍摄前</span></div><strong>普通男生<br><b>这样拍更上镜</b></strong><small>南铂摄影 · 真实客片</small></div></div>
-      <div class="xhs-settings"><b>封面设置</b><span><i>3:4</i>1080 × 1440</span><span><i>✓</i>虚线对比框</span><span><i>✓</i>四边溶图</span><em>高清封面已就绪</em></div>`, { kind: "xhs", status: "可导出" }),
+      <div class="xhs-settings"><b>三平台封面</b><span><i>3:4</i>小红书</span><span><i>9:16</i>抖音</span><span><i>3:4</i>视频号</span><em>高清封面已就绪</em></div>`, { kind: "xhs", status: "可导出" }),
   },
 };
 

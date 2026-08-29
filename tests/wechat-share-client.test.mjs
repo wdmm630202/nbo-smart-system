@@ -91,7 +91,7 @@ test("微信 ready 后设置朋友与朋友圈固定分享内容", async () => {
   wxApi.runReady();
   assert.deepEqual(wxApi.friendValue, {
     title: "南铂摄影｜268元拍2套｜先选风格，再预约时间到店开拍📷",
-    desc: "浏览真实男士客片，找到适合你的场景与表达。在线确认风格与需求，到店完成拍摄。",
+    desc: "浏览真实客片，找到适合你的场景与表达；在线确认风格与需求，到店完成拍摄",
     link: "https://p.nanbostudio.com/?share=pv2-123456789abc",
     imgUrl: "https://p.nanbostudio.com/projects/portfolio-v2/share-card-square.jpg",
   });

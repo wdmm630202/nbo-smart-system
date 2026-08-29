@@ -97,7 +97,8 @@ const html = `<!doctype html>
     </section>
   </main>
 </body>
-</html>`;
+</html>
+`;
 
 const docs = join(root, "docs");
 await mkdir(docs, { recursive: true });
@@ -201,5 +202,5 @@ for (const filename of ["index.html"]) {
   await writeFile(target, content.replaceAll("__NBO_INSIGHTS_VERSION__", portfolioBuildVersion));
 }
 
-console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 写真复刻台 + 小红书封面工具 + 照片视频一键分类 + 客片 V1/V2 + 固定短链接 /p/ + 固定成交洞察 /i/`);
+console.log(`GitHub Pages 已生成：${projects.length} 个直达入口，${internalProjects.length} 个永久项目主页，1 个真实好评系统 + NFC 顾客版 + 写真复刻台 + 旧封面兼容跳转 + 照片视频一键分类 + 客片 V1/V2 + 固定短链接 /p/ + 固定成交洞察 /i/`);
 console.log(`客片 V2 资源版本：${portfolioBuildVersion}`);

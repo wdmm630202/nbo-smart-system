@@ -75,6 +75,7 @@ test("微信 ready 后设置朋友与朋友圈固定分享内容", async () => {
   const configured = await configureWechatShare({
     wxApi,
     fetchImpl: async () => signatureResponse(),
+    buildVersion: "pv2-123456789abc",
     locationLike: {
       origin: "https://p.nanbostudio.com",
       href: "https://p.nanbostudio.com/?from=wechat#works",
@@ -91,10 +92,11 @@ test("微信 ready 后设置朋友与朋友圈固定分享内容", async () => {
   assert.deepEqual(wxApi.friendValue, {
     title: "南铂摄影｜先选风格，再预约到店拍摄",
     desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成拍摄需求，让沟通更轻松，预约到店更高效。",
-    link: "https://p.nanbostudio.com/",
+    link: "https://p.nanbostudio.com/?share=pv2-123456789abc",
     imgUrl: "https://p.nanbostudio.com/projects/portfolio-v2/share-card-square.jpg",
   });
   assert.equal(wxApi.timelineValue.title, "南铂摄影｜先选风格，再预约到店拍摄");
+  assert.equal(wxApi.timelineValue.link, "https://p.nanbostudio.com/?share=pv2-123456789abc");
 });
 
 test("诊断链接启用微信 JS-SDK 自带调试提示", async () => {

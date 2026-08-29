@@ -1,8 +1,8 @@
 const PUBLIC_ORIGIN = "https://p.nanbostudio.com";
 
 const SHARE_DATA = Object.freeze({
-  title: "南铂摄影｜先选风格，再预约到店拍摄",
-  desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成拍摄需求，让沟通更轻松，预约到店更高效。",
+  title: "南铂摄影｜268元拍2套｜先选风格，预约专属拍摄",
+  desc: "浏览真实男士客片，找到适合你的场景与表达。在线确认风格与需求，到店从容完成拍摄。",
   imgUrl: `${PUBLIC_ORIGIN}/projects/portfolio-v2/share-card-square.jpg`,
 });
 

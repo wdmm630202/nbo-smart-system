@@ -1,12 +1,12 @@
 export const DEFAULT_STATE = Object.freeze({
   mode: 'compare',
   canvas: Object.freeze({ width: 1080, height: 1440 }),
-  line1: '不会摆动作',
-  line2: '也能拍得自然',
+  line1: '无需刻意',
+  line2: '自然自有力量',
   zoom: 1,
   offsetX: 0,
   offsetY: 0,
-  beforeZoom: 1.17,
+  beforeZoom: 1.3,
   beforeOffsetX: 0,
   beforeOffsetY: 0,
   textSide: 'left',
@@ -59,18 +59,66 @@ export function evidenceLayout(canvas, beforeZoom = DEFAULT_STATE.beforeZoom) {
       radius: Math.round(canvas.width * 0.0278),
     },
     imageZoom: clamp(beforeZoom, 1, 2.2),
+    imageInset: 4,
   };
 }
 
 export function evidenceFadeStops() {
   return [
     [0, 0],
-    [0.11, 0.72],
-    [0.2, 1],
-    [0.8, 1],
-    [0.89, 0.72],
+    [0.04, 0.78],
+    [0.08, 1],
+    [0.92, 1],
+    [0.96, 0.78],
     [1, 0],
   ];
+}
+
+export function comparisonLabelLayout(canvas) {
+  const { frame } = evidenceLayout(canvas);
+  const right = canvas.width - 48;
+  const capsule = { width: 104, height: 54, radius: 27 };
+  const emphasis = { width: 38, height: 38, radius: 19, inset: 8 };
+  return {
+    after: { right, y: 48, ...capsule, emphasis: { ...emphasis } },
+    before: { right, y: frame.y + 24, ...capsule, emphasis: { ...emphasis } },
+  };
+}
+
+export function comparisonLabelContent() {
+  return {
+    prefix: '拍摄',
+    after: '后',
+    before: '前',
+  };
+}
+
+export function comparisonLabelTypography() {
+  return { prefixLetterSpacing: 2 };
+}
+
+export function titleLayout() {
+  return {
+    left: 64,
+    eyebrowBaseline: 1153,
+    line1Baseline: 1240,
+    line2Baseline: 1330,
+    accent: { x: 64, y: 1378, width: 64, height: 4, radius: 2 },
+  };
+}
+
+export function titleTypography() {
+  return {
+    eyebrowText: '真实客片 · NANBOART',
+    eyebrowSize: 16,
+    eyebrowWeight: 500,
+    eyebrowLetterSpacing: 4,
+    titleSize: 68,
+    titleWeight: 600,
+    titleLetterSpacing: 1,
+    textAlign: 'left',
+    accentColor: '#fee800',
+  };
 }
 
 export function validateForExport(state) {

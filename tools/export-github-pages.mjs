@@ -175,6 +175,10 @@ const permanentPortfolioIndex = publishedPortfolioIndex.replace(
 ).replaceAll('href="#', 'href="/nbo-smart-system/p/#');
 await writeFile(join(permanentPortfolioDir, "index.html"), permanentPortfolioIndex);
 await copyFile(join(root, "apps/portfolio-v2/privacy.html"), join(permanentPortfolioDir, "privacy.html"));
+await copyFile(
+  join(root, "apps/portfolio-v2/MP_verify_ZCU9ptvNi6e2Zgi3.txt"),
+  join(permanentPortfolioDir, "MP_verify_ZCU9ptvNi6e2Zgi3.txt"),
+);
 await writeFile(
   join(permanentPortfolioDir, "build.json"),
   `${JSON.stringify({ version: portfolioBuildVersion })}\n`,

@@ -96,3 +96,19 @@ test("微信 ready 后设置朋友与朋友圈固定分享内容", async () => {
   });
   assert.equal(wxApi.timelineValue.title, "南铂摄影｜真实客片选风格");
 });
+
+test("诊断链接启用微信 JS-SDK 自带调试提示", async () => {
+  const wxApi = fakeWx();
+  const configured = await configureWechatShare({
+    wxApi,
+    fetchImpl: async () => signatureResponse(),
+    locationLike: {
+      origin: "https://p.nanbostudio.com",
+      href: "https://p.nanbostudio.com/?wxdebug=1",
+    },
+    userAgent: "MicroMessenger/8.0",
+  });
+
+  assert.equal(configured, true);
+  assert.equal(wxApi.configValue.debug, true);
+});

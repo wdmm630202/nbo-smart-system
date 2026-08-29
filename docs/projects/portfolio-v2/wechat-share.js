@@ -44,7 +44,7 @@ export async function configureWechatShare({
     });
     wxApi.error(() => {});
     wxApi.config({
-      debug: false,
+      debug: pageUrl.searchParams.get("wxdebug") === "1",
       appId: signature.appId,
       timestamp: signature.timestamp,
       nonceStr: signature.nonceStr,

@@ -1,10 +1,70 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
 import { gzipSync } from "node:zlib";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
+
+async function runAnalytics(preference = "") {
+  const source = await read("apps/portfolio-v2/analytics.js");
+  const storage = new Map(preference ? [["nanbo-anonymous-analytics-consent", preference]] : []);
+  const sessionStorage = new Map();
+  const scheduled = [];
+  const appended = [];
+  const requests = [];
+  let id = 0;
+  const context = {
+    Blob,
+    Date,
+    PerformanceObserver: class { observe() {} },
+    URL,
+    URLSearchParams,
+    console,
+    crypto: { randomUUID: () => `session-${++id}` },
+    document: {
+      addEventListener() {},
+      body: { append: (node) => appended.push(node) },
+      createElement: () => ({ addEventListener() {}, remove() {}, setAttribute() {} }),
+      documentElement: { scrollHeight: 1600 },
+      querySelector: () => null,
+      referrer: "",
+      visibilityState: "visible",
+    },
+    fetch: async (url, options) => { requests.push({ url, options }); },
+    innerHeight: 800,
+    localStorage: {
+      getItem: (key) => storage.get(key) || null,
+      setItem: (key, value) => storage.set(key, value),
+    },
+    location: {
+      hostname: "wdmm630202.github.io",
+      origin: "https://wdmm630202.github.io",
+      pathname: "/nbo-smart-system/p/",
+      search: "",
+    },
+    matchMedia: () => ({ matches: false }),
+    navigator: {},
+    performance: { now: () => 0 },
+    scrollY: 0,
+    sessionStorage: {
+      getItem: (key) => sessionStorage.get(key) || null,
+      removeItem: (key) => sessionStorage.delete(key),
+      setItem: (key, value) => sessionStorage.set(key, value),
+    },
+  };
+  context.window = {
+    addEventListener() {},
+    setInterval() {},
+    setTimeout: (callback, delay) => scheduled.push({ callback, delay }),
+  };
+
+  vm.runInNewContext(source, context);
+  for (const timer of scheduled) timer.callback();
+  await Promise.resolve();
+  return { appended, requests };
+}
 
 test("匿名统计不进入客片首屏关键路径", async () => {
   const [app, analytics, html] = await Promise.all([
@@ -22,19 +82,19 @@ test("匿名统计不进入客片首屏关键路径", async () => {
   assert.doesNotMatch(analytics, /document\.cookie|canvas|getUserMedia|geolocation|deviceMemory|hardwareConcurrency/);
 });
 
-test("匿名统计先征得同意，并提供拒绝与撤回", async () => {
-  const [analytics, privacy, html] = await Promise.all([
-    read("apps/portfolio-v2/analytics.js"),
-    read("apps/portfolio-v2/privacy.html"),
-    read("apps/portfolio-v2/index.html"),
+test("新访客浏览客片时不显示匿名统计提示条", async () => {
+  const { appended } = await runAnalytics();
+  assert.equal(appended.length, 0);
+});
+
+test("匿名统计默认启动，但尊重客户明确停止的选择", async () => {
+  const [defaultVisit, stoppedVisit] = await Promise.all([
+    runAnalytics(),
+    runAnalytics("no"),
   ]);
 
-  assert.match(analytics, /readConsent\(\) !== "yes"/);
-  assert.match(analytics, /data-consent="no"/);
-  assert.match(analytics, /不收集姓名、手机号、IP 或设备指纹/);
-  assert.match(privacy, /停止当前浏览器的匿名统计/);
-  assert.match(privacy, /数据保存不超过 90 天/);
-  assert.match(html, /匿名统计说明/);
+  assert.equal(defaultVisit.requests.length, 1);
+  assert.equal(stoppedVisit.requests.length, 0);
 });
 
 test("发布目录包含统计脚本和固定短网址隐私页", async () => {

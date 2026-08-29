@@ -1,33 +1,12 @@
 const ENDPOINT = location.hostname === "p.nanbostudio.com"
   ? "/api/portfolio-analytics/collect"
   : "https://nanbo-digital-systems.wdmm630202.chatgpt.site/api/portfolio-analytics/collect";
-const CONSENT_KEY = "nanbo-anonymous-analytics-consent";
+const PREFERENCE_KEY = "nanbo-anonymous-analytics-consent";
 const SESSION_KEY = "nanbo-anonymous-analytics-session";
 const MAX_EVENTS_PER_SEND = 20;
 
-function readConsent() {
-  try { return localStorage.getItem(CONSENT_KEY) || ""; } catch { return ""; }
-}
-
-function saveConsent(value) {
-  try { localStorage.setItem(CONSENT_KEY, value); } catch { return; }
-}
-
-function showConsent() {
-  if (document.querySelector(".analytics-consent")) return;
-  const notice = document.createElement("aside");
-  notice.className = "analytics-consent";
-  notice.setAttribute("aria-label", "匿名浏览统计说明");
-  notice.innerHTML = `<div><strong>帮助南铂把客片做得更好</strong><span>是否同意匿名记录浏览时长、作品偏好与页面速度？不收集姓名、手机号、IP 或设备指纹。</span><a href="/nbo-smart-system/p/privacy.html">查看说明</a></div><div class="analytics-consent-actions"><button type="button" data-consent="no">暂不</button><button type="button" data-consent="yes">同意</button></div>`;
-  notice.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-consent]");
-    if (!button) return;
-    const answer = button.dataset.consent;
-    saveConsent(answer);
-    notice.remove();
-    if (answer === "yes") startAnalytics();
-  });
-  document.body.append(notice);
+function readPreference() {
+  try { return localStorage.getItem(PREFERENCE_KEY) || ""; } catch { return ""; }
 }
 
 function randomId() { return crypto.randomUUID(); }
@@ -77,7 +56,7 @@ function deviceType() {
 
 let started = false;
 function startAnalytics() {
-  if (started || readConsent() !== "yes") return;
+  if (started || readPreference() === "no") return;
   started = true;
 
   const params = new URLSearchParams(location.search);
@@ -185,6 +164,4 @@ function startAnalytics() {
   window.addEventListener("pagehide", () => send(true), { once: true });
 }
 
-const consent = readConsent();
-if (consent === "yes") startAnalytics();
-else if (!consent) window.setTimeout(showConsent, 900);
+startAnalytics();

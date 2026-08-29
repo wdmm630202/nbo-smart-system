@@ -76,7 +76,7 @@ function render(data) {
   ].map(([label, value, note, className]) => `<article class="${className}"><small>${label}</small><strong>${value}</strong><span>${note}</span></article>`).join("");
 
   const tips = recommendations(summary, photos, themes, sources);
-  elements.recommendations.innerHTML = tips.length ? tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join("") : `<li>数据还不够。先正常分享客片网址，产生 5 次以上同意统计的浏览后，这里会给出可执行建议。</li>`;
+  elements.recommendations.innerHTML = tips.length ? tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join("") : `<li>数据还不够。先正常分享客片网址，产生 5 次以上匿名浏览后，这里会给出可执行建议。</li>`;
   const ranks = (items, fallback) => items.length ? items.map((item, index) => `<div><b>${String(index + 1).padStart(2, "0")}</b><span><strong>${escapeHtml(item.label || item.key)}</strong><small>${escapeHtml(item.key)}</small></span><em>${number(item.total)} 次</em></div>`).join("") : emptyCopy(fallback);
   elements.photos.innerHTML = ranks(photos, "暂无作品打开记录");
   elements.themes.innerHTML = ranks(themes, "暂无主题偏好记录");
@@ -87,7 +87,7 @@ function render(data) {
     <div><small>浏览深度</small><strong>${number(session.photo_views)} 张 · ${number(session.max_scroll)}%</strong></div>
     <div><small>成交信号</small><strong>${number(session.favorite_count)} 收藏 · ${number(session.brief_copies)} 复制</strong></div>
     <div class="session-score"><small>意向分</small><strong>${number(session.intent_score)}</strong></div>
-  </article>`).join("") : emptyCopy("上线后，有客户同意匿名统计并浏览，这里就会出现明细。");
+  </article>`).join("") : emptyCopy("上线后，有客户正常浏览客片，这里就会出现匿名明细。");
   elements.experience.innerHTML = `<span>LCP ≤ 2.5s：${lcp}</span><span>交互 ≤ 200ms：${summary.interaction_good === null || summary.interaction_good === undefined ? "采集中" : `${number(summary.interaction_good)}%`}</span><span>布局稳定：${summary.cls_good === null || summary.cls_good === undefined ? "采集中" : `${number(summary.cls_good)}%`}</span>`;
   elements.status.textContent = `近 ${data.days} 天 · 更新于 ${localTime(data.generatedAt)}`;
 }

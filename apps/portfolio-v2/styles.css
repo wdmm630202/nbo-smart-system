@@ -156,14 +156,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .footer-brand small, .page-footer p, .page-footer > small { color: rgba(255,255,255,.42); }
 .page-footer p, .page-footer > small { margin: 0; font-size: .55rem; letter-spacing: .1em; }
 .page-footer a { color: rgba(255,255,255,.65); text-decoration: underline; text-underline-offset: .15rem; }
-.analytics-consent { position: fixed; z-index: 120; right: .65rem; bottom: calc(4.75rem + env(safe-area-inset-bottom)); left: .65rem; display: flex; width: min(calc(100% - 1.3rem),43rem); align-items: center; justify-content: space-between; gap: .75rem; margin: 0 auto; padding: .72rem .78rem; border: 1px solid rgba(255,255,255,.16); border-radius: 1rem; color: white; background: rgba(17,18,16,.96); box-shadow: 0 18px 55px rgba(0,0,0,.3); -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%); animation: selection-in .26s cubic-bezier(.2,.8,.2,1); }
-.analytics-consent>div:first-child { min-width: 0; display: grid; gap: .18rem; }
-.analytics-consent strong { font-size: .68rem; }
-.analytics-consent span { color: rgba(255,255,255,.58); font-size: .52rem; line-height: 1.45; }
-.analytics-consent a { width: max-content; color: rgba(255,255,255,.78); font-size: .5rem; text-decoration: underline; text-underline-offset: .12rem; }
-.analytics-consent-actions { display: flex; flex: 0 0 auto; gap: .35rem; }
-.analytics-consent button { min-height: 2.25rem; padding: 0 .72rem; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: rgba(255,255,255,.7); background: transparent; font-size: .58rem; font-weight: 700; }
-.analytics-consent button[data-consent="yes"] { color: #171714; border-color: white; background: white; }
 
 .viewer { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; color: white; background: #090a08; }
 .viewer::backdrop { background: #090a08; }
@@ -289,7 +281,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
   .tab-bar { bottom: 1rem; border: 1px solid rgba(17,18,16,.09); border-radius: 1.3rem 1.3rem 0 0; }
   .selection-bar { bottom: 5.7rem; }
 }
-@media (max-width: 520px) { .analytics-consent { align-items: stretch; flex-direction: column; } .analytics-consent-actions { justify-content: flex-end; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *,*::before,*::after { animation-duration: .01ms!important; transition-duration: .01ms!important; } }
 @media (prefers-reduced-transparency: reduce) { .mini-header,.filter-bar,.tab-bar,.selection-bar { background: #f7f6f2; -webkit-backdrop-filter: none; backdrop-filter: none; } .selection-bar { color: white; background: #111210; } }
 @keyframes selection-in { from { opacity: 0; transform: translateY(1.2rem) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }

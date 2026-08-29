@@ -16,13 +16,13 @@
       <section class="card"><h2>为什么记录</h2><p>南铂摄影只用这些数据判断哪些客片和主题更受欢迎、客户在哪一步离开，以及页面在真实手机上的速度是否足够快，从而优化作品顺序、沟通和咨询流程。</p></section>
       <section class="card"><h2>记录什么</h2><ul><li>一次匿名浏览的开始时间、总停留与有效浏览时间</li><li>手机/平板/电脑、来源渠道参数、浏览深度</li><li>打开的作品编号与主题、收藏、打开或复制拍摄需求</li><li>首屏加载、交互响应和页面稳定性</li></ul></section>
       <section class="card"><h2>明确不记录</h2><p>不记录姓名、手机号、精确位置、IP 地址、完整设备信息或设备指纹；也不会把拍摄需求里填写的称呼和备注上传。一次会话结束后，不跨网站、跨浏览器识别客户。</p></section>
-      <section class="card"><h2>保存与撤回</h2><p>数据保存不超过 90 天，仅南铂负责人登录后可查看。您可以拒绝统计而继续完整浏览，也可随时在当前浏览器停止后续统计。若需查询或提出其他要求，可直接联系向您发送本客片链接的南铂客服或摄影顾问。</p><div class="actions"><button class="secondary" id="stop" type="button">停止当前浏览器的匿名统计</button><button id="allow" type="button">同意匿名统计</button></div><p class="status" id="status" role="status" aria-live="polite"></p></section>
+      <section class="card"><h2>保存与控制</h2><p>匿名统计会在客片页面空闲时自动启动，数据保存不超过 90 天，仅南铂负责人登录后可查看。您可以继续完整浏览，并随时在当前浏览器停止或恢复后续统计。若需查询或提出其他要求，可直接联系向您发送本客片链接的南铂客服或摄影顾问。</p><div class="actions"><button class="secondary" id="stop" type="button">停止当前浏览器的匿名统计</button><button id="allow" type="button">恢复匿名统计</button></div><p class="status" id="status" role="status" aria-live="polite"></p></section>
       <footer>运营方：南铂摄影 · 用途仅限作品展示体验与拍摄咨询流程优化</footer>
     </main>
     <script>
       const key="nanbo-anonymous-analytics-consent",status=document.querySelector("#status");
       document.querySelector("#stop").addEventListener("click",()=>{localStorage.setItem(key,"no");sessionStorage.removeItem("nanbo-anonymous-analytics-session");status.textContent="已停止。刷新或返回客片后，不会继续发送匿名统计。"});
-      document.querySelector("#allow").addEventListener("click",()=>{localStorage.setItem(key,"yes");status.textContent="已同意。返回客片后，统计会在页面空闲时开始。"});
+      document.querySelector("#allow").addEventListener("click",()=>{localStorage.setItem(key,"yes");status.textContent="已恢复。返回客片后，统计会在页面空闲时开始。"});
     </script>
   </body>
 </html>

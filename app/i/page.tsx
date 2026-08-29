@@ -173,7 +173,7 @@ export default async function PortfolioInsights({ searchParams }: { searchParams
   return (
     <main className="insights-shell">
       <header className="insights-head">
-        <div><p>NANBO PORTFOLIO INSIGHTS</p><h1>客户浏览与成交信号</h1><span>匿名会话 · 只统计客户同意后的数据 · 自动保留 90 天</span></div>
+        <div><p>NANBO PORTFOLIO INSIGHTS</p><h1>客户浏览与成交信号</h1><span>匿名会话 · 客户可在说明页停止 · 自动保留 90 天</span></div>
         <a className="view-portfolio" href="https://wdmm630202.github.io/nbo-smart-system/p/" target="_blank" rel="noreferrer">打开客片网站 ↗</a>
       </header>
 
@@ -192,7 +192,7 @@ export default async function PortfolioInsights({ searchParams }: { searchParams
 
       <section className="insight-card action-card">
         <header><div><small>PRODUCT MANAGER SUMMARY</small><h2>本期该怎么做</h2></div><span>自动提炼</span></header>
-        {tips.length ? <ol>{tips.map((tip) => <li key={tip}>{tip}</li>)}</ol> : <p className="empty-copy">数据还不够。先正常分享客片网址，产生 5 次以上同意统计的浏览后，这里会给出可执行建议。</p>}
+        {tips.length ? <ol>{tips.map((tip) => <li key={tip}>{tip}</li>)}</ol> : <p className="empty-copy">数据还不够。先正常分享客片网址，产生 5 次以上匿名浏览后，这里会给出可执行建议。</p>}
       </section>
 
       <div className="insights-columns">
@@ -222,7 +222,7 @@ export default async function PortfolioInsights({ searchParams }: { searchParams
               <div><small>成交信号</small><strong>{session.favorite_count} 收藏 · {session.brief_copies} 复制</strong></div>
               <div className="session-score"><small>意向分</small><strong>{session.intent_score}</strong></div>
             </article>
-          )) : <p className="empty-copy">上线后，有客户同意匿名统计并浏览，这里就会出现明细。</p>}
+          )) : <p className="empty-copy">上线后，有客户正常浏览客片，这里就会出现匿名明细。</p>}
         </div>
       </section>
 

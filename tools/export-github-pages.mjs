@@ -180,8 +180,8 @@ await writeFile(
   `${JSON.stringify({ version: portfolioBuildVersion })}\n`,
 );
 
-// 成交洞察前台固定放在 GitHub Pages。数据接口继续使用 Sites/D1，避免
-// chatgpt.site 的登录与安全拦截影响负责人在电脑、手机查看报表。
+// 成交洞察前台固定放在 GitHub Pages。数据接口使用 p.nanbostudio.com/D1，
+// 避免 chatgpt.site 的安全拦截影响负责人在电脑、手机查看报表。
 const portfolioInsightsDir = join(docs, "i");
 await rm(portfolioInsightsDir, { recursive: true, force: true });
 await cp(join(root, "apps/portfolio-insights"), portfolioInsightsDir, { recursive: true, force: true });

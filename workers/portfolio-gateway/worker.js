@@ -1,9 +1,11 @@
 import { collectAnalytics } from "./analytics.js";
+import { getAnalyticsInsights } from "./insights.js";
 
 const ORIGIN = "https://wdmm630202.github.io";
 const REPOSITORY_BASE = "/nbo-smart-system";
 const PORTFOLIO_BASE = `${REPOSITORY_BASE}/p`;
 const ANALYTICS_PATH = "/api/portfolio-analytics/collect";
+const INSIGHTS_PATH = "/api/portfolio-analytics/insights";
 
 export function originPathFor(pathname) {
   if (!pathname || pathname === "/") return `${PORTFOLIO_BASE}/`;
@@ -45,6 +47,9 @@ export default {
     const publicUrl = new URL(request.url);
     if (publicUrl.pathname === ANALYTICS_PATH) {
       return collectAnalytics(request, env?.DB);
+    }
+    if (publicUrl.pathname === INSIGHTS_PATH) {
+      return getAnalyticsInsights(request, env?.DB, env?.PORTFOLIO_INSIGHTS_TOKEN);
     }
 
     if (request.method !== "GET" && request.method !== "HEAD") {

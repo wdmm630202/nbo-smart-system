@@ -22,7 +22,7 @@ function corsHeaders(origin) {
 
 function allowedOrigin(request) {
   const origin = request.headers.get("origin") || "";
-  if (origin === "https://p.nanbostudio.com") return origin;
+  if (origin === "https://p.nanbostudio.com" || origin === "https://wdmm630202.github.io") return origin;
   try {
     const url = new URL(origin);
     if (url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost")) return origin;

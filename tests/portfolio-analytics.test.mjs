@@ -94,6 +94,7 @@ test("匿名统计默认启动，但尊重客户明确停止的选择", async ()
   ]);
 
   assert.equal(defaultVisit.requests.length, 1);
+  assert.equal(defaultVisit.requests[0].url, "https://p.nanbostudio.com/api/portfolio-analytics/collect");
   assert.equal(stoppedVisit.requests.length, 0);
 });
 
@@ -132,8 +133,10 @@ test("数据接收端限制来源、体积和保存期限，报表仅负责人�
   assert.match(insightsApi, /crypto\.subtle\.digest/);
   assert.match(insightsApi, /Cache-Control.*no-store/);
   assert.match(staticDashboard, /noindex,nofollow,noarchive/);
+  assert.match(staticDashboard, /connect-src https:\/\/p\.nanbostudio\.com/);
   assert.match(staticApp, /location\.hash/);
   assert.match(staticApp, /Authorization: `Bearer/);
+  assert.match(staticApp, /https:\/\/p\.nanbostudio\.com\/api\/portfolio-analytics\/insights/);
   assert.match(migration, /portfolio_sessions_started_idx/);
   assert.match(migration, /portfolio_interactions_type_target_idx/);
 });

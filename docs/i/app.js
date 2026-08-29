@@ -1,4 +1,4 @@
-const ENDPOINT = "https://nanbo-digital-systems.wdmm630202.chatgpt.site/api/portfolio-analytics/insights";
+const ENDPOINT = "https://p.nanbostudio.com/api/portfolio-analytics/insights";
 const TOKEN_KEY = "nanbo-portfolio-insights-access";
 
 const elements = {

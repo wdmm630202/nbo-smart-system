@@ -1,6 +1,4 @@
-const ENDPOINT = location.hostname === "p.nanbostudio.com"
-  ? "/api/portfolio-analytics/collect"
-  : "https://nanbo-digital-systems.wdmm630202.chatgpt.site/api/portfolio-analytics/collect";
+const ENDPOINT = "https://p.nanbostudio.com/api/portfolio-analytics/collect";
 const PREFERENCE_KEY = "nanbo-anonymous-analytics-consent";
 const SESSION_KEY = "nanbo-anonymous-analytics-session";
 const MAX_EVENTS_PER_SEND = 20;

@@ -1,7 +1,7 @@
 const PUBLIC_ORIGIN = "https://p.nanbostudio.com";
 
 const SHARE_DATA = Object.freeze({
-  title: "南铂摄影｜268元拍2套｜先选风格，再预约时间到店开拍",
+  title: "南铂摄影｜268元拍2套｜先选风格，再预约时间到店开拍📷",
   desc: "浏览真实男士客片，找到适合你的场景与表达。在线确认风格与需求，到店完成拍摄。",
   imgUrl: `${PUBLIC_ORIGIN}/projects/portfolio-v2/share-card-square.jpg`,
 });

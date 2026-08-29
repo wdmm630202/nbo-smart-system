@@ -1,6 +1,6 @@
-import { buildPortfolioItems, portfolioCatalog } from "./catalog.js?v=pv2-ccf7c46a2f1b";
+import { buildPortfolioItems, portfolioCatalog } from "./catalog.js?v=pv2-761de294bfc3";
 
-const embeddedBuildVersion = "pv2-ccf7c46a2f1b";
+const embeddedBuildVersion = "pv2-761de294bfc3";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;

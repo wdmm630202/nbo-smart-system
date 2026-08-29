@@ -74,6 +74,8 @@ test("发布版本由代码与照片内容确定", async () => {
   assert.equal(first, second);
   assert.match(sourceIndex, /type="module"/);
   assert.match(sourceIndex, /__NBO_BUILD_VERSION__/);
+  assert.match(sourceIndex, /https:\/\/res\.wx\.qq\.com\/open\/js\/jweixin-1\.6\.0\.js/);
+  assert.match(sourceIndex, /wechat-share\.js\?v=__NBO_BUILD_VERSION__/);
 });
 
 test("对外固定短链接不包含内部版本路径", async () => {

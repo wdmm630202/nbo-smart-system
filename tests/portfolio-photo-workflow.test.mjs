@@ -78,6 +78,21 @@ test("发布版本由代码与照片内容确定", async () => {
   assert.match(sourceIndex, /wechat-share\.js\?v=__NBO_BUILD_VERSION__/);
 });
 
+test("微信分享客户端进入内容版本并完整发布", async () => {
+  const [source, published, shortHtml, longHtml] = await Promise.all([
+    readFile(join(root, "apps/portfolio-v2/wechat-share.js"), "utf8"),
+    readFile(join(root, "docs/projects/portfolio-v2/wechat-share.js"), "utf8"),
+    readFile(join(root, "docs/p/index.html"), "utf8"),
+    readFile(join(root, "docs/projects/portfolio-v2/index.html"), "utf8"),
+  ]);
+
+  assert.equal(published, source);
+  for (const html of [shortHtml, longHtml]) {
+    assert.match(html, /wechat-share\.js\?v=pv2-[a-f0-9]{12}/);
+    assert.doesNotMatch(html, /__NBO_BUILD_VERSION__/);
+  }
+});
+
 test("对外固定短链接不包含内部版本路径", async () => {
   const [shortIndex, shortBuild, longBuild] = await Promise.all([
     readFile(join(root, "docs/p/index.html"), "utf8"),

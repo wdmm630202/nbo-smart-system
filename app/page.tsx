@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { getProjectInterface } from "./project-visuals.mjs";
+
 type Project = {
   id: string;
   index: string;
@@ -344,33 +346,16 @@ const projects: Project[] = [
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
 
 function ProjectVisual({ project }: { project: Project }) {
-  const marks: Record<Project["visual"], string> = {
-    network: "N",
-    studio: "15",
-    server: "99",
-    workflow: "◇",
-    odds: "2:1",
-    video: "▶",
-    crm: "透明",
-    agent: "AI",
-    expand: "9:16",
-    meter: "72%",
-    risk: "−18",
-    reviews: "★★★★★",
-    portfolio: "158",
-    insights: "↑",
-    recreate: "2→1",
-    sorter: "RAW",
-    erp: "ERP",
-    select: "DEL",
-    music: "♫",
-    radar: "8",
-    xhs: "3:4",
-  };
+  const projectInterface = getProjectInterface(project.visual);
 
   if (project.preview) {
     return (
-      <div className={`project-visual has-preview visual-${project.visual}`} aria-hidden="true">
+      <div
+        className={`project-visual has-preview visual-${project.visual}`}
+        data-project-ui={project.visual}
+        role="img"
+        aria-label={projectInterface.label}
+      >
         <img className="project-preview" src={project.preview} alt="" loading="eager" />
         <em className="preview-badge">点击进入云端</em>
       </div>
@@ -378,10 +363,14 @@ function ProjectVisual({ project }: { project: Project }) {
   }
 
   return (
-    <div className={`project-visual visual-${project.visual}`} aria-hidden="true">
-      <span>{marks[project.visual]}</span>
-      <small>{project.category}</small>
-    </div>
+    <div
+      className={`project-visual visual-${project.visual}`}
+      data-project-ui={project.visual}
+      data-mini-interface="true"
+      role="img"
+      aria-label={projectInterface.label}
+      dangerouslySetInnerHTML={{ __html: projectInterface.markup }}
+    />
   );
 }
 

@@ -186,3 +186,50 @@ test("总台卡片编号唯一且连续", async () => {
   assert.deepEqual(indexes, Array.from({ length: indexes.length }, (_, index) => index + 1));
   assert.equal(new Set(indexes).size, indexes.length);
 });
+
+test("总台每张卡片直接展示能说明用途的应用界面", async () => {
+  const published = await read("docs/index.html");
+  const visualKinds = [...published.matchAll(/data-project-ui="([^"]+)"/g)].map((match) => match[1]);
+  const miniInterfaces = [...published.matchAll(/data-mini-interface="true"/g)];
+
+  assert.equal(visualKinds.length, 21, "21 张卡片都应有代表性应用界面");
+  assert.equal(new Set(visualKinds).size, 21, "每个项目应使用自己的界面场景");
+  assert.equal(miniInterfaces.length, 20, "除真实 Stash 截图外，其余卡片应使用轻量微缩界面");
+
+  for (const description of [
+    "南铂 Stash 设备与灾备运行界面",
+    "正在制作封面图",
+    "服务器与备份运行状态",
+    "珠宝照片精修流程",
+    "比赛赔率与风险界面",
+    "竖屏视频剪辑时间线",
+    "企业微信客户跟进界面",
+    "男士写真三天运营计划",
+    "封面安全扩图对比",
+    "Codex 用量监控界面",
+    "投注情景与仓位风险表",
+    "真实好评生成界面",
+    "客户真实客片选片界面",
+    "成交洞察数据面板",
+    "写真参考图与本人图复刻界面",
+    "照片视频自动分类界面",
+    "摄影 ERP 客户订单界面",
+    "店内全屏选片界面",
+    "私人音乐库播放界面",
+    "音源项目安全扫描界面",
+    "小红书真实客片封面制作界面",
+  ]) {
+    assert.match(published, new RegExp(`aria-label="${description}"`), description);
+  }
+});
+
+test("卡片人物预览使用专用轻量资源", async () => {
+  const published = await read("docs/index.html");
+  const assetNames = ["system-preview-after.jpg", "system-preview-before.jpg"];
+
+  for (const assetName of assetNames) {
+    assert.match(published, new RegExp(`/nbo-smart-system/${assetName}`), assetName);
+    const assetStat = await stat(new URL(`../docs/${assetName}`, import.meta.url));
+    assert.ok(assetStat.size < 180_000, `${assetName} 应小于 180KB，实际 ${assetStat.size} bytes`);
+  }
+});

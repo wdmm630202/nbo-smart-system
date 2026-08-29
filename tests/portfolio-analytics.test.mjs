@@ -99,16 +99,30 @@ test("匿名统计默认启动，但尊重客户明确停止的选择", async ()
 });
 
 test("发布目录包含统计脚本和固定短网址隐私页", async () => {
-  const [publishedApp, publishedAnalytics, permanentHtml, permanentPrivacy] = await Promise.all([
+  const [publishedApp, publishedAnalytics, permanentPrivacy] = await Promise.all([
     read("docs/projects/portfolio-v2/app.js"),
     read("docs/projects/portfolio-v2/analytics.js"),
-    read("docs/p/index.html"),
     read("docs/p/privacy.html"),
   ]);
 
   assert.match(publishedApp, /\.\/analytics\.js\?v=/);
   assert.match(publishedAnalytics, /portfolio-analytics\/collect/);
-  assert.match(permanentHtml, /\/nbo-smart-system\/p\/privacy\.html/);
+  assert.match(permanentPrivacy, /匿名浏览统计说明/);
+});
+
+test("客片前台页脚不显示匿名统计入口", async () => {
+  const [sourceHtml, publishedHtml, permanentHtml, permanentPrivacy] = await Promise.all([
+    read("apps/portfolio-v2/index.html"),
+    read("docs/projects/portfolio-v2/index.html"),
+    read("docs/p/index.html"),
+    read("docs/p/privacy.html"),
+  ]);
+
+  for (const html of [sourceHtml, publishedHtml, permanentHtml]) {
+    const footer = html.match(/<footer class="page-footer">[\s\S]*?<\/footer>/)?.[0] || "";
+    assert.match(footer, /NANBO STUDIO/);
+    assert.doesNotMatch(footer, /<a\b/);
+  }
   assert.match(permanentPrivacy, /匿名浏览统计说明/);
 });
 

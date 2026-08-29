@@ -155,7 +155,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .footer-brand .brand-seal { border-color: rgba(255,255,255,.65); }
 .footer-brand small, .page-footer p, .page-footer > small { color: rgba(255,255,255,.42); }
 .page-footer p, .page-footer > small { margin: 0; font-size: .55rem; letter-spacing: .1em; }
-.page-footer a { color: rgba(255,255,255,.65); text-decoration: underline; text-underline-offset: .15rem; }
 
 .viewer { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; color: white; background: #090a08; }
 .viewer::backdrop { background: #090a08; }

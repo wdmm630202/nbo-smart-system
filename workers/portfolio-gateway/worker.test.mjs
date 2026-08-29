@@ -88,4 +88,12 @@ assert.equal(directPayload.sessions[0].session_id, "session-1");
 assert.equal(preparedInsights.length, 5);
 assert.ok(preparedInsights.every((statement) => statement.values[0] === "-30 days"));
 
+globalThis.fetch = async () => new Response("unexpected proxy", { status: 200 });
+const missingWechatUrl = await gateway.fetch(
+  new Request("https://p.nanbostudio.com/api/wechat-share/signature"),
+  {},
+);
+globalThis.fetch = originalFetch;
+assert.equal(missingWechatUrl.status, 400);
+
 console.log("portfolio gateway path mapping: ok");

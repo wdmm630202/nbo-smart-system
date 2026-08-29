@@ -106,22 +106,24 @@ test("NBO 音源雷达登记安全边界和固定入口", async () => {
   assert.match(card[0], /projects\/source-radar\//);
 });
 
-test("小红书真实客片封面工具可跨电脑使用且照片只在浏览器本地处理", async () => {
-  const [source, publishedIndex, toolHtml, renderer] = await Promise.all([
+test("旧真实客片封面入口统一迁移到南铂封面制作台", async () => {
+  const officialUrl = "https://wdmm630202.github.io/nbo-cover-copy/cover.html";
+  const [source, publishedIndex, sourceRedirect, publishedRedirect] = await Promise.all([
     read("app/page.tsx"),
     read("docs/index.html"),
+    read("apps/xhs-cover/index.html"),
     read("docs/projects/xhs-cover/index.html"),
-    read("docs/projects/xhs-cover/src/renderer.js"),
   ]);
-  for (const document of [source, publishedIndex]) {
-    assert.match(document, /小红书真实客片封面/);
-    assert.match(document, /projects\/xhs-cover\//);
+  const card = source.match(/id: "xhs-cover",[\s\S]*?linkLabel: "打开南铂封面制作台",/);
+  assert.ok(card, "xhs cover card exists");
+  assert.match(card[0], new RegExp(officialUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(publishedIndex, /href="https:\/\/wdmm630202\.github\.io\/nbo-cover-copy\/cover\.html"[^>]*aria-label="打开南铂封面制作台：小红书真实客片封面"/);
+  for (const redirect of [sourceRedirect, publishedRedirect]) {
+    assert.match(redirect, /http-equiv="refresh"/i);
+    assert.match(redirect, /location\.replace\("https:\/\/wdmm630202\.github\.io\/nbo-cover-copy\/cover\.html"\)/);
+    assert.match(redirect, /href="https:\/\/wdmm630202\.github\.io\/nbo-cover-copy\/cover\.html"/);
+    assert.doesNotMatch(redirect, /src\/app\.js/);
   }
-  assert.match(toolHtml, /照片只在本机处理/);
-  assert.match(toolHtml, /1080/);
-  assert.match(toolHtml, /1440/);
-  assert.match(renderer, /drawBlendedEvidence/);
-  assert.match(renderer, /setLineDash/);
 });
 
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {

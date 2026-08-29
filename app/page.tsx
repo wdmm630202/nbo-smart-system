@@ -338,8 +338,8 @@ const projects: Project[] = [
     tags: ["3:4 高清", "真实对比", "本地处理"],
     tone: "butter",
     visual: "xhs",
-    href: "https://wdmm630202.github.io/nbo-smart-system/projects/xhs-cover/",
-    linkLabel: "打开小红书封面工具",
+    href: "https://wdmm630202.github.io/nbo-cover-copy/cover.html",
+    linkLabel: "打开南铂封面制作台",
   },
 ];
 

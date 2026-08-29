@@ -89,12 +89,12 @@ test("微信 ready 后设置朋友与朋友圈固定分享内容", async () => {
   ]);
   wxApi.runReady();
   assert.deepEqual(wxApi.friendValue, {
-    title: "南铂摄影｜真实客片选风格",
-    desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成你的拍摄需求。",
+    title: "南铂摄影｜先选风格，再预约到店拍摄",
+    desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成拍摄需求，让沟通更轻松，预约到店更高效。",
     link: "https://p.nanbostudio.com/",
     imgUrl: "https://p.nanbostudio.com/projects/portfolio-v2/share-card-square.jpg",
   });
-  assert.equal(wxApi.timelineValue.title, "南铂摄影｜真实客片选风格");
+  assert.equal(wxApi.timelineValue.title, "南铂摄影｜先选风格，再预约到店拍摄");
 });
 
 test("诊断链接启用微信 JS-SDK 自带调试提示", async () => {

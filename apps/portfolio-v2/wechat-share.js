@@ -1,8 +1,8 @@
 const PUBLIC_ORIGIN = "https://p.nanbostudio.com";
 
 const SHARE_DATA = Object.freeze({
-  title: "南铂摄影｜真实客片选风格",
-  desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成你的拍摄需求。",
+  title: "南铂摄影｜先选风格，再预约到店拍摄",
+  desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成拍摄需求，让沟通更轻松，预约到店更高效。",
   link: `${PUBLIC_ORIGIN}/`,
   imgUrl: `${PUBLIC_ORIGIN}/projects/portfolio-v2/share-card-square.jpg`,
 });

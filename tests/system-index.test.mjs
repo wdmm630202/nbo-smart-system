@@ -106,6 +106,24 @@ test("NBO 音源雷达登记安全边界和固定入口", async () => {
   assert.match(card[0], /projects\/source-radar\//);
 });
 
+test("小红书真实客片封面工具可跨电脑使用且照片只在浏览器本地处理", async () => {
+  const [source, publishedIndex, toolHtml, renderer] = await Promise.all([
+    read("app/page.tsx"),
+    read("docs/index.html"),
+    read("docs/projects/xhs-cover/index.html"),
+    read("docs/projects/xhs-cover/src/renderer.js"),
+  ]);
+  for (const document of [source, publishedIndex]) {
+    assert.match(document, /小红书真实客片封面/);
+    assert.match(document, /projects\/xhs-cover\//);
+  }
+  assert.match(toolHtml, /照片只在本机处理/);
+  assert.match(toolHtml, /1080/);
+  assert.match(toolHtml, /1440/);
+  assert.match(renderer, /drawBlendedEvidence/);
+  assert.match(renderer, /setLineDash/);
+});
+
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {
   const [page, installerStat] = await Promise.all([
     read("docs/projects/nanbo-select/index.html"),

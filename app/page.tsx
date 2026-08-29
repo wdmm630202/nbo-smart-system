@@ -13,7 +13,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music" | "radar";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music" | "radar" | "xhs";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -324,6 +324,21 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/source-radar/",
     linkLabel: "打开音源雷达档案",
   },
+  {
+    id: "xhs-cover",
+    index: "21",
+    name: "小红书真实客片封面",
+    eyebrow: "XIAOHONGSHU COVER STUDIO",
+    category: "网页",
+    status: "已上线",
+    summary: "替换成片和拍摄前素颜照，直接导出 1080×1440 高清小红书封面。",
+    detail: "固定虚线对比框、放大素颜照与四边溶图已经写入模板。照片只在当前浏览器本地处理，不上传服务器；Mac、Windows 电脑都可直接打开使用。",
+    tags: ["3:4 高清", "真实对比", "本地处理"],
+    tone: "butter",
+    visual: "xhs",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/xhs-cover/",
+    linkLabel: "打开小红书封面工具",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;
@@ -350,6 +365,7 @@ function ProjectVisual({ project }: { project: Project }) {
     select: "DEL",
     music: "♫",
     radar: "8",
+    xhs: "3:4",
   };
 
   if (project.preview) {

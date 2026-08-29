@@ -4,7 +4,7 @@ const SHARE_DATA = Object.freeze({
   title: "南铂摄影｜真实客片选风格",
   desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成你的拍摄需求。",
   link: `${PUBLIC_ORIGIN}/`,
-  imgUrl: `${PUBLIC_ORIGIN}/projects/portfolio-v2/share-card.jpg`,
+  imgUrl: `${PUBLIC_ORIGIN}/projects/portfolio-v2/share-card-square.jpg`,
 });
 
 export function isWechatBrowser(userAgent) {

@@ -92,7 +92,7 @@ test("微信 ready 后设置朋友与朋友圈固定分享内容", async () => {
     title: "南铂摄影｜真实客片选风格",
     desc: "浏览真实男士客片，挑选喜欢的场景与主题，生成你的拍摄需求。",
     link: "https://p.nanbostudio.com/",
-    imgUrl: "https://p.nanbostudio.com/projects/portfolio-v2/share-card.jpg",
+    imgUrl: "https://p.nanbostudio.com/projects/portfolio-v2/share-card-square.jpg",
   });
   assert.equal(wxApi.timelineValue.title, "南铂摄影｜真实客片选风格");
 });

@@ -79,16 +79,21 @@ test("发布版本由代码与照片内容确定", async () => {
 });
 
 test("微信分享客户端进入内容版本并完整发布", async () => {
-  const [source, published, shortHtml, longHtml] = await Promise.all([
+  const [source, published, shortHtml, longHtml, sourceImage, publishedImage] = await Promise.all([
     readFile(join(root, "apps/portfolio-v2/wechat-share.js"), "utf8"),
     readFile(join(root, "docs/projects/portfolio-v2/wechat-share.js"), "utf8"),
     readFile(join(root, "docs/p/index.html"), "utf8"),
     readFile(join(root, "docs/projects/portfolio-v2/index.html"), "utf8"),
+    readFile(join(root, "apps/portfolio-v2/share-card-square.jpg")),
+    readFile(join(root, "docs/projects/portfolio-v2/share-card-square.jpg")),
   ]);
 
   assert.equal(published, source);
+  assert.deepEqual(publishedImage, sourceImage);
+  assert.match(source, /share-card-square\.jpg/);
   for (const html of [shortHtml, longHtml]) {
     assert.match(html, /wechat-share\.js\?v=pv2-[a-f0-9]{12}/);
+    assert.match(html, /share-card-square\.jpg\?v=pv2-[a-f0-9]{12}/);
     assert.doesNotMatch(html, /__NBO_BUILD_VERSION__/);
   }
 });

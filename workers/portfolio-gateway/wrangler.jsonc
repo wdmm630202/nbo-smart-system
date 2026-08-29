@@ -4,8 +4,11 @@
   "main": "worker.js",
   "compatibility_date": "2026-08-14",
   "workers_dev": true,
+  "vars": {
+    "WECHAT_APP_ID": "wx7b493c6208a47b88"
+  },
   "secrets": {
-    "required": ["PORTFOLIO_INSIGHTS_TOKEN"]
+    "required": ["PORTFOLIO_INSIGHTS_TOKEN", "WECHAT_APP_SECRET"]
   },
   "d1_databases": [
     {

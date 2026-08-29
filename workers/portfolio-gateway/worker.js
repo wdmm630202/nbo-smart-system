@@ -1,11 +1,13 @@
 import { collectAnalytics } from "./analytics.js";
 import { getAnalyticsInsights } from "./insights.js";
+import { handleWechatSignature } from "./wechat-share.js";
 
 const ORIGIN = "https://wdmm630202.github.io";
 const REPOSITORY_BASE = "/nbo-smart-system";
 const PORTFOLIO_BASE = `${REPOSITORY_BASE}/p`;
 const ANALYTICS_PATH = "/api/portfolio-analytics/collect";
 const INSIGHTS_PATH = "/api/portfolio-analytics/insights";
+const WECHAT_SIGNATURE_PATH = "/api/wechat-share/signature";
 
 export function originPathFor(pathname) {
   if (!pathname || pathname === "/") return `${PORTFOLIO_BASE}/`;
@@ -50,6 +52,9 @@ export default {
     }
     if (publicUrl.pathname === INSIGHTS_PATH) {
       return getAnalyticsInsights(request, env?.DB, env?.PORTFOLIO_INSIGHTS_TOKEN);
+    }
+    if (publicUrl.pathname === WECHAT_SIGNATURE_PATH) {
+      return handleWechatSignature(request, env);
     }
 
     if (request.method !== "GET" && request.method !== "HEAD") {

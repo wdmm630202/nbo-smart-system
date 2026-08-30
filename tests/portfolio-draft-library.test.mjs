@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { once } from "node:events";
 import { appendFile, chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -24,6 +24,18 @@ import {
 } from "../tools/portfolio-draft-photo-lib.mjs";
 
 const execFileAsync = promisify(execFile);
+
+async function reserveAvailablePort() {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("无法分配隔离测试端口");
+  await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  return address.port;
+}
 
 function waitForOutput(child, pattern, timeout = 10_000) {
   return new Promise((resolve, reject) => {
@@ -48,7 +60,7 @@ async function startIsolatedManager(t, { additions, prepare } = {}) {
   const draftDirectory = join(sandbox, "drafts");
   const additionsPath = join(sandbox, "catalog-additions.json");
   const publicPhotoRoot = join(sandbox, "public");
-  const port = 45_000 + randomBytes(2).readUInt16BE() % 1_000;
+  const port = await reserveAvailablePort();
   const initialAdditions = additions || { schemaVersion: 1, themes: [], photos: [] };
   await mkdir(publicPhotoRoot, { recursive: true });
   await writeFile(additionsPath, `${JSON.stringify(initialAdditions, null, 2)}\n`);
@@ -117,7 +129,7 @@ async function createSyntheticPublishManager(t, { failFirstPush = false, sourceC
   const draftDirectory = join(repository, ".local/portfolio-drafts");
   const additionsPath = join(repository, "apps/portfolio-v2/catalog-additions.json");
   const publicPhotoRoot = join(repository, "apps/portfolio/assets/photos");
-  const port = 46_000 + randomBytes(2).readUInt16BE() % 1_000;
+  const port = await reserveAvailablePort();
   let child;
   t.after(async () => {
     if (child?.exitCode === null) {
@@ -378,6 +390,130 @@ test("管理台提供新增、状态筛选、授权、新主题和批量结果�
   assert.match(html, /已归档/);
 });
 
+async function loadDraftUiState() {
+  try {
+    return await import("../tools/portfolio-manager/draft-ui-state.js");
+  } catch (error) {
+    if (error.code !== "ERR_MODULE_NOT_FOUND") throw error;
+    return {};
+  }
+}
+
+test("批量上传按选择顺序逐张结算且保留部分成功", async () => {
+  const { uploadDraftFilesSequentially } = await loadDraftUiState();
+  assert.equal(typeof uploadDraftFilesSequentially, "function");
+  const calls = [];
+  const progress = [];
+  const files = [{ name: "one.jpg" }, { name: "broken.jpg" }, { name: "three.jpg" }];
+  const results = await uploadDraftFilesSequentially(files, async (file) => {
+    calls.push(file.name);
+    if (file.name === "broken.jpg") throw new Error("图片尺寸无效");
+    return { id: file.name === "one.jpg" ? 159 : 160 };
+  }, (next) => progress.push(next));
+
+  assert.deepEqual(calls, ["one.jpg", "broken.jpg", "three.jpg"]);
+  assert.deepEqual(results, [
+    { file: "one.jpg", status: "success", code: "NB-159" },
+    { file: "broken.jpg", status: "error", error: "图片尺寸无效" },
+    { file: "three.jpg", status: "success", code: "NB-160" },
+  ]);
+  assert.deepEqual(progress.map((snapshot) => snapshot.map(({ status }) => status)), [
+    ["pending", "pending", "pending"],
+    ["success", "pending", "pending"],
+    ["success", "error", "pending"],
+    ["success", "error", "success"],
+  ]);
+});
+
+test("准备公开只由草稿分类和独立授权开启", async () => {
+  const { canPrepareDraft } = await loadDraftUiState();
+  assert.equal(typeof canPrepareDraft, "function");
+  const complete = {
+    scene: "indoor",
+    theme: "magazine",
+    category: "mood",
+    approvedForPublicUse: true,
+    featured: false,
+  };
+  assert.equal(canPrepareDraft({ status: "draft" }, complete, false), true);
+  assert.equal(canPrepareDraft({ status: "draft" }, { ...complete, approvedForPublicUse: false }, false), false);
+  assert.equal(canPrepareDraft({ status: "ready" }, complete, false), false);
+  assert.equal(canPrepareDraft({ status: "draft" }, complete, true), false);
+});
+
+test("已加入本地预览的草稿不提供普通恢复或重复暂存", async () => {
+  const { draftEditorState, restoreActionForDraft, stageActionForDraft, archiveActionForDraft } = await loadDraftUiState();
+  for (const value of [draftEditorState, restoreActionForDraft, stageActionForDraft, archiveActionForDraft]) {
+    assert.equal(typeof value, "function");
+  }
+  const ready = { id: 159, status: "ready" };
+  const staged = { id: 160, status: "ready", stagedAt: "2026-08-31T01:00:00.000Z" };
+
+  assert.deepEqual(draftEditorState(ready), {
+    editable: false,
+    showSave: false,
+    showReady: false,
+    showArchive: true,
+    showRestore: true,
+    restoreLabel: "返回草稿编辑",
+    showStage: true,
+    archiveLabel: "归档草稿",
+    statusLabel: "待公开",
+    statusNote: "已完成分类与授权，可加入本地网站预览。",
+  });
+  assert.equal(draftEditorState(staged).showRestore, false);
+  assert.equal(draftEditorState(staged).showStage, false);
+  assert.equal(draftEditorState(staged).statusLabel, "已加入本地预览");
+  assert.match(draftEditorState(staged).statusNote, /不会自动同步/);
+  assert.deepEqual(restoreActionForDraft(ready), { path: "/api/drafts/restore", body: null });
+  assert.equal(restoreActionForDraft(staged), null);
+  assert.deepEqual(stageActionForDraft(ready), { path: "/api/drafts/stage", body: null });
+  assert.equal(stageActionForDraft(staged), null);
+  assert.deepEqual(archiveActionForDraft(staged), {
+    path: "/api/public/visibility",
+    body: { visibility: "archived" },
+    successMessage: "已从本地网站预览隐藏，编号和本地资产保留。",
+  });
+});
+
+test("草稿状态筛选会同时清除不在结果中的编辑器选中项", async () => {
+  const { filterDrafts, reconcileSelectedDraftId } = await loadDraftUiState();
+  assert.equal(typeof filterDrafts, "function");
+  assert.equal(typeof reconcileSelectedDraftId, "function");
+  const drafts = [{ id: 159, status: "draft" }, { id: 160, status: "ready" }];
+  assert.deepEqual(filterDrafts(drafts, "ready"), [{ id: 160, status: "ready" }]);
+  assert.equal(reconcileSelectedDraftId(159, drafts, "ready"), 0);
+  assert.equal(reconcileSelectedDraftId(160, drafts, "ready"), 160);
+  assert.equal(reconcileSelectedDraftId(160, drafts, "all"), 160);
+});
+
+test("关闭新主题表单后焦点回到触发按钮", async () => {
+  const { setExpandedPanel } = await loadDraftUiState();
+  assert.equal(typeof setExpandedPanel, "function");
+  const panel = { hidden: false };
+  const feedback = { textContent: "之前的提示" };
+  const attributes = {};
+  let triggerFocusCount = 0;
+  let firstFieldFocusCount = 0;
+  const trigger = {
+    setAttribute(name, value) { attributes[name] = value; },
+    focus() { triggerFocusCount += 1; },
+  };
+  const firstField = { focus() { firstFieldFocusCount += 1; } };
+
+  setExpandedPanel({ panel, trigger, feedback, firstField }, true);
+  assert.equal(panel.hidden, false);
+  assert.equal(attributes["aria-expanded"], "true");
+  assert.equal(firstFieldFocusCount, 1);
+  assert.equal(triggerFocusCount, 0);
+
+  setExpandedPanel({ panel, trigger, feedback, firstField }, false);
+  assert.equal(panel.hidden, true);
+  assert.equal(attributes["aria-expanded"], "false");
+  assert.equal(feedback.textContent, "");
+  assert.equal(triggerFocusCount, 1);
+});
+
 test("草稿修改接口拒绝缺少令牌和跨站请求", { timeout: 30_000 }, async (t) => {
   const server = await startIsolatedManager(t);
   const noToken = await fetch(`${server.url}api/drafts/update?id=159`, {
@@ -553,7 +689,8 @@ test("草稿 API 校验主题并且归档恢复不删除资产", { timeout: 30_0
     category: "mood",
     approvedForPublicUse: true,
   });
-  assert.equal(update.status, 200);
+  const updatePayload = await update.clone().json();
+  assert.equal(update.status, 200, updatePayload.error);
   assert.equal((await server.postJson("api/drafts/ready?id=159", {})).status, 200);
   assert.equal((await server.postJson("api/drafts/archive?id=159", {})).status, 200);
   assert.equal((await server.postJson("api/drafts/restore?id=159", {})).status, 200);

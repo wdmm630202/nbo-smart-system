@@ -1,3 +1,16 @@
+import {
+  archiveActionForDraft,
+  canPrepareDraft,
+  draftCode,
+  draftEditorState,
+  filterDrafts,
+  reconcileSelectedDraftId,
+  restoreActionForDraft,
+  setExpandedPanel,
+  stageActionForDraft,
+  uploadDraftFilesSequentially,
+} from "./draft-ui-state.js";
+
 const $ = (selector) => document.querySelector(selector);
 const elements = {
   statusIndicator: $("#status-indicator"), statusTitle: $("#status-title"), statusDescription: $("#status-description"),
@@ -64,15 +77,6 @@ function showToast(message, type = "") {
 
 function dirtySet() { return new Set(state.status?.dirtySlots || []); }
 
-const draftStatusCopy = {
-  draft: { label: "草稿", note: "仅本机可见，完成分类和授权后才能准备公开。" },
-  ready: { label: "待公开", note: "已完成分类与授权，可加入本地网站预览。" },
-  published: { label: "已公开", note: "已同步到网站，需要下线时可安全归档。" },
-  archived: { label: "已归档", note: "编号和本地资产已保留，可随时恢复。" },
-};
-
-function draftCode(id) { return `NB-${String(id).padStart(3, "0")}`; }
-
 function setDraftBusy(busy) {
   state.draftBusy = busy;
   for (const control of [
@@ -95,18 +99,10 @@ function selectedDraft() {
   return state.catalog?.drafts.find(({ id }) => id === state.selectedDraftId) || null;
 }
 
-function draftMetadataValid() {
-  return Boolean(elements.draftScene.value
-    && elements.draftTheme.value
-    && elements.draftCategory.value
-    && elements.publicConsent.checked);
-}
-
 function updateDraftReadiness() {
   const draft = selectedDraft();
-  const editable = draft?.status === "draft" && !state.draftBusy;
-  elements.readyDraftButton.disabled = !editable || !draftMetadataValid();
-  elements.saveDraftButton.disabled = !editable;
+  elements.readyDraftButton.disabled = !canPrepareDraft(draft, draftPatch(), state.draftBusy);
+  elements.saveDraftButton.disabled = state.draftBusy || draft?.status !== "draft";
 }
 
 function showSkeletons() {
@@ -239,16 +235,16 @@ function renderDraftClassificationOptions() {
 }
 
 function filteredDrafts() {
-  const drafts = state.catalog?.drafts || [];
-  return state.draftStatus === "all" ? drafts : drafts.filter(({ status }) => status === state.draftStatus);
+  return filterDrafts(state.catalog?.drafts || [], state.draftStatus);
 }
 
 function draftCard(draft) {
+  const editorState = draftEditorState(draft);
   const button = document.createElement("button");
   button.type = "button";
   button.className = `draft-card${draft.id === state.selectedDraftId ? " is-selected" : ""}`;
   button.dataset.draftId = String(draft.id);
-  button.setAttribute("aria-label", `${draftCode(draft.id)}，${draftStatusCopy[draft.status]?.label || draft.status}，打开草稿编辑`);
+  button.setAttribute("aria-label", `${draftCode(draft.id)}，${editorState.statusLabel}，打开草稿编辑`);
   const image = document.createElement("img");
   image.src = draft.thumbUrl;
   image.alt = `${draftCode(draft.id)} 本地草稿`;
@@ -260,7 +256,7 @@ function draftCard(draft) {
   code.textContent = draftCode(draft.id);
   const badge = document.createElement("span");
   badge.className = `draft-status-badge is-${draft.status}`;
-  badge.textContent = draftStatusCopy[draft.status]?.label || draft.status;
+  badge.textContent = editorState.statusLabel;
   heading.append(code, badge);
   const meta = document.createElement("small");
   const theme = state.catalog.themes.find(({ id }) => id === draft.theme)?.label;
@@ -271,44 +267,50 @@ function draftCard(draft) {
 }
 
 function renderDrafts() {
+  const selectedDraftId = reconcileSelectedDraftId(
+    state.selectedDraftId,
+    state.catalog?.drafts || [],
+    state.draftStatus,
+  );
+  if (selectedDraftId !== state.selectedDraftId) {
+    state.selectedDraftId = selectedDraftId;
+    elements.draftMetadata.hidden = true;
+  }
   const drafts = filteredDrafts();
   elements.draftGrid.replaceChildren(...drafts.map(draftCard));
   elements.draftEmpty.hidden = drafts.length > 0;
   elements.draftCount.textContent = `${drafts.length} 张`;
   if (state.libraryMode === "drafts") elements.resultCount.textContent = String(drafts.length);
-  if (state.selectedDraftId && !state.catalog.drafts.some(({ id }) => id === state.selectedDraftId)) {
-    state.selectedDraftId = 0;
-    elements.draftMetadata.hidden = true;
-  }
 }
 
 function setDraftEditorControls(draft) {
-  const editable = draft.status === "draft";
+  const editorState = draftEditorState(draft);
   for (const control of [elements.draftScene, elements.draftTheme, elements.draftCategory, elements.publicConsent, elements.homepageFeatured]) {
-    control.disabled = !editable;
-    control.dataset.readonly = String(!editable);
+    control.disabled = !editorState.editable;
+    control.dataset.readonly = String(!editorState.editable);
   }
-  elements.saveDraftButton.hidden = !editable;
-  elements.readyDraftButton.hidden = !editable;
-  elements.archiveDraftButton.hidden = draft.status === "archived";
-  elements.restoreDraftButton.hidden = draft.status !== "archived" && draft.status !== "ready";
-  elements.restoreDraftButton.textContent = draft.status === "ready" ? "返回草稿编辑" : "恢复草稿";
-  elements.stageDraftButton.hidden = draft.status !== "ready" || Boolean(draft.stagedAt);
-  elements.archiveDraftButton.textContent = draft.status === "published" || draft.stagedAt ? "从网站隐藏" : "归档草稿";
+  elements.saveDraftButton.hidden = !editorState.showSave;
+  elements.readyDraftButton.hidden = !editorState.showReady;
+  elements.archiveDraftButton.hidden = !editorState.showArchive;
+  elements.restoreDraftButton.hidden = !editorState.showRestore;
+  elements.restoreDraftButton.textContent = editorState.restoreLabel;
+  elements.stageDraftButton.hidden = !editorState.showStage;
+  elements.archiveDraftButton.textContent = editorState.archiveLabel;
   updateDraftReadiness();
 }
 
 function openDraftEditor(id) {
   const draft = state.catalog.drafts.find((item) => item.id === id);
   if (!draft) return;
+  const editorState = draftEditorState(draft);
   state.selectedDraftId = id;
   elements.draftMetadata.hidden = false;
   elements.draftPreview.src = draft.fullUrl;
   elements.draftPreview.alt = `${draftCode(id)} 本地草稿预览`;
   elements.draftMetadataTitle.textContent = draftCode(id);
   elements.draftStatusBadge.className = `draft-status-badge is-${draft.status}`;
-  elements.draftStatusBadge.textContent = draftStatusCopy[draft.status]?.label || draft.status;
-  elements.draftMetadataNote.textContent = draftStatusCopy[draft.status]?.note || "";
+  elements.draftStatusBadge.textContent = editorState.statusLabel;
+  elements.draftMetadataNote.textContent = editorState.statusNote;
   elements.draftScene.value = draft.scene || "";
   renderDraftClassificationOptions();
   elements.draftTheme.value = draft.theme || "";
@@ -396,12 +398,10 @@ function renderUploadResults(results) {
 
 async function uploadDraftFiles(files) {
   if (!files.length || state.draftBusy) return;
-  const results = files.map((file) => ({ file: file.name, status: "pending" }));
-  renderUploadResults(results);
   setDraftBusy(true);
-  for (let index = 0; index < files.length; index += 1) {
-    const file = files[index];
-    try {
+  const results = await uploadDraftFilesSequentially(
+    files,
+    async (file) => {
       const payload = await requestJson("/api/drafts/upload", {
         method: "POST",
         headers: {
@@ -410,12 +410,10 @@ async function uploadDraftFiles(files) {
         },
         body: file,
       });
-      results[index] = { file: file.name, status: "success", code: payload.result.code || draftCode(payload.result.id) };
-    } catch (error) {
-      results[index] = { file: file.name, status: "error", error: error.message };
-    }
-    renderUploadResults(results);
-  }
+      return payload.result;
+    },
+    renderUploadResults,
+  );
   elements.draftUpload.value = "";
   try {
     await refreshData();
@@ -463,7 +461,7 @@ async function saveDraftMetadata({ quiet = false } = {}) {
 
 async function prepareSelectedDraft() {
   const draft = selectedDraft();
-  if (!draft || draft.status !== "draft" || !draftMetadataValid() || state.draftBusy) return;
+  if (!canPrepareDraft(draft, draftPatch(), state.draftBusy)) return;
   if (!await saveDraftMetadata({ quiet: true })) return;
   setDraftBusy(true);
   setDraftFeedback("正在进入待公开…", "working");
@@ -502,32 +500,50 @@ async function mutateSelectedDraft(path, body, successMessage) {
 async function archiveSelectedDraft() {
   const draft = selectedDraft();
   if (!draft) return;
-  if (draft.status === "published" || draft.stagedAt) {
-    await mutateSelectedDraft("/api/public/visibility", { visibility: "archived" }, "已从网站清单隐藏，编号和本地资产保留。");
-  } else {
-    await mutateSelectedDraft("/api/drafts/archive", null, "草稿已归档，编号和本地资产保留。");
-  }
+  const action = archiveActionForDraft(draft);
+  if (!action) return;
+  await mutateSelectedDraft(action.path, action.body, action.successMessage);
 }
 
 async function restoreSelectedDraft() {
   const draft = selectedDraft();
   if (!draft) return;
-  if (draft.status === "archived" && (draft.stagedAt || draft.publishedCommit)) {
-    await mutateSelectedDraft("/api/public/visibility", { visibility: "published" }, "已恢复到本地网站清单，同步仍需最终确认。");
-  } else {
-    await mutateSelectedDraft("/api/drafts/restore", null, "已恢复为可编辑草稿。");
+  const action = restoreActionForDraft(draft);
+  if (!action) {
+    setDraftFeedback("已加入本地网站预览，不能直接返回草稿；如需撤回，请使用“从本地网站预览隐藏”。", "error");
+    return;
   }
+  const successMessage = action.path === "/api/public/visibility"
+    ? "已恢复到本地网站清单，同步仍需最终确认。"
+    : "已恢复为可编辑草稿。";
+  await mutateSelectedDraft(action.path, action.body, successMessage);
+}
+
+async function stageSelectedDraft() {
+  const draft = selectedDraft();
+  if (!draft) return;
+  const action = stageActionForDraft(draft);
+  if (!action) {
+    setDraftFeedback("这张草稿已加入本地网站预览，不会重复加入。", "error");
+    return;
+  }
+  await mutateSelectedDraft(
+    action.path,
+    action.body,
+    "已加入本地网站预览。请先检查预览，再在独立确认中同步到网站。",
+  );
 }
 
 function toggleNewThemeForm(show) {
-  elements.newThemeForm.hidden = !show;
-  elements.newThemeButton.setAttribute("aria-expanded", String(show));
   if (show) {
     elements.newThemeScene.value = elements.draftScene.value || elements.newThemeScene.value;
-    elements.newThemeId.focus();
-  } else {
-    elements.newThemeFeedback.textContent = "";
   }
+  setExpandedPanel({
+    panel: elements.newThemeForm,
+    trigger: elements.newThemeButton,
+    feedback: elements.newThemeFeedback,
+    firstField: elements.newThemeId,
+  }, show);
 }
 
 async function createDraftTheme() {
@@ -685,11 +701,7 @@ elements.draftMetadataForm.addEventListener("submit", (event) => { event.prevent
 elements.readyDraftButton.addEventListener("click", prepareSelectedDraft);
 elements.archiveDraftButton.addEventListener("click", archiveSelectedDraft);
 elements.restoreDraftButton.addEventListener("click", restoreSelectedDraft);
-elements.stageDraftButton.addEventListener("click", () => mutateSelectedDraft(
-  "/api/drafts/stage",
-  null,
-  "已加入本地网站预览。请先检查预览，再在独立确认中同步到网站。",
-));
+elements.stageDraftButton.addEventListener("click", stageSelectedDraft);
 elements.newThemeButton.addEventListener("click", () => toggleNewThemeForm(elements.newThemeForm.hidden));
 $("#new-theme-close").addEventListener("click", () => toggleNewThemeForm(false));
 elements.newThemeForm.addEventListener("submit", (event) => { event.preventDefault(); createDraftTheme(); });

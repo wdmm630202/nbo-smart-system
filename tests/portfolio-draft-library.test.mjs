@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { once } from "node:events";
 import { appendFile, chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 import {
@@ -97,6 +97,202 @@ async function startIsolatedManager(t, { additions, prepare } = {}) {
         body: JSON.stringify(body),
         headers: { "content-type": "application/json", "x-nanbo-token": token, ...headers },
       });
+    },
+  };
+}
+
+async function writeFixture(path, content = "fixture\n") {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, content);
+}
+
+async function gitAt(cwd, args) {
+  return execFileAsync("git", args, { cwd });
+}
+
+async function createSyntheticPublishManager(t, { failFirstPush = false, sourceChange = "metadata" } = {}) {
+  const sandbox = await mkdtemp(join(tmpdir(), "nanbo-publish-api-"));
+  const repository = join(sandbox, "repository");
+  const remote = join(sandbox, "remote.git");
+  const draftDirectory = join(repository, ".local/portfolio-drafts");
+  const additionsPath = join(repository, "apps/portfolio-v2/catalog-additions.json");
+  const publicPhotoRoot = join(repository, "apps/portfolio/assets/photos");
+  const port = 46_000 + randomBytes(2).readUInt16BE() % 1_000;
+  let child;
+  t.after(async () => {
+    if (child?.exitCode === null) {
+      child.kill("SIGTERM");
+      await once(child, "exit");
+    }
+    await rm(sandbox, { recursive: true, force: true });
+  });
+
+  for (const path of [
+    "tools/portfolio-manager-server.mjs",
+    "tools/portfolio-photo-lib.mjs",
+    "tools/portfolio-draft-store.mjs",
+    "tools/portfolio-draft-photo-lib.mjs",
+    "tools/export-github-pages.mjs",
+    "apps/portfolio-v2/catalog.js",
+  ]) {
+    await writeFixture(join(repository, path), await readFile(join(root, path)));
+  }
+  await writeFixture(join(repository, "tools/export-github-pages.mjs"), [
+    'import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";',
+    'import { dirname, join } from "node:path";',
+    'import { fileURLToPath } from "node:url";',
+    'const root = dirname(dirname(fileURLToPath(import.meta.url)));',
+    'const marker = await readFile(join(root, "apps/portfolio/assets/photos/full/photo-158.jpg"));',
+    'for (const path of ["docs/projects/portfolio-v2/index.html", "docs/projects/portfolio-v2/app.js", "docs/projects/portfolio-v2/build.json", "docs/p/index.html", "docs/p/build.json"]) {',
+    '  const target = join(root, path); await mkdir(dirname(target), { recursive: true }); await writeFile(target, marker);',
+    '}',
+    'for (const part of ["full/photo-158.jpg", "thumbs/photo-158.webp"]) {',
+    '  const target = join(root, "docs/projects/portfolio/assets/photos", part);',
+    '  await mkdir(dirname(target), { recursive: true });',
+    '  await copyFile(join(root, "apps/portfolio/assets/photos", part), target);',
+    '}',
+    '',
+  ].join("\n"));
+  await writeFixture(join(repository, ".gitignore"), ".local/\n");
+  await writeFixture(join(repository, "app/page.tsx"), "const projects: Project[] = [\n];\n\nconst filters = [];\n");
+  await writeFixture(join(repository, "app/globals.css"), "body{}\n");
+  await writeFixture(join(repository, "app/project-visuals.mjs"), "export function getProjectInterface() { return { label: '', markup: '' }; }\n");
+  for (const name of ["icon.png", "og.png", "stash-dashboard-preview.jpg", "system-preview-after.jpg", "system-preview-before.jpg"]) {
+    await writeFixture(join(repository, "public", name));
+  }
+  for (const path of [
+    "apps/reviews/index.html",
+    "apps/reviews/language-db.js",
+    "apps/reviews/app.js",
+    "apps/reviews/nfc/index.html",
+    "apps/reviews/nfc/app.js",
+    "apps/reviews/nfc/setup.html",
+    "apps/reviews/nfc/nfc-qr.png",
+    "apps/reviews/nfc/douyin-review-code.png",
+    "apps/reviews/nfc/assets/review-example-portrait.webp",
+    "apps/reviews/nfc/assets/review-example-bts.webp",
+    "apps/reviews/nfc/assets/review-example-selection.webp",
+    "apps/reviews/nfc/assets/review-photo-guide-triptych.png",
+    "apps/photo-recreation/index.html",
+    "apps/photo-video-sorter/index.html",
+    "apps/nanbo-select/index.html",
+    "apps/xhs-cover/index.html",
+    "apps/portfolio/index.html",
+    "apps/portfolio-insights/index.html",
+  ]) {
+    await writeFixture(join(repository, path));
+  }
+  await mkdir(join(repository, "docs/projects/reviews"), { recursive: true });
+  const portfolioV2Files = [
+    "index.html",
+    "styles.css",
+    "app.js",
+    "analytics.js",
+    "wechat-share.js",
+    "wechat-contact-qr.png",
+    "privacy.html",
+    "share-card.jpg",
+    "MP_verify_ZCU9ptvNi6e2Zgi3.txt",
+  ];
+  for (const name of portfolioV2Files) {
+    const content = name === "index.html"
+      ? "<!doctype html><html><head></head><body>__NBO_BUILD_VERSION__</body></html>\n"
+      : (name === "app.js" ? "export const version = '__NBO_BUILD_VERSION__';\n" : "fixture\n");
+    await writeFixture(join(repository, "apps/portfolio-v2", name), content);
+  }
+  for (let id = 1; id <= portfolioCatalog.photoCount; id += 1) {
+    const filename = `photo-${String(id).padStart(3, "0")}`;
+    await writeFixture(join(publicPhotoRoot, "full", `${filename}.jpg`), `full-${id}\n`);
+    await writeFixture(join(publicPhotoRoot, "thumbs", `${filename}.webp`), `thumb-${id}\n`);
+  }
+  for (const id of portfolioCatalog.heroAssetIds) {
+    const filename = `photo-${String(id).padStart(3, "0")}.webp`;
+    await writeFixture(join(publicPhotoRoot, "featured", filename), `featured-${id}\n`);
+  }
+  const additions = {
+    schemaVersion: 1,
+    themes: [],
+    photos: [{
+      id: 159,
+      scene: "indoor",
+      theme: "magazine",
+      category: "mood",
+      title: "杂志肖像",
+      styleTitle: "情绪",
+      featured: false,
+      visibility: "published",
+      publishedAt: "2026-08-31T00:00:00.000Z",
+    }],
+  };
+  await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  await execFileAsync(process.execPath, [join(repository, "tools/export-github-pages.mjs")], { cwd: repository });
+
+  await gitAt(repository, ["init", "-b", "main"]);
+  await gitAt(repository, ["config", "user.name", "Nanbo Test"]);
+  await gitAt(repository, ["config", "user.email", "nanbo-test@example.invalid"]);
+  await gitAt(repository, ["add", "."]);
+  await gitAt(repository, ["commit", "-m", "synthetic baseline"]);
+  await gitAt(sandbox, ["init", "--bare", remote]);
+  await gitAt(repository, ["remote", "add", "origin", remote]);
+  await gitAt(repository, ["push", "-u", "origin", "main"]);
+  await gitAt(sandbox, [`--git-dir=${remote}`, "symbolic-ref", "HEAD", "refs/heads/main"]);
+
+  const store = createDraftStore({ rootDir: draftDirectory, legacyMaxId: 158 });
+  await store.addPhoto({
+    id: 159,
+    uuid: "0123456789abcdef01234567",
+    originalName: "NB-159.jpg",
+    scene: "indoor",
+    theme: "magazine",
+    category: "mood",
+    approvedForPublicUse: true,
+  });
+  await store.transitionPhoto(159, "ready");
+  await store.markStaged(159, "2026-08-31T01:00:00.000Z");
+
+  if (sourceChange === "metadata") {
+    additions.photos[0].publishedAt = "2026-08-31T02:00:00.000Z";
+    await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  } else {
+    await writeFixture(join(publicPhotoRoot, "full/photo-158.jpg"), "changed-full-158\n");
+    await writeFixture(join(publicPhotoRoot, "thumbs/photo-158.webp"), "changed-thumb-158\n");
+  }
+
+  if (failFirstPush) {
+    const hooks = join(remote, "hooks");
+    const sentinel = join(hooks, "fail-once");
+    const hook = join(hooks, "pre-receive");
+    await writeFixture(sentinel, "1\n");
+    await writeFixture(hook, `#!/bin/sh\nif [ -f "${sentinel}" ]; then\n  rm -f "${sentinel}"\n  echo simulated push failure >&2\n  exit 1\nfi\nexit 0\n`);
+    await chmod(hook, 0o755);
+  }
+
+  child = spawn(process.execPath, [join(repository, "tools/portfolio-manager-server.mjs")], {
+    cwd: repository,
+    env: {
+      ...process.env,
+      NANBO_PORTFOLIO_PORT: String(port),
+      NANBO_PORTFOLIO_DRAFT_ROOT: draftDirectory,
+      NANBO_PORTFOLIO_ADDITIONS_PATH: additionsPath,
+      NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: publicPhotoRoot,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  await waitForOutput(child, /南铂客片管理台：/);
+  const url = `http://127.0.0.1:${port}/`;
+  const token = (await (await fetch(`${url}api/session`)).json()).token;
+  return {
+    additionsPath,
+    draftDirectory,
+    publicPhotoRoot,
+    remote,
+    repository,
+    sandbox,
+    store,
+    url,
+    token,
+    publish() {
+      return fetch(new URL("api/publish", url), { method: "POST", headers: { "x-nanbo-token": token } });
     },
   };
 }
@@ -434,6 +630,83 @@ test("待公开安装与隐藏恢复保留编号和本地草稿", { timeout: 60_
   assert.equal(additions.photos[0].visibility, "published");
   state = await createDraftStore({ rootDir: server.draftDirectory, legacyMaxId: 158 }).read();
   assert.equal(state.photos.find((photo) => photo.id === id).status, "ready");
+});
+
+test("发布增量元数据只暂存存在的源路径", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
+
+  const response = await server.publish();
+  const payload = await response.json();
+  assert.equal(response.status, 200, payload.error);
+  assert.equal(payload.published, true);
+  const { stdout: remoteFiles } = await gitAt(server.sandbox, [
+    `--git-dir=${server.remote}`,
+    "ls-tree",
+    "-r",
+    "--name-only",
+    "main",
+  ]);
+  assert.match(remoteFiles, /^apps\/portfolio-v2\/catalog-additions\.json$/m);
+  assert.doesNotMatch(remoteFiles, /^docs\/projects\/portfolio-v2\/catalog-additions\.json$/m);
+  assert.equal((await server.store.read()).photos[0].status, "published");
+  assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
+});
+
+test("推送失败只保留源照片和 ready 草稿且下次可成功", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { failFirstPush: true, sourceChange: "photos" });
+
+  const failed = await server.publish();
+  assert.equal(failed.status, 400);
+  assert.match((await failed.json()).error, /simulated push failure/);
+  assert.equal((await server.store.read()).photos[0].status, "ready");
+  const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
+  assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)).sort(), [
+    "apps/portfolio/assets/photos/full/photo-158.jpg",
+    "apps/portfolio/assets/photos/thumbs/photo-158.webp",
+  ]);
+
+  const retried = await server.publish();
+  const payload = await retried.json();
+  assert.equal(retried.status, 200, payload.error);
+  assert.equal(payload.published, true);
+  assert.equal((await server.store.read()).photos[0].status, "published");
+  assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
+});
+
+test("发布修复不绕过分支、无关文件、未登记照片和远端领先检查", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
+
+  await gitAt(server.repository, ["checkout", "-b", "feature-test"]);
+  let response = await server.publish();
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /当前分支.*feature-test/);
+  await gitAt(server.repository, ["checkout", "main"]);
+
+  await writeFixture(join(server.repository, "unrelated.txt"), "do not stage\n");
+  response = await server.publish();
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /其他未提交文件/);
+  await rm(join(server.repository, "unrelated.txt"));
+
+  await writeFixture(join(server.publicPhotoRoot, "full/photo-999.jpg"), "arbitrary\n");
+  await writeFixture(join(server.publicPhotoRoot, "thumbs/photo-999.webp"), "arbitrary\n");
+  response = await server.publish();
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /其他未提交文件|未登记|未记录/);
+  await rm(join(server.publicPhotoRoot, "full/photo-999.jpg"));
+  await rm(join(server.publicPhotoRoot, "thumbs/photo-999.webp"));
+
+  const peer = join(server.sandbox, "peer");
+  await gitAt(server.sandbox, ["clone", server.remote, peer]);
+  await gitAt(peer, ["config", "user.name", "Nanbo Peer"]);
+  await gitAt(peer, ["config", "user.email", "nanbo-peer@example.invalid"]);
+  await writeFixture(join(peer, "remote-change.txt"), "remote change\n");
+  await gitAt(peer, ["add", "remote-change.txt"]);
+  await gitAt(peer, ["commit", "-m", "remote change"]);
+  await gitAt(peer, ["push", "origin", "main"]);
+  response = await server.publish();
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /线上仓库有更新/);
 });
 
 test("空增量保持 158 张、23 个主题和原顺序", async () => {

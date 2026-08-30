@@ -163,6 +163,16 @@ async function git(args, options = {}) {
   return run("git", args, { cwd: root, ...options });
 }
 
+async function restoreGeneratedPaths(paths, commit) {
+  const tracked = [];
+  for (const path of paths) {
+    const { code } = await git(["cat-file", "-e", `${commit}:${path}`], { allowFailure: true });
+    if (code === 0) tracked.push(path);
+    else await rm(join(root, path), { recursive: true, force: true });
+  }
+  if (tracked.length) await git(["restore", `--source=${commit}`, "--worktree", "--", ...tracked]);
+}
+
 function parseStatusLine(line) {
   const path = line.slice(3).trim().split(" -> ").at(-1);
   return { state: line.slice(0, 2), path };
@@ -537,10 +547,11 @@ async function publishPhotos(request, response) {
       "docs/p/index.html",
       "docs/p/build.json",
     ]);
-    for (const sourcePath of sourceFiles) {
+    for (const sourcePath of changedPhotoFiles) {
       const suffix = relative("apps/portfolio", sourcePath);
       stagePaths.add(join("docs/projects/portfolio", suffix));
     }
+    const generatedPaths = [...stagePaths].filter((path) => path.startsWith("docs/"));
     const statusAfterExport = await repositoryStatus();
     const unexpectedExport = statusAfterExport.changedFiles.filter((path) => !stagePaths.has(path));
     if (unexpectedExport.length) {
@@ -567,6 +578,7 @@ async function publishPhotos(request, response) {
         // 发布前已确认没有人工暂存或无关改动。这里只撤回本次
         // 未推送的提交，保留工作树中的公开清单和成套图片以便重试。
         await git(["reset", "--mixed", commitBeforePublish]);
+        await restoreGeneratedPaths(generatedPaths, commitBeforePublish);
       } catch (rollbackError) {
         throw new Error(`${pushError.message}；未推送提交恢复失败：${rollbackError.message}`);
       }

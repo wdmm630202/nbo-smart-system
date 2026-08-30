@@ -1,0 +1,9 @@
+{
+  "title": "新一期行业内容",
+  "platform": "both",
+  "targetDurationSeconds": 27,
+  "topic": "",
+  "audience": "正在了解摄影服务的消费者",
+  "tone": "冷静、清楚、不攻击同行",
+  "requiredApprovals": ["script", "voice", "preview"]
+}

@@ -49,7 +49,37 @@ export const portfolioCatalog = Object.freeze({
   heroAssetIds: [13, 21, 31, 37, 77, 79, 85, 111, 127, 137, 154],
 });
 
-export function buildPortfolioItems(catalog = portfolioCatalog) {
+export const emptyPortfolioAdditions = Object.freeze({ schemaVersion: 1, themes: [], photos: [] });
+
+export function normalizePortfolioAdditions(value = emptyPortfolioAdditions) {
+  if (!value || value.schemaVersion !== 1 || !Array.isArray(value.themes) || !Array.isArray(value.photos)) {
+    throw new Error("公开增量清单格式无效");
+  }
+  const ids = new Set();
+  const photos = value.photos.map((photo) => {
+    const id = Number(photo.id);
+    if (!Number.isInteger(id) || id <= portfolioCatalog.photoCount) {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 与历史编号冲突`);
+    }
+    if (ids.has(id)) throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 重复`);
+    if (photo.visibility !== "published" && photo.visibility !== "archived") {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 可见性无效`);
+    }
+    ids.add(id);
+    return { ...photo, id, code: `NB-${String(id).padStart(3, "0")}`, featured: photo.featured === true, isHeroAsset: false };
+  });
+  const themeIds = new Set(portfolioCatalog.themes.map((theme) => theme.id));
+  const themes = value.themes.map((theme) => {
+    if (typeof theme.id !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(theme.id) || themeIds.has(theme.id)) {
+      throw new Error(`新增主题编号 ${String(theme.id)} 无效或重复`);
+    }
+    themeIds.add(theme.id);
+    return { ...theme };
+  });
+  return { schemaVersion: 1, themes, photos };
+}
+
+function buildLegacyPortfolioItems(catalog = portfolioCatalog) {
   const sceneById = Object.fromEntries(catalog.scenes.map((item) => [item.id, item]));
   const titleByCategory = Object.fromEntries(catalog.categories.map((item) => [item.id, item.label]));
   const categorySeries = Object.fromEntries(
@@ -80,4 +110,21 @@ export function buildPortfolioItems(catalog = portfolioCatalog) {
     .filter((id) => !catalog.featuredIds.includes(id));
   const variantB = Array.from({ length: catalog.pairCount }, (_, index) => index * 2 + 2);
   return [...catalog.featuredIds, ...remainingA, ...variantB].map(itemFromId);
+}
+
+export function buildPortfolioItems(catalog = portfolioCatalog, additions = emptyPortfolioAdditions) {
+  const legacy = buildLegacyPortfolioItems(catalog);
+  const normalized = normalizePortfolioAdditions(additions);
+  const published = normalized.photos
+    .filter((photo) => photo.visibility === "published")
+    .sort((a, b) => a.id - b.id);
+  return [...legacy, ...published];
+}
+
+export function buildPortfolioThemes(catalog = portfolioCatalog, additions = emptyPortfolioAdditions) {
+  const normalized = normalizePortfolioAdditions(additions);
+  const newThemes = normalized.themes.filter((theme) => normalized.photos.some((photo) => photo.visibility === "published"
+    && photo.id === Number(theme.coverPhotoId)
+    && photo.theme === theme.id));
+  return [...catalog.themes, ...newThemes];
 }

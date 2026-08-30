@@ -31,6 +31,67 @@ async function hashes(paths) {
     .map(async ([key, path]) => [key, await fileHash(path)])));
 }
 
+async function createAdditionsLibraryFixture(t, additions) {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-additions-library-"));
+  const photoRoot = join(directory, "photos");
+  const additionsPath = join(directory, "catalog-additions.json");
+  await Promise.all(["full", "thumbs", "featured"].map((name) => mkdir(join(photoRoot, name), { recursive: true })));
+  const files = [];
+  for (let id = 1; id <= portfolioCatalog.photoCount; id += 1) {
+    const base = `photo-${String(id).padStart(3, "0")}`;
+    files.push(writeFile(join(photoRoot, "full", `${base}.jpg`), `legacy-full-${id}\n`));
+    files.push(writeFile(join(photoRoot, "thumbs", `${base}.webp`), `legacy-thumb-${id}\n`));
+  }
+  for (const id of portfolioCatalog.heroAssetIds) {
+    const base = `photo-${String(id).padStart(3, "0")}`;
+    files.push(writeFile(join(photoRoot, "featured", `${base}.webp`), `legacy-featured-${id}\n`));
+  }
+  for (const photo of additions.photos) {
+    const base = `photo-${String(photo.id).padStart(3, "0")}`;
+    files.push(writeFile(join(photoRoot, "full", `${base}.jpg`), `addition-full-${photo.id}\n`));
+    files.push(writeFile(join(photoRoot, "thumbs", `${base}.webp`), `addition-thumb-${photo.id}\n`));
+  }
+  await Promise.all(files);
+  await writeFile(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  return { additionsPath, photoRoot };
+}
+
+function registeredAdditions() {
+  return {
+    schemaVersion: 1,
+    themes: [{
+      id: "new-light",
+      scene: "indoor",
+      label: "新光影",
+      description: "新主题",
+      coverPhotoId: 159,
+    }],
+    photos: [
+      {
+        id: 159,
+        scene: "indoor",
+        theme: "new-light",
+        category: "mood",
+        title: "新光影",
+        styleTitle: "情绪",
+        visibility: "published",
+        publishedAt: "2026-08-31T00:00:00.000Z",
+      },
+      {
+        id: 160,
+        scene: "indoor",
+        theme: "magazine",
+        category: "business",
+        title: "杂志肖像",
+        styleTitle: "商务",
+        visibility: "archived",
+        publishedAt: "2026-08-31T00:01:00.000Z",
+      },
+    ],
+  };
+}
+
 function waitForOutput(child, pattern, timeout = 10_000) {
   return new Promise((resolve, reject) => {
     let output = "";
@@ -63,6 +124,30 @@ test("主题、气质和图片文件完整", async () => {
   assert.equal(result.themeCount, 23);
 });
 
+test("公开库验证已发布和已归档增量的完整资源", async (t) => {
+  const fixture = await createAdditionsLibraryFixture(t, registeredAdditions());
+  const complete = await validatePortfolioLibrary(fixture);
+  assert.equal(complete.ok, true, complete.errors.join("\n"));
+  assert.equal(complete.photoCount, 159);
+  assert.equal(complete.themeCount, 24);
+
+  await rm(join(fixture.photoRoot, "thumbs/photo-160.webp"));
+  const incompleteArchived = await validatePortfolioLibrary(fixture);
+  assert.equal(incompleteArchived.ok, false);
+  assert.match(incompleteArchived.errors.join("\n"), /NB-160.*缩略图/);
+});
+
+test("公开库验证拒绝未知主题引用和断号增量", async (t) => {
+  const additions = registeredAdditions();
+  additions.photos[1].id = 161;
+  additions.photos[1].theme = "missing-theme";
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const result = await validatePortfolioLibrary(fixture);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /NB-160|断号/);
+  assert.match(result.errors.join("\n"), /missing-theme/);
+});
+
 test("发布版本由代码与照片内容确定", async () => {
   const [first, second, sourceIndex] = await Promise.all([
     buildPortfolioVersion(),
@@ -75,6 +160,21 @@ test("发布版本由代码与照片内容确定", async () => {
   assert.match(sourceIndex, /__NBO_BUILD_VERSION__/);
   assert.match(sourceIndex, /https:\/\/res\.wx\.qq\.com\/open\/js\/jweixin-1\.6\.0\.js/);
   assert.match(sourceIndex, /wechat-share\.js\?v=__NBO_BUILD_VERSION__/);
+});
+
+test("发布版本包含增量清单和已归档资源", async (t) => {
+  const additions = registeredAdditions();
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const before = await buildPortfolioVersion(fixture);
+
+  await writeFile(join(fixture.photoRoot, "full/photo-160.jpg"), "archived-asset-changed\n");
+  const afterArchivedAsset = await buildPortfolioVersion(fixture);
+  assert.notEqual(afterArchivedAsset, before);
+
+  additions.photos[1].visibility = "published";
+  await writeFile(fixture.additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  const afterManifest = await buildPortfolioVersion(fixture);
+  assert.notEqual(afterManifest, afterArchivedAsset);
 });
 
 test("企业微信二维码跟随客片版本刷新", async () => {

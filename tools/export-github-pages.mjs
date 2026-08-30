@@ -160,6 +160,11 @@ await cp(join(root, "apps/portfolio-v2"), join(docs, "projects/portfolio-v2"), {
   recursive: true,
   force: true,
 });
+// 增量清单是客户页的运行时输入；明确按原字节覆盖，避免后续版本替换误改 JSON。
+await copyFile(
+  join(root, "apps/portfolio-v2/catalog-additions.json"),
+  join(docs, "projects/portfolio-v2/catalog-additions.json"),
+);
 for (const filename of ["index.html", "app.js"]) {
   const target = join(docs, "projects/portfolio-v2", filename);
   const content = await readFile(target, "utf8");

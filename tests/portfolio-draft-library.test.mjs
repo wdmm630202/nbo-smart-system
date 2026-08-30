@@ -158,6 +158,9 @@ async function createSyntheticPublishManager(t, { failFirstPush = false, sourceC
     'for (const path of ["docs/projects/portfolio-v2/index.html", "docs/projects/portfolio-v2/app.js", "docs/projects/portfolio-v2/build.json", "docs/p/index.html", "docs/p/build.json"]) {',
     '  const target = join(root, path); await mkdir(dirname(target), { recursive: true }); await writeFile(target, marker);',
     '}',
+    'const additionsTarget = join(root, "docs/projects/portfolio-v2/catalog-additions.json");',
+    'await mkdir(dirname(additionsTarget), { recursive: true });',
+    'await copyFile(join(root, "apps/portfolio-v2/catalog-additions.json"), additionsTarget);',
     'for (const part of ["full/photo-158.jpg", "thumbs/photo-158.webp"]) {',
     '  const target = join(root, "docs/projects/portfolio/assets/photos", part);',
     '  await mkdir(dirname(target), { recursive: true });',
@@ -237,6 +240,8 @@ async function createSyntheticPublishManager(t, { failFirstPush = false, sourceC
     }],
   };
   await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  await writeFixture(join(publicPhotoRoot, "full/photo-159.jpg"), "full-159\n");
+  await writeFixture(join(publicPhotoRoot, "thumbs/photo-159.webp"), "thumb-159\n");
   await execFileAsync(process.execPath, [join(repository, "tools/export-github-pages.mjs")], { cwd: repository });
 
   await gitAt(repository, ["init", "-b", "main"]);
@@ -792,7 +797,7 @@ test("待公开安装与隐藏恢复保留编号和本地草稿", { timeout: 60_
   assert.equal(state.photos.find((photo) => photo.id === id).status, "ready");
 });
 
-test("发布增量元数据只暂存存在的源路径", { timeout: 60_000 }, async (t) => {
+test("发布增量元数据同时暂存源清单和 Pages 副本", { timeout: 60_000 }, async (t) => {
   const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
 
   const response = await server.publish();
@@ -807,7 +812,32 @@ test("发布增量元数据只暂存存在的源路径", { timeout: 60_000 }, as
     "main",
   ]);
   assert.match(remoteFiles, /^apps\/portfolio-v2\/catalog-additions\.json$/m);
-  assert.doesNotMatch(remoteFiles, /^docs\/projects\/portfolio-v2\/catalog-additions\.json$/m);
+  assert.match(remoteFiles, /^docs\/projects\/portfolio-v2\/catalog-additions\.json$/m);
+  const [{ stdout: sourceManifest }, { stdout: pagesManifest }] = await Promise.all([
+    gitAt(server.sandbox, [`--git-dir=${server.remote}`, "show", "main:apps/portfolio-v2/catalog-additions.json"]),
+    gitAt(server.sandbox, [`--git-dir=${server.remote}`, "show", "main:docs/projects/portfolio-v2/catalog-additions.json"]),
+  ]);
+  assert.equal(pagesManifest, sourceManifest);
+  assert.equal((await server.store.read()).photos[0].status, "published");
+  assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
+});
+
+test("增量元数据推送失败恢复 Pages 副本且可安全重试", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { failFirstPush: true, sourceChange: "metadata" });
+
+  const failed = await server.publish();
+  assert.equal(failed.status, 400);
+  assert.match((await failed.json()).error, /simulated push failure/);
+  assert.equal((await server.store.read()).photos[0].status, "ready");
+  const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
+  assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)), [
+    "apps/portfolio-v2/catalog-additions.json",
+  ]);
+
+  const retried = await server.publish();
+  const payload = await retried.json();
+  assert.equal(retried.status, 200, payload.error);
+  assert.equal(payload.published, true);
   assert.equal((await server.store.read()).photos[0].status, "published");
   assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
 });
@@ -875,6 +905,25 @@ test("空增量保持 158 张、23 个主题和原顺序", async () => {
   assert.equal(items.length, 158);
   assert.equal(buildPortfolioThemes(portfolioCatalog, additions).length, 23);
   assert.deepEqual(items.map(({ id }) => id), buildPortfolioItems(portfolioCatalog).map(({ id }) => id));
+});
+
+test("客户页加载版本化增量清单且导出副本一致", async () => {
+  const [app, index, sourceAdditions, publishedAdditions, packageJson] = await Promise.all([
+    readFile(new URL("../apps/portfolio-v2/app.js", import.meta.url), "utf8"),
+    readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../apps/portfolio-v2/catalog-additions.json", import.meta.url)),
+    readFile(new URL("../docs/projects/portfolio-v2/catalog-additions.json", import.meta.url)),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+  ]);
+  assert.match(app, /catalog-additions\.json\?v=/);
+  assert.match(app, /buildPortfolioThemes\(/);
+  assert.match(app, /emptyPortfolioAdditions/);
+  assert.match(index, /id="header-photo-count"/);
+  assert.match(index, /id="quick-theme-count"/);
+  assert.match(index, /id="quick-photo-count"/);
+  assert.deepEqual(publishedAdditions, sourceAdditions);
+  assert.match(JSON.parse(packageJson).scripts["portfolio:test"], /tests\/portfolio-draft-library\.test\.mjs/);
+  assert.match(JSON.parse(packageJson).scripts["portfolio:test"], /--test-concurrency=1/);
 });
 
 test("公开增量只接受唯一、连续范围外编号", () => {

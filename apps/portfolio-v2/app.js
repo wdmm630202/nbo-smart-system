@@ -1,4 +1,9 @@
-import { buildPortfolioItems, portfolioCatalog } from "./catalog.js?v=__NBO_BUILD_VERSION__";
+import {
+  buildPortfolioItems,
+  buildPortfolioThemes,
+  emptyPortfolioAdditions,
+  portfolioCatalog,
+} from "./catalog.js?v=__NBO_BUILD_VERSION__";
 
 const embeddedBuildVersion = "__NBO_BUILD_VERSION__";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
@@ -6,15 +11,36 @@ const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;
 const versionPhoto = (path) => `${path}?v=${encodeURIComponent(buildVersion)}`;
 
-const sceneConfig = portfolioCatalog.scenes;
-const themeConfig = portfolioCatalog.themes.map((theme) => ({ ...theme, series: new Set(theme.series) }));
-const sceneById = Object.fromEntries(sceneConfig.map((item) => [item.id, item]));
-const themeById = Object.fromEntries(themeConfig.map((item) => [item.id, item]));
-const galleryItems = buildPortfolioItems().map((item) => ({
+async function loadPortfolioAdditions() {
+  let response;
+  try {
+    response = await fetch(`./catalog-additions.json?v=${encodeURIComponent(buildVersion)}`, { cache: "no-store" });
+  } catch (error) {
+    console.warn("公开增量清单请求失败，继续显示历史客片", error);
+    return emptyPortfolioAdditions;
+  }
+  if (!response.ok) {
+    console.warn(`公开增量清单请求失败（HTTP ${response.status}），继续显示历史客片`);
+    return emptyPortfolioAdditions;
+  }
+  // JSON 或清单结构损坏不得伪装成“无增量”；让后续合并校验直接失败。
+  return response.json();
+}
+
+const portfolioAdditions = await loadPortfolioAdditions();
+const themeConfig = buildPortfolioThemes(portfolioCatalog, portfolioAdditions)
+  .map((theme) => ({ ...theme, series: new Set(theme.series || []) }));
+const galleryItems = buildPortfolioItems(portfolioCatalog, portfolioAdditions).map((item) => ({
   ...item,
+  sceneTitle: item.sceneTitle || portfolioCatalog.scenes.find((scene) => scene.id === item.scene)?.label || "",
   thumb: versionPhoto(`../portfolio/assets/photos/thumbs/photo-${String(item.id).padStart(3, "0")}.webp`),
   full: versionPhoto(`../portfolio/assets/photos/full/photo-${String(item.id).padStart(3, "0")}.jpg`),
 }));
+const sceneConfig = portfolioCatalog.scenes.map((scene) => scene.id === "all"
+  ? { ...scene, description: `${galleryItems.length} 张真实客片` }
+  : scene);
+const sceneById = Object.fromEntries(sceneConfig.map((item) => [item.id, item]));
+const themeById = Object.fromEntries(themeConfig.map((item) => [item.id, item]));
 const itemById = new Map(galleryItems.map((item) => [item.id, item]));
 
 const filters = document.querySelector("#filters");
@@ -53,6 +79,23 @@ const campaignTrack = document.querySelector("#campaign-track");
 const campaignSlides = [...document.querySelectorAll(".campaign-slide")];
 const campaignProgressButtons = [...document.querySelectorAll("[data-campaign-target]")];
 const campaignLinks = [...document.querySelectorAll("[data-campaign-theme]")];
+
+function setCount(id, value, suffix = "") {
+  const element = document.querySelector(`#${id}`);
+  if (element) element.textContent = `${value}${suffix}`;
+}
+
+function renderCatalogCounts() {
+  const sceneThemes = (scene) => themeConfig.filter((theme) => theme.scene === scene).length;
+  setCount("header-photo-count", galleryItems.length);
+  setCount("quick-theme-count", themeConfig.length, " 个主题");
+  setCount("quick-photo-count", galleryItems.length, " 张");
+  setCount("indoor-photo-count", galleryItems.filter((item) => item.scene === "indoor").length);
+  setCount("outdoor-photo-count", galleryItems.filter((item) => item.scene === "outdoor").length);
+  setCount("indoor-theme-count", sceneThemes("indoor"));
+  setCount("outdoor-theme-count", sceneThemes("outdoor"));
+  setCount("promise-photo-count", galleryItems.length);
+}
 
 const PAGE_SIZE = 30;
 const initialThemeId = new URLSearchParams(window.location.search).get("theme") || "";
@@ -1009,6 +1052,7 @@ tabTargets.forEach((id) => {
 });
 
 hydrateSettingsForm();
+renderCatalogCounts();
 applyGalleryFilters();
 renderFilters();
 renderGallery();

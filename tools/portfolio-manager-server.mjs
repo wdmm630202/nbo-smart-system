@@ -538,9 +538,11 @@ async function publishPhotos(request, response) {
 
     await run(process.execPath, [join(root, "tools/export-github-pages.mjs")], { cwd: root });
     const version = await buildPortfolioVersion();
+    const publishedMetadata = "docs/projects/portfolio-v2/catalog-additions.json";
     const stagePaths = new Set([
       ...sourceFiles,
       publicationMetadata,
+      publishedMetadata,
       "docs/projects/portfolio-v2/index.html",
       "docs/projects/portfolio-v2/app.js",
       "docs/projects/portfolio-v2/build.json",

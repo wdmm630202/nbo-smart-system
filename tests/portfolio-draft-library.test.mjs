@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { appendFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 import {
   buildPortfolioItems,
   buildPortfolioThemes,
@@ -10,6 +12,70 @@ import {
   portfolioCatalog,
 } from "../apps/portfolio-v2/catalog.js";
 import { createDraftStore } from "../tools/portfolio-draft-store.mjs";
+import {
+  ingestDraftPhoto,
+  loadPublicAdditions,
+  setPublishedPhotoVisibility,
+  stageDraftForPublication,
+} from "../tools/portfolio-draft-photo-lib.mjs";
+
+const execFileAsync = promisify(execFile);
+
+async function createTestPhoto(directory, name = "source.jpg") {
+  const path = join(directory, name);
+  await execFileAsync("/Users/nanbosheyingimacpro/.local/bin/ffmpeg", [
+    "-hide_banner", "-loglevel", "error", "-y",
+    "-f", "lavfi", "-i", "color=c=#334455:s=900x1200",
+    "-frames:v", "1", path,
+  ]);
+  return path;
+}
+
+async function createPublicationSandbox(t) {
+  const rootDir = await mkdtemp(join(tmpdir(), "nanbo-publication-"));
+  const draftRoot = join(rootDir, "drafts");
+  const publicPhotoRoot = join(rootDir, "public");
+  const additionsPath = join(rootDir, "catalog-additions.json");
+  const store = createDraftStore({ rootDir: join(rootDir, "manifest"), legacyMaxId: 158 });
+  await mkdir(publicPhotoRoot, { recursive: true });
+  await writeFile(additionsPath, `${JSON.stringify({ schemaVersion: 1, themes: [], photos: [] }, null, 2)}\n`);
+  const source = await createTestPhoto(rootDir);
+  t.after(() => rm(rootDir, { recursive: true, force: true }));
+
+  return {
+    additionsPath,
+    draftRoot,
+    publicPhotoRoot,
+    store,
+    source,
+    options: { store, draftRoot, additionsPath, publicPhotoRoot },
+    publicAssetPaths(id) {
+      const base = `photo-${String(id).padStart(3, "0")}`;
+      return {
+        full: join(publicPhotoRoot, "full", `${base}.jpg`),
+        thumb: join(publicPhotoRoot, "thumbs", `${base}.webp`),
+      };
+    },
+    async ingestAndReady(overrides = {}) {
+      const draft = await ingestDraftPhoto({
+        inputPath: source,
+        originalName: overrides.originalName || "客户李先生_WeChat123.jpg",
+        contentType: "image/jpeg",
+        store,
+        rootDir: draftRoot,
+        publicIds: [],
+      });
+      await store.updatePhoto(draft.id, {
+        scene: overrides.scene || "indoor",
+        theme: overrides.theme || "magazine",
+        category: overrides.category || "mood",
+        approvedForPublicUse: true,
+        featured: overrides.featured === true,
+      });
+      return store.transitionPhoto(draft.id, "ready");
+    },
+  };
+}
 
 test("空增量保持 158 张、23 个主题和原顺序", async () => {
   const additions = JSON.parse(await readFile(new URL("../apps/portfolio-v2/catalog-additions.json", import.meta.url), "utf8"));
@@ -72,6 +138,139 @@ test("公开增量拒绝空、非 slug 和重复主题编号", () => {
   ]) {
     assert.throws(() => normalizePortfolioAdditions({ schemaVersion: 1, themes, photos: [] }), /主题编号/);
   }
+});
+
+test("上传合格图片只生成本地草稿，不创建 photo-159 公开文件", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-draft-images-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: join(directory, "manifest"), legacyMaxId: 158 });
+  const source = await createTestPhoto(directory);
+
+  const record = await ingestDraftPhoto({
+    inputPath: source,
+    originalName: "客户王先生_13800138000.jpg",
+    contentType: "image/jpeg",
+    store,
+    rootDir: join(directory, "draft-assets"),
+    publicIds: [],
+  });
+
+  assert.equal(record.id, 159);
+  assert.equal(record.status, "draft");
+  assert.match(record.uuid, /^[0-9a-f]{24}$/);
+  assert.equal((await stat(join(directory, "draft-assets/assets/full", `${record.uuid}.jpg`))).isFile(), true);
+  assert.equal((await stat(join(directory, "draft-assets/assets/thumbs", `${record.uuid}.webp`))).isFile(), true);
+  await assert.rejects(() => stat(join(directory, "public/full/photo-159.jpg")), /ENOENT/);
+
+  const manifest = await readFile(join(directory, "manifest/manifest.json"), "utf8");
+  assert.doesNotMatch(manifest, /王先生|13800138000|source\.jpg|draft-assets/);
+  assert.equal(JSON.parse(manifest).photos[0].originalName, "NB-159.jpg");
+  assert.equal(record.selectedName, "客户王先生_13800138000.jpg");
+});
+
+test("草稿上传同时要求允许的扩展名和 MIME", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-draft-format-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const source = await createTestPhoto(directory);
+
+  for (const [index, [originalName, contentType]] of [["source.gif", "image/gif"], ["source.jpg", "application/octet-stream"]].entries()) {
+    const store = createDraftStore({ rootDir: join(directory, `manifest-${index}`), legacyMaxId: 158 });
+    await assert.rejects(() => ingestDraftPhoto({
+      inputPath: source,
+      originalName,
+      contentType,
+      store,
+      rootDir: join(directory, `drafts-${index}`),
+      publicIds: [],
+    }), /只支持 JPG、PNG 或 WebP/);
+  }
+});
+
+test("草稿上传拒绝超过 50 MB 的单张图片", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-draft-size-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const source = await createTestPhoto(directory, "oversized.jpg");
+  await appendFile(source, Buffer.alloc(50 * 1024 * 1024));
+  const store = createDraftStore({ rootDir: join(directory, "manifest"), legacyMaxId: 158 });
+
+  await assert.rejects(() => ingestDraftPhoto({
+    inputPath: source,
+    originalName: "oversized.jpg",
+    contentType: "image/jpeg",
+    store,
+    rootDir: join(directory, "drafts"),
+    publicIds: [],
+  }), /50 MB/);
+});
+
+test("ready 草稿成套进入公开增量，隐藏与恢复保留 NB-159", { timeout: 60_000 }, async (t) => {
+  const sandbox = await createPublicationSandbox(t);
+  const draft = await sandbox.ingestAndReady({ featured: true });
+
+  await stageDraftForPublication(draft.id, sandbox.options);
+  let additions = await loadPublicAdditions(sandbox.additionsPath);
+  assert.equal(additions.photos[0].id, 159);
+  assert.equal(additions.photos[0].visibility, "published");
+  assert.equal(additions.photos[0].featured, true);
+  assert.deepEqual(Object.keys(additions.photos[0]).sort(), [
+    "category", "featured", "id", "publishedAt", "scene", "styleTitle", "theme", "title", "visibility",
+  ]);
+  assert.equal((await stat(sandbox.publicAssetPaths(159).full)).isFile(), true);
+  assert.equal((await stat(sandbox.publicAssetPaths(159).thumb)).isFile(), true);
+  assert.equal((await sandbox.store.read()).photos[0].status, "ready");
+  assert.equal(typeof (await sandbox.store.read()).photos[0].stagedAt, "string");
+  assert.doesNotMatch(JSON.stringify(additions), /客户李先生|WeChat123|uuid|originalName|approvedForPublicUse|stagedAt|draftRoot|Path/);
+
+  await setPublishedPhotoVisibility(159, "archived", sandbox.options);
+  additions = await loadPublicAdditions(sandbox.additionsPath);
+  assert.equal(additions.photos[0].visibility, "archived");
+  await setPublishedPhotoVisibility(159, "published", sandbox.options);
+  additions = await loadPublicAdditions(sandbox.additionsPath);
+  assert.equal(additions.photos[0].id, 159);
+  assert.equal(additions.photos[0].visibility, "published");
+});
+
+test("新主题的第一张已公开照片自动成为有效封面", { timeout: 60_000 }, async (t) => {
+  const sandbox = await createPublicationSandbox(t);
+  await sandbox.store.addTheme({
+    id: "new-light",
+    label: "新光影",
+    scene: "outdoor",
+    description: "新主题",
+  });
+  const draft = await sandbox.ingestAndReady({ scene: "outdoor", theme: "new-light", category: "relaxed" });
+
+  await stageDraftForPublication(draft.id, sandbox.options);
+
+  const additions = await loadPublicAdditions(sandbox.additionsPath);
+  assert.deepEqual(additions.themes, [{
+    id: "new-light",
+    scene: "outdoor",
+    label: "新光影",
+    description: "新主题",
+    coverPhotoId: 159,
+  }]);
+  assert.equal(buildPortfolioThemes(portfolioCatalog, additions).some(({ id }) => id === "new-light"), true);
+});
+
+test("待公开记账失败时回滚公开图片和增量清单", { timeout: 60_000 }, async (t) => {
+  const sandbox = await createPublicationSandbox(t);
+  const draft = await sandbox.ingestAndReady();
+  const failingStore = {
+    ...sandbox.store,
+    async markStaged() {
+      throw new Error("模拟记账失败");
+    },
+  };
+
+  await assert.rejects(
+    () => stageDraftForPublication(draft.id, { ...sandbox.options, store: failingStore }),
+    /模拟记账失败/,
+  );
+
+  assert.deepEqual(await loadPublicAdditions(sandbox.additionsPath), { schemaVersion: 1, themes: [], photos: [] });
+  await assert.rejects(() => stat(sandbox.publicAssetPaths(159).full), /ENOENT/);
+  await assert.rejects(() => stat(sandbox.publicAssetPaths(159).thumb), /ENOENT/);
 });
 
 test("草稿从 NB-159 开始且不会复用归档编号", async (t) => {

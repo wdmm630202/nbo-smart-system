@@ -129,14 +129,15 @@ export async function probeImage(path) {
   };
 }
 
-function validateIncomingDimensions({ width, height }) {
+export function validateIncomingImage({ width, height }) {
   const ratio = width / height;
   if (width < 900 || height < 1200) {
-    throw new Error(`图片只有 ${width}×${height}，请使用至少 900×1200 像素的精修图`);
+    throw new Error(`图片只有 ${width}×${height}，至少需要 900×1200`);
   }
-  if (Math.abs(ratio - 0.75) > 0.005) {
+  if (Math.abs(ratio - 0.75) > 0.02) {
     throw new Error(`图片比例是 ${width}:${height}，请先在像素蛋糕或 Photoshop 裁成 3:4，系统不会自动裁掉人物`);
   }
+  return { width, height };
 }
 
 async function renderAsset(ffmpeg, input, output, width, height, type) {
@@ -153,6 +154,12 @@ async function renderAsset(ffmpeg, input, output, width, height, type) {
     ...codecArgs,
     output,
   ]);
+}
+
+export async function renderPhotoDerivatives(inputPath, { full, thumb }) {
+  const ffmpeg = await resolveBinary("ffmpeg");
+  await renderAsset(ffmpeg, inputPath, full, 1080, 1440, "jpg");
+  await renderAsset(ffmpeg, inputPath, thumb, 480, 640, "webp");
 }
 
 async function copyExistingAssets(paths, destination) {
@@ -325,7 +332,7 @@ export async function recoverIncompletePhotoTransactions() {
 export async function replacePhoto(id, inputPath, originalName = "") {
   const numericId = assertPhotoId(id);
   const sourceInfo = await probeImage(inputPath);
-  validateIncomingDimensions(sourceInfo);
+  validateIncomingImage(sourceInfo);
 
   const ffmpeg = await resolveBinary("ffmpeg");
   const temporaryDir = await mkdtemp(join(tmpdir(), `nanbo-${slotFilename(numericId)}-`));
@@ -341,8 +348,7 @@ export async function replacePhoto(id, inputPath, originalName = "") {
   const backupDir = join(slotBackupRoot, backupName);
 
   try {
-    await renderAsset(ffmpeg, inputPath, generated.full, 1080, 1440, "jpg");
-    await renderAsset(ffmpeg, inputPath, generated.thumb, 480, 640, "thumb");
+    await renderPhotoDerivatives(inputPath, generated);
     if (generated.featured) await renderAsset(ffmpeg, inputPath, generated.featured, 900, 1200, "featured");
 
     const [fullInfo, thumbInfo] = await Promise.all([probeImage(generated.full), probeImage(generated.thumb)]);

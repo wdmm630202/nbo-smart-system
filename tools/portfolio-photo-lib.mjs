@@ -114,7 +114,7 @@ export async function probeImage(path) {
   const result = await run(ffprobe, [
     "-v", "error",
     "-select_streams", "v:0",
-    "-show_entries", "stream=width,height:stream_tags=rotate:stream_side_data=rotation",
+    "-show_entries", "stream=codec_name,width,height:stream_tags=rotate:stream_side_data=rotation",
     "-of", "json",
     path,
   ]);
@@ -123,6 +123,7 @@ export async function probeImage(path) {
   const rotation = Number(stream.tags?.rotate || stream.side_data_list?.[0]?.rotation || 0);
   const rotated = Math.abs(rotation) % 180 === 90;
   return {
+    codec: String(stream.codec_name || "").toLowerCase(),
     width: rotated ? stream.height : stream.width,
     height: rotated ? stream.width : stream.height,
     rotation,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { appendFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { appendFile, chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -15,6 +15,7 @@ import { createDraftStore } from "../tools/portfolio-draft-store.mjs";
 import {
   ingestDraftPhoto,
   loadPublicAdditions,
+  recoverIncompletePublicationTransactions,
   setPublishedPhotoVisibility,
   stageDraftForPublication,
 } from "../tools/portfolio-draft-photo-lib.mjs";
@@ -35,6 +36,7 @@ async function createPublicationSandbox(t) {
   const rootDir = await mkdtemp(join(tmpdir(), "nanbo-publication-"));
   const draftRoot = join(rootDir, "drafts");
   const publicPhotoRoot = join(rootDir, "public");
+  const publicationTransactionRoot = join(rootDir, "publication-transactions");
   const additionsPath = join(rootDir, "catalog-additions.json");
   const store = createDraftStore({ rootDir: join(rootDir, "manifest"), legacyMaxId: 158 });
   await mkdir(publicPhotoRoot, { recursive: true });
@@ -48,7 +50,8 @@ async function createPublicationSandbox(t) {
     publicPhotoRoot,
     store,
     source,
-    options: { store, draftRoot, additionsPath, publicPhotoRoot },
+    publicationTransactionRoot,
+    options: { store, draftRoot, additionsPath, publicPhotoRoot, publicationTransactionRoot },
     publicAssetPaths(id) {
       const base = `photo-${String(id).padStart(3, "0")}`;
       return {
@@ -186,6 +189,41 @@ test("草稿上传同时要求允许的扩展名和 MIME", { timeout: 60_000 }, 
   }
 });
 
+test("伪装成 JPG 扩展名和 MIME 的 GIF 不能进入草稿库", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-draft-disguised-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const disguisedGif = await createTestPhoto(directory, "actual.gif");
+  const store = createDraftStore({ rootDir: join(directory, "manifest"), legacyMaxId: 158 });
+
+  await assert.rejects(() => ingestDraftPhoto({
+    inputPath: disguisedGif,
+    originalName: "fake.jpg",
+    contentType: "image/jpeg",
+    store,
+    rootDir: join(directory, "drafts"),
+    publicIds: [],
+  }), /实际格式.*JPG/);
+});
+
+test("瞬时返回的选择文件名只保留 basename", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-draft-basename-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const source = await createTestPhoto(directory);
+  const store = createDraftStore({ rootDir: join(directory, "manifest"), legacyMaxId: 158 });
+
+  const record = await ingestDraftPhoto({
+    inputPath: source,
+    originalName: "/Users/customer/private/客户王先生_13800138000.jpg",
+    contentType: "image/jpeg",
+    store,
+    rootDir: join(directory, "drafts"),
+    publicIds: [],
+  });
+
+  assert.equal(record.selectedName, "客户王先生_13800138000.jpg");
+  assert.doesNotMatch(JSON.stringify(record), /\/Users\/customer\/private/);
+});
+
 test("草稿上传拒绝超过 50 MB 的单张图片", { timeout: 60_000 }, async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "nanbo-draft-size-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
@@ -271,6 +309,76 @@ test("待公开记账失败时回滚公开图片和增量清单", { timeout: 60_
   assert.deepEqual(await loadPublicAdditions(sandbox.additionsPath), { schemaVersion: 1, themes: [], photos: [] });
   await assert.rejects(() => stat(sandbox.publicAssetPaths(159).full), /ENOENT/);
   await assert.rejects(() => stat(sandbox.publicAssetPaths(159).thumb), /ENOENT/);
+});
+
+test("中断的公开事务可恢复原清单和资产，且下次待公开可继续", { timeout: 60_000 }, async (t) => {
+  const sandbox = await createPublicationSandbox(t);
+  const draft = await sandbox.ingestAndReady();
+  const originalAdditions = await readFile(sandbox.additionsPath, "utf8");
+  const transactionDir = join(sandbox.publicationTransactionRoot, "photo-159-interrupted");
+  await mkdir(transactionDir, { recursive: true });
+  await writeFile(join(transactionDir, "before-additions.json"), originalAdditions);
+  await writeFile(join(transactionDir, "transaction.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    operation: "stage",
+    id: 159,
+    status: "committing",
+  }, null, 2)}\n`);
+  await mkdir(join(sandbox.publicPhotoRoot, "full"), { recursive: true });
+  await copyFile(
+    join(sandbox.draftRoot, "assets/full", `${draft.uuid}.jpg`),
+    sandbox.publicAssetPaths(159).full,
+  );
+  await writeFile(sandbox.additionsPath, `${JSON.stringify({
+    schemaVersion: 1,
+    themes: [],
+    photos: [{
+      id: 159,
+      scene: "indoor",
+      theme: "magazine",
+      category: "mood",
+      title: "杂志肖像",
+      styleTitle: "情绪",
+      featured: false,
+      visibility: "published",
+      publishedAt: "2026-08-31T00:00:00.000Z",
+    }],
+  }, null, 2)}\n`);
+
+  const recovered = await recoverIncompletePublicationTransactions(sandbox.options);
+
+  assert.deepEqual(recovered, ["NB-159"]);
+  assert.equal(await readFile(sandbox.additionsPath, "utf8"), originalAdditions);
+  await assert.rejects(() => stat(sandbox.publicAssetPaths(159).full), /ENOENT/);
+  await assert.rejects(() => stat(sandbox.publicAssetPaths(159).thumb), /ENOENT/);
+
+  await stageDraftForPublication(159, sandbox.options);
+  assert.equal((await loadPublicAdditions(sandbox.additionsPath)).photos[0].id, 159);
+  assert.equal((await stat(sandbox.publicAssetPaths(159).full)).isFile(), true);
+  assert.equal((await stat(sandbox.publicAssetPaths(159).thumb)).isFile(), true);
+});
+
+test("已提交事务的日志清理失败不会把成功待公开误报为失败", { timeout: 60_000 }, async (t) => {
+  const sandbox = await createPublicationSandbox(t);
+  const draft = await sandbox.ingestAndReady();
+  const cleanupFailStore = {
+    ...sandbox.store,
+    async markStaged(...args) {
+      const result = await sandbox.store.markStaged(...args);
+      await chmod(sandbox.publicationTransactionRoot, 0o555);
+      return result;
+    },
+  };
+
+  try {
+    const publicPhoto = await stageDraftForPublication(draft.id, { ...sandbox.options, store: cleanupFailStore });
+    assert.equal(publicPhoto.id, 159);
+    assert.equal((await loadPublicAdditions(sandbox.additionsPath)).photos[0].id, 159);
+    assert.equal((await stat(sandbox.publicAssetPaths(159).full)).isFile(), true);
+    assert.equal((await stat(sandbox.publicAssetPaths(159).thumb)).isFile(), true);
+  } finally {
+    await chmod(sandbox.publicationTransactionRoot, 0o755);
+  }
 });
 
 test("草稿从 NB-159 开始且不会复用归档编号", async (t) => {

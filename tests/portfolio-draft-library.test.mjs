@@ -355,6 +355,29 @@ async function createPublicationSandbox(t) {
   };
 }
 
+test("管理台提供新增、状态筛选、授权、新主题和批量结果区域", async () => {
+  const html = await readFile(new URL("../tools/portfolio-manager/index.html", import.meta.url), "utf8");
+  for (const id of [
+    "add-photo-button",
+    "library-mode",
+    "draft-status-filter",
+    "draft-upload",
+    "draft-metadata",
+    "public-consent",
+    "homepage-featured",
+    "new-theme-button",
+    "new-theme-form",
+    "upload-results",
+  ]) {
+    assert.match(html, new RegExp(`id=["']${id}["']`));
+  }
+  assert.match(html, /已确认可公开使用/);
+  assert.match(html, /草稿/);
+  assert.match(html, /待公开/);
+  assert.match(html, /已公开/);
+  assert.match(html, /已归档/);
+});
+
 test("草稿修改接口拒绝缺少令牌和跨站请求", { timeout: 30_000 }, async (t) => {
   const server = await startIsolatedManager(t);
   const noToken = await fetch(`${server.url}api/drafts/update?id=159`, {

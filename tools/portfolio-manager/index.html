@@ -22,11 +22,15 @@
         </a>
 
         <div class="top-actions" aria-label="网站操作">
+          <button class="button button-primary" id="add-photo-button" type="button">
+            <span class="button-icon" aria-hidden="true">＋</span>
+            <span>新增客片</span>
+          </button>
           <button class="button button-secondary" id="preview-button" type="button" disabled>
             <span class="button-icon" aria-hidden="true">◇</span>
             <span>打开本地预览</span>
           </button>
-          <button class="button button-primary" id="publish-button" type="button" disabled>
+          <button class="button button-secondary" id="publish-button" type="button" disabled>
             <span class="button-icon" aria-hidden="true">↑</span>
             <span>同步到网站</span>
           </button>
@@ -100,36 +104,181 @@
         <header class="library-heading">
           <div>
             <p class="eyebrow">PHOTO LIBRARY</p>
-            <h2 id="library-title">全部客片</h2>
-            <p>点开任意一张查看大图、替换或撤销。</p>
+            <h2 id="library-title">客片图库</h2>
+            <p id="library-description">查看已公开客片，或切换到仅本机可见的草稿。</p>
           </div>
           <strong class="result-count" id="result-count" aria-live="polite">—</strong>
         </header>
 
-        <form class="filter-bar" id="filters" role="search">
-          <label class="search-field" for="search-input">
-            <span aria-hidden="true">⌕</span>
-            <input id="search-input" type="search" inputmode="search" autocomplete="off" placeholder="搜索编号，如 NB-037" />
+        <fieldset class="library-mode" id="library-mode">
+          <legend>图库模式</legend>
+          <label>
+            <input type="radio" name="library-mode" value="public" checked />
+            <span>公开图库</span>
           </label>
-
-          <fieldset class="scene-filter">
-            <legend>场景</legend>
-            <div class="segmented-control" id="scene-filters" aria-label="按场景筛选"></div>
-          </fieldset>
-
-          <label class="select-field" for="theme-filter">
-            <span>主题</span>
-            <select id="theme-filter">
-              <option value="all">全部主题</option>
-            </select>
+          <label>
+            <input type="radio" name="library-mode" value="drafts" />
+            <span>本地草稿</span>
           </label>
+        </fieldset>
 
-          <label class="dirty-toggle" for="dirty-only">
-            <input id="dirty-only" type="checkbox" />
-            <span class="toggle-track" aria-hidden="true"><i></i></span>
-            <span>只看待同步</span>
-          </label>
-        </form>
+        <div id="public-library-view">
+          <form class="filter-bar" id="filters" role="search">
+            <label class="search-field" for="search-input">
+              <span aria-hidden="true">⌕</span>
+              <input id="search-input" type="search" inputmode="search" autocomplete="off" placeholder="搜索编号，如 NB-037" />
+            </label>
+
+            <fieldset class="scene-filter">
+              <legend>场景</legend>
+              <div class="segmented-control" id="scene-filters" aria-label="按场景筛选"></div>
+            </fieldset>
+
+            <label class="select-field" for="theme-filter">
+              <span>主题</span>
+              <select id="theme-filter">
+                <option value="all">全部主题</option>
+              </select>
+            </label>
+
+            <label class="dirty-toggle" for="dirty-only">
+              <input id="dirty-only" type="checkbox" />
+              <span class="toggle-track" aria-hidden="true"><i></i></span>
+              <span>只看待同步</span>
+            </label>
+          </form>
+
+          <div class="photo-grid is-loading" id="photo-grid" aria-busy="true" aria-live="polite"></div>
+          <div class="empty-state" id="empty-state" hidden>
+            <span aria-hidden="true">◇</span>
+            <strong>没有找到匹配的客片</strong>
+            <p>试试清空搜索，或切换场景和主题。</p>
+            <button class="button button-secondary" id="clear-filters" type="button">清空筛选</button>
+          </div>
+        </div>
+
+        <section class="draft-workspace" id="draft-library-view" aria-labelledby="draft-library-title" hidden>
+          <div class="draft-upload-panel" id="draft-upload-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">LOCAL DRAFTS</p>
+                <h3 id="draft-library-title">新增本地草稿</h3>
+                <p>上传后只保存在这台 Mac，完成分类、授权和最终同步前，客户看不到。</p>
+              </div>
+              <label class="button button-secondary upload-button" for="draft-upload">
+                <span aria-hidden="true">↑</span>
+                <span>选择多张图片</span>
+                <input id="draft-upload" type="file" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+              </label>
+            </div>
+            <p class="upload-help">JPG、PNG 或 WebP · 3:4 竖图 · 至少 900×1200 · 单张不超过 50 MB</p>
+            <ol class="upload-results" id="upload-results" aria-live="polite" aria-label="逐张上传结果"></ol>
+          </div>
+
+          <div class="draft-toolbar">
+            <label class="select-field" for="draft-status-filter">
+              <span>状态</span>
+              <select id="draft-status-filter">
+                <option value="all">全部草稿</option>
+                <option value="draft">草稿</option>
+                <option value="ready">待公开</option>
+                <option value="published">已公开</option>
+                <option value="archived">已归档</option>
+              </select>
+            </label>
+            <p id="draft-count" aria-live="polite">—</p>
+          </div>
+
+          <div class="draft-layout">
+            <div>
+              <div class="draft-grid" id="draft-grid" aria-live="polite"></div>
+              <div class="empty-state draft-empty" id="draft-empty" hidden>
+                <span aria-hidden="true">◇</span>
+                <strong>还没有这个状态的草稿</strong>
+                <p>可以新增客片，或切换上方状态。</p>
+              </div>
+            </div>
+
+            <section class="draft-metadata" id="draft-metadata" aria-labelledby="draft-metadata-title" hidden>
+              <header class="draft-editor-heading">
+                <img id="draft-preview" alt="" />
+                <div>
+                  <span class="draft-status-badge" id="draft-status-badge">草稿</span>
+                  <h3 id="draft-metadata-title">选中草稿</h3>
+                  <p id="draft-metadata-note">分类和授权仅保存于本机。</p>
+                </div>
+              </header>
+
+              <form id="draft-metadata-form">
+                <div class="metadata-grid">
+                  <label for="draft-scene">
+                    <span>场景</span>
+                    <select id="draft-scene" required>
+                      <option value="">请选择场景</option>
+                    </select>
+                  </label>
+                  <label for="draft-theme">
+                    <span>主题</span>
+                    <select id="draft-theme" required>
+                      <option value="">请选择主题</option>
+                    </select>
+                  </label>
+                  <label for="draft-category">
+                    <span>风格</span>
+                    <select id="draft-category" required>
+                      <option value="">请选择风格</option>
+                      <option value="business">商务</option>
+                      <option value="relaxed">松弛</option>
+                      <option value="mood">情绪</option>
+                      <option value="creative">创意</option>
+                    </select>
+                  </label>
+                  <div class="theme-create-control">
+                    <span>没有合适主题？</span>
+                    <button class="text-button" id="new-theme-button" type="button" aria-expanded="false" aria-controls="new-theme-form">新建主题</button>
+                  </div>
+                </div>
+
+                <div class="consent-stack">
+                  <label class="native-check" for="public-consent">
+                    <input id="public-consent" type="checkbox" />
+                    <span><strong>已确认可公开使用</strong><small>已核对客户授权，允许在南铂网站展示这张照片。</small></span>
+                  </label>
+                  <label class="native-check" for="homepage-featured">
+                    <input id="homepage-featured" type="checkbox" />
+                    <span><strong>设为首页推荐</strong><small>只影响首页编排，不代表已获得公开授权。</small></span>
+                  </label>
+                </div>
+
+                <p class="inline-feedback" id="draft-feedback" role="status" aria-live="polite"></p>
+                <div class="draft-actions">
+                  <button class="button button-danger-subtle" id="archive-draft-button" type="button">归档草稿</button>
+                  <button class="button button-secondary" id="restore-draft-button" type="button" hidden>恢复草稿</button>
+                  <span class="action-spacer"></span>
+                  <button class="button button-secondary" id="save-draft-button" type="submit">保存分类</button>
+                  <button class="button button-prepare" id="ready-draft-button" type="button" disabled>准备公开</button>
+                  <button class="button button-secondary" id="stage-draft-button" type="button" hidden>加入本地网站预览</button>
+                </div>
+              </form>
+
+              <form class="new-theme-form" id="new-theme-form" hidden>
+                <div class="new-theme-heading">
+                  <div>
+                    <strong>新建草稿主题</strong>
+                    <p>至少有一张照片公开后，新主题才会出现在客户页。</p>
+                  </div>
+                  <button class="icon-button" id="new-theme-close" type="button" aria-label="关闭新建主题">×</button>
+                </div>
+                <label for="new-theme-id"><span>英文标识</span><input id="new-theme-id" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="clean-portrait" required /></label>
+                <label for="new-theme-label"><span>中文名称</span><input id="new-theme-label" type="text" minlength="2" maxlength="12" placeholder="清透肖像" required /></label>
+                <label for="new-theme-scene"><span>场景</span><select id="new-theme-scene" required></select></label>
+                <label for="new-theme-description"><span>简短描述</span><input id="new-theme-description" type="text" minlength="2" maxlength="30" placeholder="干净、通透与自然光" required /></label>
+                <p class="inline-feedback" id="new-theme-feedback" role="status" aria-live="polite"></p>
+                <button class="button button-secondary" id="save-theme-button" type="submit">保存新主题</button>
+              </form>
+            </section>
+          </div>
+        </section>
 
         <div class="global-error" id="global-error" role="alert" hidden>
           <div>
@@ -137,14 +286,6 @@
             <p id="global-error-message">请确认本地管理服务正在运行。</p>
           </div>
           <button class="button button-secondary" id="retry-button" type="button">重试</button>
-        </div>
-
-        <div class="photo-grid is-loading" id="photo-grid" aria-busy="true" aria-live="polite"></div>
-        <div class="empty-state" id="empty-state" hidden>
-          <span aria-hidden="true">◇</span>
-          <strong>没有找到匹配的客片</strong>
-          <p>试试清空搜索，或切换场景和主题。</p>
-          <button class="button button-secondary" id="clear-filters" type="button">清空筛选</button>
         </div>
       </section>
     </main>

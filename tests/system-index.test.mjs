@@ -141,6 +141,31 @@ test("封面卡片统一显示为自媒体封面制作", async () => {
   assert.deepEqual(publishedFiles, ["index.html"]);
 });
 
+test("行业内容工作台登记本地生产入口和安全边界", async () => {
+  const [source, visuals, readme, launcher] = await Promise.all([
+    read("app/page.tsx"),
+    read("app/project-visuals.mjs"),
+    read("README.md"),
+    read("打开南铂行业内容工作台.command"),
+  ]);
+  const card = source.match(/id: "industry-content-workbench",[\s\S]*?linkLabel: "打开行业内容工作台档案",/);
+  assert.ok(card, "industry content workbench card exists");
+  for (const wording of [
+    "南铂行业内容工作台",
+    "本机运行",
+    "选题与证据",
+    "旁白",
+    "字幕与质检",
+    "不自动发布",
+    "127.0.0.1:4176",
+  ]) {
+    assert.match(`${card[0]}\n${readme}\n${launcher}`, new RegExp(wording.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), wording);
+  }
+  assert.match(visuals, /行业视频生产工作台/);
+  assert.match(visuals, /低价拍照/);
+  assert.match(launcher, /industry-content-workbench\/server\.mjs/);
+});
+
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {
   const [page, installerStat] = await Promise.all([
     read("docs/projects/nanbo-select/index.html"),
@@ -209,9 +234,9 @@ test("总台每张卡片直接展示能说明用途的应用界面", async () =>
   const visualKinds = [...published.matchAll(/data-project-ui="([^"]+)"/g)].map((match) => match[1]);
   const miniInterfaces = [...published.matchAll(/data-mini-interface="true"/g)];
 
-  assert.equal(visualKinds.length, 21, "21 张卡片都应有代表性应用界面");
-  assert.equal(new Set(visualKinds).size, 21, "每个项目应使用自己的界面场景");
-  assert.equal(miniInterfaces.length, 20, "除真实 Stash 截图外，其余卡片应使用轻量微缩界面");
+  assert.equal(visualKinds.length, 22, "22 张卡片都应有代表性应用界面");
+  assert.equal(new Set(visualKinds).size, 22, "每个项目应使用自己的界面场景");
+  assert.equal(miniInterfaces.length, 21, "除真实 Stash 截图外，其余卡片应使用轻量微缩界面");
 
   for (const description of [
     "南铂 Stash 设备与灾备运行界面",
@@ -235,6 +260,7 @@ test("总台每张卡片直接展示能说明用途的应用界面", async () =>
     "私人音乐库播放界面",
     "音源项目安全扫描界面",
     "自媒体封面统一制作界面",
+    "行业视频生产工作台",
   ]) {
     assert.match(published, new RegExp(`aria-label="${description}"`), description);
   }

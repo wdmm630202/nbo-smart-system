@@ -152,6 +152,12 @@ const interfaces = {
       <div class="xhs-editor"><div class="xhs-cover">${portrait}<div class="xhs-before">${beforePortrait}<span>拍摄前</span></div><strong>普通男生<br><b>这样拍更上镜</b></strong><small>南铂摄影 · 真实客片</small></div></div>
       <div class="xhs-settings"><b>三平台封面</b><span><i>3:4</i>小红书</span><span><i>9:16</i>抖音</span><span><i>3:4</i>视频号</span><em>高清封面已就绪</em></div>`, { kind: "xhs", status: "可导出" }),
   },
+  industry: {
+    label: "行业视频生产工作台",
+    markup: chrome("南铂行业内容工作台", `
+      <div class="industry-stages"><span class="done"><i>✓</i>证据</span><span class="done"><i>✓</i>文案</span><span class="done"><i>✓</i>旁白</span><span class="active"><i>4</i>分镜</span><span><i>5</i>质检</span><span><i>6</i>导出</span></div>
+      <div class="industry-main"><div class="industry-phone"><small>行业内容 / 001</small><strong>低价拍照<br><b>拍完才知道总价？</b></strong><em>明码实价 · 拍得明白</em></div><div class="industry-proof"><span>公开证据 <b>3</b></span><span>事实门禁 <b>通过</b></span><span>竖屏预览 <b>31.6s</b></span><div><i style="width:88%"></i></div><small>本地素材 · 不自动发布</small></div></div>`, { kind: "industry", status: "首期已渲染" }),
+  },
 };
 
 export function getProjectInterface(visual) {

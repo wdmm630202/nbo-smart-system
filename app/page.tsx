@@ -15,7 +15,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music" | "radar" | "xhs";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music" | "radar" | "xhs" | "industry";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -340,6 +340,21 @@ const projects: Project[] = [
     visual: "xhs",
     href: "https://wdmm630202.github.io/nbo-cover-copy/cover.html",
     linkLabel: "打开自媒体封面制作",
+  },
+  {
+    id: "industry-content-workbench",
+    index: "22",
+    name: "南铂行业内容工作台",
+    eyebrow: "EVIDENCE VIDEO WORKBENCH",
+    category: "自动化",
+    status: "本机运行",
+    summary: "把行业选题、公开证据、旁白、分镜、字幕与质检放进同一条日更生产线。",
+    detail: "本机入口为 http://127.0.0.1:4176。素材只建立本地索引，商业事实经过白名单门禁；成片导出前保留人工复核，系统不自动发布、不自动私信，也不改变投放。",
+    tags: ["选题与证据", "旁白", "字幕与质检"],
+    tone: "forest",
+    visual: "industry",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/industry-content-workbench/",
+    linkLabel: "打开行业内容工作台档案",
   },
 ];
 

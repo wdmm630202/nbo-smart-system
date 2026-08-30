@@ -62,10 +62,21 @@ export function normalizePortfolioAdditions(value = emptyPortfolioAdditions) {
       throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 与历史编号冲突`);
     }
     if (ids.has(id)) throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 重复`);
+    if (photo.visibility !== "published" && photo.visibility !== "archived") {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 可见性无效`);
+    }
     ids.add(id);
     return { ...photo, id, code: `NB-${String(id).padStart(3, "0")}`, featured: photo.featured === true, isHeroAsset: false };
   });
-  return { schemaVersion: 1, themes: value.themes.map((theme) => ({ ...theme })), photos };
+  const themeIds = new Set(portfolioCatalog.themes.map((theme) => theme.id));
+  const themes = value.themes.map((theme) => {
+    if (typeof theme.id !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(theme.id) || themeIds.has(theme.id)) {
+      throw new Error(`新增主题编号 ${String(theme.id)} 无效或重复`);
+    }
+    themeIds.add(theme.id);
+    return { ...theme };
+  });
+  return { schemaVersion: 1, themes, photos };
 }
 
 function buildLegacyPortfolioItems(catalog = portfolioCatalog) {
@@ -112,8 +123,8 @@ export function buildPortfolioItems(catalog = portfolioCatalog, additions = empt
 
 export function buildPortfolioThemes(catalog = portfolioCatalog, additions = emptyPortfolioAdditions) {
   const normalized = normalizePortfolioAdditions(additions);
-  const publishedIds = new Set(normalized.photos.filter((photo) => photo.visibility === "published").map((photo) => photo.id));
-  const newThemes = normalized.themes.filter((theme) => publishedIds.has(Number(theme.coverPhotoId))
-    && normalized.photos.some((photo) => photo.visibility === "published" && photo.theme === theme.id));
+  const newThemes = normalized.themes.filter((theme) => normalized.photos.some((photo) => photo.visibility === "published"
+    && photo.id === Number(theme.coverPhotoId)
+    && photo.theme === theme.id));
   return [...catalog.themes, ...newThemes];
 }

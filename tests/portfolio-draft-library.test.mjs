@@ -39,3 +39,34 @@ test("已公开新增照片被追加，隐藏照片和无封面主题不显示",
   assert.equal(buildPortfolioThemes(portfolioCatalog, additions).some(({ id }) => id === "new-light"), true);
   assert.equal(buildPortfolioThemes(portfolioCatalog, additions).some(({ id }) => id === "empty-theme"), false);
 });
+
+test("公开增量拒绝草稿和未知可见性", () => {
+  for (const visibility of ["draft", "private"]) {
+    assert.throws(() => normalizePortfolioAdditions({ schemaVersion: 1, themes: [], photos: [
+      { id: 159, scene: "indoor", theme: "new-light", category: "mood", visibility },
+    ] }), /可见性/);
+  }
+});
+
+test("新增主题的封面必须是本主题的已公开照片", () => {
+  const additions = {
+    schemaVersion: 1,
+    themes: [{ id: "new-light", scene: "indoor", label: "新光影", description: "新主题", coverPhotoId: 159 }],
+    photos: [
+      { id: 159, scene: "indoor", theme: "other-light", category: "mood", visibility: "published" },
+      { id: 160, scene: "indoor", theme: "new-light", category: "mood", visibility: "published" },
+    ],
+  };
+  assert.equal(buildPortfolioThemes(portfolioCatalog, additions).some(({ id }) => id === "new-light"), false);
+});
+
+test("公开增量拒绝空、非 slug 和重复主题编号", () => {
+  for (const themes of [
+    [{ id: "", coverPhotoId: 159 }],
+    [{ id: "New Light", coverPhotoId: 159 }],
+    [{ id: "magazine", coverPhotoId: 159 }],
+    [{ id: "new-light", coverPhotoId: 159 }, { id: "new-light", coverPhotoId: 160 }],
+  ]) {
+    assert.throws(() => normalizePortfolioAdditions({ schemaVersion: 1, themes, photos: [] }), /主题编号/);
+  }
+});

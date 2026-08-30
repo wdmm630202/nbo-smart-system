@@ -205,6 +205,8 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
       window.setTimeout(() => {
         const trackStyle = track ? getComputedStyle(track) : null;
         const firstTitle = document.querySelector(".campaign-slide-title");
+        const packageCard = document.querySelector("#theme-package");
+        const packageCardStyle = packageCard ? getComputedStyle(packageCard) : null;
         const bodyFont = getComputedStyle(document.body).fontFamily;
         const titleFont = firstTitle ? getComputedStyle(firstTitle).fontFamily : "";
         document.querySelector("#homepage-metrics").textContent = JSON.stringify({
@@ -225,6 +227,10 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
           activeTheme: document.querySelector('.theme-filter-button[aria-pressed="true"]')?.dataset.theme || "",
           gallerySummary: document.querySelector("#gallery-summary")?.textContent || "",
           locationHash: location.hash,
+          packageVisible: Boolean(packageCard && !packageCard.hidden && packageCardStyle?.display !== "none"),
+          packagePrice: packageCard?.querySelector(".theme-package-price")?.textContent.trim() || "",
+          packageFacts: [...(packageCard?.querySelectorAll(".theme-package-facts li") || [])].map((item) => item.textContent.trim()),
+          heroContainsPrice: slides.some((slide) => /(?:¥|￥)\s*268/.test(slide.textContent || "")),
           artisticTitleFont: Boolean(titleFont && titleFont !== bodyFont),
           titleOverflowCount: slides.filter((slide) => {
             const title = slide.querySelector(".campaign-slide-title");
@@ -535,6 +541,16 @@ test("新品链接可直达并恢复对应主题详情", { skip: !(await exists(
   assert.equal(metrics.activeTheme, "city-street");
   assert.match(metrics.gallerySummary, /都市街拍/);
   assert.equal(metrics.locationHash, "#works");
+});
+
+test("首页主视觉不露价，进入主题详情后显示透明套餐", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const homepage = await measureMobileCampaign();
+  const detail = await measureMobileCampaign({ theme: "magazine" });
+  assert.equal(homepage.heroContainsPrice, false, "价格不应进入首页新品主视觉");
+  assert.equal(homepage.packageVisible, false, "未选择主题时不应显示主题套餐");
+  assert.equal(detail.packageVisible, true, "进入主题详情后应显示主题套餐");
+  assert.equal(detail.packagePrice, "¥268");
+  assert.deepEqual(detail.packageFacts, ["拍摄2套", "全部原片全送", "不推销加精修"]);
 });
 
 test("页脚署名在卡片和底部导航之间垂直居中", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {

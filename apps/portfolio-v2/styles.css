@@ -117,6 +117,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 
 .works { padding-top: 5rem; }
 .works-title { margin-bottom: 1.35rem; }
+.theme-package { display: grid; grid-template-columns: minmax(0,.82fr) minmax(0,1.18fr); width: calc(100% - 2rem); max-width: 30rem; margin: 0 auto 1.15rem; overflow: hidden; border: 1px solid rgba(17,18,16,.1); border-radius: 1.2rem; background: rgba(255,255,255,.74); box-shadow: 0 16px 38px rgba(30,29,25,.07); }
+.theme-package[hidden] { display: none; }
+.theme-package-heading { display: flex; min-width: 0; flex-direction: column; justify-content: space-between; padding: 1rem; border-right: 1px solid var(--line); }
+.theme-package-heading small { overflow: hidden; color: var(--subtle); font-size: .5rem; font-weight: 650; letter-spacing: .06em; text-overflow: ellipsis; white-space: nowrap; }
+.theme-package-price { margin-top: .7rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem,9vw,2.75rem); font-weight: 400; letter-spacing: -.055em; line-height: .92; }
+.theme-package-facts { display: grid; margin: 0; padding: .35rem 1rem; list-style: none; }
+.theme-package-facts li { display: flex; align-items: center; gap: .45rem; min-height: 2rem; border-bottom: 1px solid var(--line); font-size: .61rem; font-weight: 600; white-space: nowrap; }
+.theme-package-facts li:last-child { border-bottom: 0; }
+.theme-package-facts li::before { width: .3rem; height: .3rem; flex: 0 0 auto; border-radius: 50%; background: var(--green); content: ""; }
 .filter-bar { position: sticky; z-index: 12; top: 4.1rem; display: grid; gap: .52rem; margin-bottom: .8rem; padding: .58rem .75rem .66rem; overflow: hidden; border-block: 1px solid var(--line); background: rgba(245,244,239,.93); -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); }
 .filter-level { display: grid; grid-template-columns: 2rem minmax(0,1fr); align-items: center; gap: .38rem; }
 .filter-level > span { color: var(--subtle); font-size: .5rem; font-weight: 700; letter-spacing: .08em; }

@@ -1,6 +1,6 @@
-import { buildPortfolioItems, portfolioCatalog } from "./catalog.js?v=pv2-f3d946cf091f";
+import { buildPortfolioItems, portfolioCatalog } from "./catalog.js?v=pv2-ebb81b71cc6f";
 
-const embeddedBuildVersion = "pv2-f3d946cf091f";
+const embeddedBuildVersion = "pv2-ebb81b71cc6f";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;
@@ -22,6 +22,8 @@ const themeFilters = document.querySelector("#theme-filters");
 const galleryGrid = document.querySelector("#gallery-grid");
 const gallerySummary = document.querySelector("#gallery-summary");
 const galleryProgress = document.querySelector("#gallery-progress");
+const themePackage = document.querySelector("#theme-package");
+const themePackageTitle = document.querySelector("#theme-package-title");
 const loadMoreButton = document.querySelector("#load-more");
 const loadRemaining = document.querySelector("#load-remaining");
 const viewer = document.querySelector("#viewer");
@@ -279,6 +281,8 @@ function renderGallery() {
   galleryGrid.replaceChildren(...shownItems.map(createCard));
   const scene = sceneById[activeScene] || sceneConfig[0];
   const theme = themeById[activeTheme];
+  if (themePackage) themePackage.hidden = !theme;
+  if (theme && themePackageTitle) themePackageTitle.textContent = `${theme.label} · 本主题套餐`;
   gallerySummary.textContent = theme
     ? `${scene.label} · ${theme.label} · ${theme.description}`
     : `${scene.label} · ${scene.description}`;

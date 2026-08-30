@@ -51,4 +51,3 @@ export function buildVisualBeatPlan(durationSeconds, rawProfile) {
   }
   return beats;
 }
-

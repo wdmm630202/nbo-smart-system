@@ -216,4 +216,3 @@ async function runCli() {
 }
 
 if (process.argv[1]?.endsWith("render-project.mjs")) await runCli();
-

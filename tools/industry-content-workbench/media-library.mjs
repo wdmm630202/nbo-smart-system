@@ -120,4 +120,3 @@ export async function verifyMediaFingerprint(asset) {
   const actualSha256 = await fingerprintFile(asset.path);
   return { ok: actualSha256 === asset.sha256, actualSha256 };
 }
-

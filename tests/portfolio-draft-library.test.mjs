@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -203,4 +203,85 @@ test("专用发布标记保留待公开状态并在推送后记录提交", async
   assert.equal(photo.status, "published");
   assert.equal(photo.stagedAt, "2026-08-31T00:00:00.000Z");
   assert.equal(photo.publishedCommit, "abc123");
+});
+
+test("待公开草稿不能通过更新取消公开授权", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: directory, legacyMaxId: 158 });
+  await store.addPhoto({
+    id: 159,
+    uuid: "photo-a",
+    originalName: "a.jpg",
+    scene: "indoor",
+    theme: "magazine",
+    category: "business",
+    approvedForPublicUse: true,
+  });
+  await store.transitionPhoto(159, "ready");
+
+  await assert.rejects(() => store.updatePhoto(159, { approvedForPublicUse: false }), /场景、主题、风格和公开授权/);
+
+  const [photo] = (await store.read()).photos;
+  assert.equal(photo.status, "ready");
+  assert.equal(photo.approvedForPublicUse, true);
+});
+
+test("发布标记会重新验证待公开草稿的授权", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: directory, legacyMaxId: 158 });
+  await store.addPhoto({
+    id: 159,
+    uuid: "photo-a",
+    originalName: "a.jpg",
+    scene: "indoor",
+    theme: "magazine",
+    category: "business",
+    approvedForPublicUse: true,
+  });
+  await store.transitionPhoto(159, "ready");
+  const manifestPath = join(directory, "manifest.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.photos[0].approvedForPublicUse = false;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  await assert.rejects(() => store.markPublished([159], "abc123"), /场景、主题、风格和公开授权/);
+});
+
+test("归档草稿不能通过通用状态转换直接发布", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: directory, legacyMaxId: 158 });
+  await store.addPhoto({ id: 159, uuid: "photo-a", originalName: "a.jpg" });
+  await store.transitionPhoto(159, "archived");
+
+  await assert.rejects(() => store.transitionPhoto(159, "published"), /archived.*published/);
+
+  assert.equal((await store.read()).photos[0].status, "archived");
+});
+
+test("已发布后归档的客片可通过专用发布标记按原编号恢复", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: directory, legacyMaxId: 158 });
+  await store.addPhoto({
+    id: 159,
+    uuid: "photo-a",
+    originalName: "a.jpg",
+    scene: "indoor",
+    theme: "magazine",
+    category: "business",
+    approvedForPublicUse: true,
+  });
+  await store.transitionPhoto(159, "ready");
+  await store.markPublished([159], "first-commit");
+  await store.transitionPhoto(159, "archived");
+
+  await store.markPublished([159], "restore-commit");
+
+  const [photo] = (await store.read()).photos;
+  assert.equal(photo.id, 159);
+  assert.equal(photo.status, "published");
+  assert.equal(photo.publishedCommit, "restore-commit");
 });

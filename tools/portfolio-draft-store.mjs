@@ -21,7 +21,7 @@ const transitions = {
   draft: new Set(["ready", "archived"]),
   ready: new Set(["draft", "published", "archived"]),
   published: new Set(["archived"]),
-  archived: new Set(["draft", "published"]),
+  archived: new Set(["draft"]),
 };
 
 const initialState = () => ({ schemaVersion: DRAFT_SCHEMA_VERSION, photos: [], themes: [] });
@@ -153,6 +153,7 @@ export function createDraftStore({ rootDir = draftRoot, legacyMaxId = 158 } = {}
         assertTransition(next, patch.status);
         next.status = patch.status;
       }
+      if (next.status === "ready") requireReadyMetadata(next);
       next.updatedAt = timestamp(patch.updatedAt);
       Object.assign(photo, next);
       await write(state);
@@ -216,7 +217,11 @@ export function createDraftStore({ rootDir = draftRoot, legacyMaxId = 158 } = {}
       const photos = ids.map((id) => findPhoto(state, id));
       if (new Set(photos.map((photo) => photo.id)).size !== photos.length) throw new Error("发布草稿编号重复");
       for (const photo of photos) {
-        if (photo.status !== "ready") throw new Error("只有待公开草稿可以标记为已发布");
+        const restoringPublishedPhoto = photo.status === "archived" && typeof photo.publishedCommit === "string" && photo.publishedCommit;
+        if (photo.status !== "ready" && !restoringPublishedPhoto) {
+          throw new Error("只有待公开草稿或已发布后归档的草稿可以标记为已发布");
+        }
+        requireReadyMetadata(photo);
       }
       const now = new Date().toISOString();
       for (const photo of photos) {

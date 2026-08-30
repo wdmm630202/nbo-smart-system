@@ -3,34 +3,30 @@ import {
   buildPortfolioThemes,
   emptyPortfolioAdditions,
   portfolioCatalog,
-} from "./catalog.js?v=pv2-9ec1925d8d70";
+} from "./catalog.js?v=pv2-fb4a53754e94";
+import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=pv2-fb4a53754e94";
 
-const embeddedBuildVersion = "pv2-9ec1925d8d70";
+const embeddedBuildVersion = "pv2-fb4a53754e94";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;
 const versionPhoto = (path) => `${path}?v=${encodeURIComponent(buildVersion)}`;
 
-async function loadPortfolioAdditions() {
-  let response;
-  try {
-    response = await fetch(`./catalog-additions.json?v=${encodeURIComponent(buildVersion)}`, { cache: "no-store" });
-  } catch (error) {
-    console.warn("公开增量清单请求失败，继续显示历史客片", error);
-    return emptyPortfolioAdditions;
-  }
-  if (!response.ok) {
-    console.warn(`公开增量清单请求失败（HTTP ${response.status}），继续显示历史客片`);
-    return emptyPortfolioAdditions;
-  }
-  // JSON 或清单结构损坏不得伪装成“无增量”；让后续合并校验直接失败。
-  return response.json();
-}
-
-const portfolioAdditions = await loadPortfolioAdditions();
-const themeConfig = buildPortfolioThemes(portfolioCatalog, portfolioAdditions)
+const portfolioAdditions = await loadPortfolioAdditions({
+  fetchImpl: fetch,
+  url: `./catalog-additions.json?v=${encodeURIComponent(buildVersion)}`,
+  fallback: emptyPortfolioAdditions,
+  warn: (...args) => console.warn(...args),
+});
+const customerPortfolio = buildCustomerPortfolio({
+  catalog: portfolioCatalog,
+  additions: portfolioAdditions,
+  buildItems: (catalog, additions) => buildPortfolioItems(catalog, additions),
+  buildThemes: (catalog, additions) => buildPortfolioThemes(catalog, additions),
+});
+const themeConfig = customerPortfolio.themes
   .map((theme) => ({ ...theme, series: new Set(theme.series || []) }));
-const galleryItems = buildPortfolioItems(portfolioCatalog, portfolioAdditions).map((item) => ({
+const galleryItems = customerPortfolio.items.map((item) => ({
   ...item,
   sceneTitle: item.sceneTitle || portfolioCatalog.scenes.find((scene) => scene.id === item.scene)?.label || "",
   thumb: versionPhoto(`../portfolio/assets/photos/thumbs/photo-${String(item.id).padStart(3, "0")}.webp`),
@@ -86,15 +82,14 @@ function setCount(id, value, suffix = "") {
 }
 
 function renderCatalogCounts() {
-  const sceneThemes = (scene) => themeConfig.filter((theme) => theme.scene === scene).length;
-  setCount("header-photo-count", galleryItems.length);
-  setCount("quick-theme-count", themeConfig.length, " 个主题");
-  setCount("quick-photo-count", galleryItems.length, " 张");
-  setCount("indoor-photo-count", galleryItems.filter((item) => item.scene === "indoor").length);
-  setCount("outdoor-photo-count", galleryItems.filter((item) => item.scene === "outdoor").length);
-  setCount("indoor-theme-count", sceneThemes("indoor"));
-  setCount("outdoor-theme-count", sceneThemes("outdoor"));
-  setCount("promise-photo-count", galleryItems.length);
+  setCount("header-photo-count", customerPortfolio.counts.photos);
+  setCount("quick-theme-count", customerPortfolio.counts.themes, " 个主题");
+  setCount("quick-photo-count", customerPortfolio.counts.photos, " 张");
+  setCount("indoor-photo-count", customerPortfolio.counts.scenes.indoor);
+  setCount("outdoor-photo-count", customerPortfolio.counts.scenes.outdoor);
+  setCount("indoor-theme-count", customerPortfolio.counts.sceneThemes.indoor);
+  setCount("outdoor-theme-count", customerPortfolio.counts.sceneThemes.outdoor);
+  setCount("promise-photo-count", customerPortfolio.counts.photos);
 }
 
 const PAGE_SIZE = 30;

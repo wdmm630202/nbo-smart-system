@@ -7,7 +7,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { buildPortfolioItems, portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
+import {
+  buildPortfolioItems,
+  buildPortfolioThemes,
+  emptyPortfolioAdditions,
+  portfolioCatalog,
+} from "../apps/portfolio-v2/catalog.js";
 import {
   assetPaths,
   buildPortfolioVersion,
@@ -146,6 +151,82 @@ test("公开库验证拒绝未知主题引用和断号增量", async (t) => {
   assert.equal(result.ok, false);
   assert.match(result.errors.join("\n"), /NB-160|断号/);
   assert.match(result.errors.join("\n"), /missing-theme/);
+});
+
+test("新主题有公开照片时必须使用公开封面", async (t) => {
+  const additions = registeredAdditions();
+  additions.photos[0].visibility = "archived";
+  additions.photos[1] = {
+    ...additions.photos[1],
+    theme: "new-light",
+    title: "新光影",
+    visibility: "published",
+  };
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const result = await validatePortfolioLibrary(fixture);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /新光影|new-light/);
+  assert.match(result.errors.join("\n"), /封面.*公开|公开.*封面/);
+});
+
+test("完全归档的新主题可保留归档封面且不展示", async (t) => {
+  const additions = registeredAdditions();
+  additions.photos[0].visibility = "archived";
+  additions.photos[1] = {
+    ...additions.photos[1],
+    theme: "new-light",
+    title: "新光影",
+    visibility: "archived",
+  };
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const result = await validatePortfolioLibrary(fixture);
+  assert.equal(result.ok, true, result.errors.join("\n"));
+  assert.equal(result.photoCount, 158);
+  assert.equal(result.themeCount, 23);
+});
+
+test("客户运行时只对请求失败降级并从公开增量计数", async () => {
+  const { buildCustomerPortfolio, loadPortfolioAdditions } = await import("../apps/portfolio-v2/portfolio-runtime.js");
+  const warnings = [];
+  const networkFallback = await loadPortfolioAdditions({
+    fetchImpl: async () => { throw new Error("offline"); },
+    url: "./catalog-additions.json?v=test",
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => warnings.push(args),
+  });
+  const httpFallback = await loadPortfolioAdditions({
+    fetchImpl: async () => ({ ok: false, status: 503 }),
+    url: "./catalog-additions.json?v=test",
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => warnings.push(args),
+  });
+  assert.equal(networkFallback, emptyPortfolioAdditions);
+  assert.equal(httpFallback, emptyPortfolioAdditions);
+  assert.equal(warnings.length, 2);
+
+  await assert.rejects(loadPortfolioAdditions({
+    fetchImpl: async () => ({ ok: true, json: async () => { throw new SyntaxError("broken JSON"); } }),
+    url: "./catalog-additions.json?v=test",
+    fallback: emptyPortfolioAdditions,
+    warn: () => {},
+  }), /broken JSON/);
+
+  const model = buildCustomerPortfolio({
+    catalog: portfolioCatalog,
+    additions: registeredAdditions(),
+    buildItems: buildPortfolioItems,
+    buildThemes: buildPortfolioThemes,
+  });
+  assert.equal(model.items.length, 159);
+  assert.equal(model.themes.length, 24);
+  assert.equal(model.items.some(({ id }) => id === 159), true);
+  assert.equal(model.items.some(({ id }) => id === 160), false);
+  assert.deepEqual(model.counts, {
+    photos: 159,
+    themes: 24,
+    scenes: { indoor: 121, outdoor: 38 },
+    sceneThemes: { indoor: 14, outdoor: 10 },
+  });
 });
 
 test("发布版本由代码与照片内容确定", async () => {

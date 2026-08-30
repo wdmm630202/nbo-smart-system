@@ -68,11 +68,14 @@ const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const allowedPhotoExtensions = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const publishPrefixes = [
   "apps/portfolio/assets/photos/",
-  "apps/portfolio-v2/catalog-additions.json",
   "docs/projects/portfolio/assets/photos/",
   "docs/projects/portfolio-v2/",
   "docs/p/",
 ];
+const publishExactPaths = new Set([
+  "apps/portfolio-v2/catalog-additions.json",
+  "docs/i/index.html",
+]);
 const allowedHosts = new Set([`${host}:${requestedPort}`, `localhost:${requestedPort}`]);
 
 function json(response, status, body) {
@@ -200,7 +203,8 @@ async function repositoryStatus() {
     const id = sourcePhotoId(path);
     return id !== null && registeredIds.has(id) ? [id] : [];
   }))].sort((a, b) => a - b);
-  const unrelatedFiles = changedFiles.filter((path) => !publishPrefixes.some((prefix) => path.startsWith(prefix))
+  const unrelatedFiles = changedFiles.filter((path) => !(publishExactPaths.has(path)
+    || publishPrefixes.some((prefix) => path.startsWith(prefix)))
     || (path.startsWith("apps/portfolio/assets/photos/") && !registeredIds.has(sourcePhotoId(path))));
   return {
     head,
@@ -536,8 +540,6 @@ async function publishPhotos(request, response) {
     const nonSourceChanges = statusBefore.changedFiles.filter((path) => !sourceFiles.includes(path));
     if (nonSourceChanges.length) throw new Error(`发布前存在非源图片改动：${nonSourceChanges.slice(0, 5).join("、")}`);
 
-    await run(process.execPath, [join(root, "tools/export-github-pages.mjs")], { cwd: root });
-    const version = await buildPortfolioVersion();
     const publishedMetadata = "docs/projects/portfolio-v2/catalog-additions.json";
     const stagePaths = new Set([
       ...sourceFiles,
@@ -548,16 +550,30 @@ async function publishPhotos(request, response) {
       "docs/projects/portfolio-v2/build.json",
       "docs/p/index.html",
       "docs/p/build.json",
+      "docs/i/index.html",
     ]);
     for (const sourcePath of changedPhotoFiles) {
       const suffix = relative("apps/portfolio", sourcePath);
       stagePaths.add(join("docs/projects/portfolio", suffix));
     }
     const generatedPaths = [...stagePaths].filter((path) => path.startsWith("docs/"));
-    const statusAfterExport = await repositoryStatus();
-    const unexpectedExport = statusAfterExport.changedFiles.filter((path) => !stagePaths.has(path));
-    if (unexpectedExport.length) {
-      throw new Error(`导出产生了超出客片范围的改动，已停止提交：${unexpectedExport.slice(0, 5).join("、")}`);
+    let version;
+    try {
+      await run(process.execPath, [join(root, "tools/export-github-pages.mjs")], { cwd: root });
+      version = await buildPortfolioVersion();
+      const statusAfterExport = await repositoryStatus();
+      const unexpectedExport = statusAfterExport.changedFiles.filter((path) => !stagePaths.has(path));
+      if (unexpectedExport.length) {
+        throw new Error(`导出产生了超出客片范围的改动，已停止提交：${unexpectedExport.slice(0, 5).join("、")}`);
+      }
+    } catch (error) {
+      try {
+        // 只恢复明确登记的 Pages 生成物；未知路径保留给人工核查。
+        await restoreGeneratedPaths(generatedPaths, statusBefore.head);
+      } catch (cleanupError) {
+        throw new Error(`${error.message}；提交前生成物恢复失败：${cleanupError.message}`);
+      }
+      throw error;
     }
     await git(["add", "--", ...stagePaths]);
     const { code: hasNoStagedDiff } = await git(["diff", "--cached", "--quiet"], { allowFailure: true });

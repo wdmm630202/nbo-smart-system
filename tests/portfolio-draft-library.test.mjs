@@ -122,7 +122,11 @@ async function gitAt(cwd, args) {
   return execFileAsync("git", args, { cwd });
 }
 
-async function createSyntheticPublishManager(t, { failFirstPush = false, sourceChange = "metadata" } = {}) {
+async function createSyntheticPublishManager(t, {
+  failFirstPush = false,
+  sourceChange = "metadata",
+  unexpectedExportOnce = false,
+} = {}) {
   const sandbox = await mkdtemp(join(tmpdir(), "nanbo-publish-api-"));
   const repository = join(sandbox, "repository");
   const remote = join(sandbox, "remote.git");
@@ -146,16 +150,20 @@ async function createSyntheticPublishManager(t, { failFirstPush = false, sourceC
     "tools/portfolio-draft-photo-lib.mjs",
     "tools/export-github-pages.mjs",
     "apps/portfolio-v2/catalog.js",
+    "apps/portfolio-v2/portfolio-runtime.js",
   ]) {
     await writeFixture(join(repository, path), await readFile(join(root, path)));
   }
   await writeFixture(join(repository, "tools/export-github-pages.mjs"), [
-    'import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";',
+    'import { access, copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";',
     'import { dirname, join } from "node:path";',
     'import { fileURLToPath } from "node:url";',
     'const root = dirname(dirname(fileURLToPath(import.meta.url)));',
-    'const marker = await readFile(join(root, "apps/portfolio/assets/photos/full/photo-158.jpg"));',
-    'for (const path of ["docs/projects/portfolio-v2/index.html", "docs/projects/portfolio-v2/app.js", "docs/projects/portfolio-v2/build.json", "docs/p/index.html", "docs/p/build.json"]) {',
+    'const marker = Buffer.concat([',
+    '  await readFile(join(root, "apps/portfolio/assets/photos/full/photo-158.jpg")),',
+    '  await readFile(join(root, "apps/portfolio-v2/catalog-additions.json")),',
+    ']);',
+    'for (const path of ["docs/projects/portfolio-v2/index.html", "docs/projects/portfolio-v2/app.js", "docs/projects/portfolio-v2/build.json", "docs/p/index.html", "docs/p/build.json", "docs/i/index.html"]) {',
     '  const target = join(root, path); await mkdir(dirname(target), { recursive: true }); await writeFile(target, marker);',
     '}',
     'const additionsTarget = join(root, "docs/projects/portfolio-v2/catalog-additions.json");',
@@ -165,6 +173,16 @@ async function createSyntheticPublishManager(t, { failFirstPush = false, sourceC
     '  const target = join(root, "docs/projects/portfolio/assets/photos", part);',
     '  await mkdir(dirname(target), { recursive: true });',
     '  await copyFile(join(root, "apps/portfolio/assets/photos", part), target);',
+    '}',
+    'const unexpectedSentinel = join(root, ".local/emit-unexpected-export");',
+    'try {',
+    '  await access(unexpectedSentinel);',
+    '  await rm(unexpectedSentinel);',
+    '  const unexpected = join(root, "docs/unexpected-export.txt");',
+    '  await mkdir(dirname(unexpected), { recursive: true });',
+    '  await writeFile(unexpected, "unexpected export\\n");',
+    '} catch (error) {',
+    '  if (error.code !== "ENOENT") throw error;',
     '}',
     '',
   ].join("\n"));
@@ -282,6 +300,9 @@ async function createSyntheticPublishManager(t, { failFirstPush = false, sourceC
     await writeFixture(sentinel, "1\n");
     await writeFixture(hook, `#!/bin/sh\nif [ -f "${sentinel}" ]; then\n  rm -f "${sentinel}"\n  echo simulated push failure >&2\n  exit 1\nfi\nexit 0\n`);
     await chmod(hook, 0o755);
+  }
+  if (unexpectedExportOnce) {
+    await writeFixture(join(repository, ".local/emit-unexpected-export"), "1\n");
   }
 
   child = spawn(process.execPath, [join(repository, "tools/portfolio-manager-server.mjs")], {
@@ -813,6 +834,7 @@ test("发布增量元数据同时暂存源清单和 Pages 副本", { timeout: 60
   ]);
   assert.match(remoteFiles, /^apps\/portfolio-v2\/catalog-additions\.json$/m);
   assert.match(remoteFiles, /^docs\/projects\/portfolio-v2\/catalog-additions\.json$/m);
+  assert.match(remoteFiles, /^docs\/i\/index\.html$/m);
   const [{ stdout: sourceManifest }, { stdout: pagesManifest }] = await Promise.all([
     gitAt(server.sandbox, [`--git-dir=${server.remote}`, "show", "main:apps/portfolio-v2/catalog-additions.json"]),
     gitAt(server.sandbox, [`--git-dir=${server.remote}`, "show", "main:docs/projects/portfolio-v2/catalog-additions.json"]),
@@ -839,6 +861,26 @@ test("增量元数据推送失败恢复 Pages 副本且可安全重试", { timeo
   assert.equal(retried.status, 200, payload.error);
   assert.equal(payload.published, true);
   assert.equal((await server.store.read()).photos[0].status, "published");
+  assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
+});
+
+test("提交前导出越界会恢复已知生成物且保留未知文件", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { sourceChange: "metadata", unexpectedExportOnce: true });
+
+  const failed = await server.publish();
+  assert.equal(failed.status, 400);
+  assert.match((await failed.json()).error, /超出客片范围.*unexpected-export/);
+  const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
+  assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)).sort(), [
+    "apps/portfolio-v2/catalog-additions.json",
+    "docs/unexpected-export.txt",
+  ]);
+
+  await rm(join(server.repository, "docs/unexpected-export.txt"));
+  const retried = await server.publish();
+  const payload = await retried.json();
+  assert.equal(retried.status, 200, payload.error);
+  assert.equal(payload.published, true);
   assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
 });
 
@@ -877,6 +919,12 @@ test("发布修复不绕过分支、无关文件、未登记照片和远端领�
   assert.equal(response.status, 400);
   assert.match((await response.json()).error, /其他未提交文件/);
   await rm(join(server.repository, "unrelated.txt"));
+
+  await writeFixture(join(server.repository, "docs/i/not-allowed.html"), "do not stage\n");
+  response = await server.publish();
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /其他未提交文件/);
+  await rm(join(server.repository, "docs/i/not-allowed.html"));
 
   await writeFixture(join(server.publicPhotoRoot, "full/photo-999.jpg"), "arbitrary\n");
   await writeFixture(join(server.publicPhotoRoot, "thumbs/photo-999.webp"), "arbitrary\n");

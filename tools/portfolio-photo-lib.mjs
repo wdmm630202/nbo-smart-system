@@ -504,6 +504,10 @@ function validatePortfolioAdditions(additions, catalog) {
     if (typeof theme.description !== "string" || !theme.description.trim()) errors.push(`新增主题 ${theme.id} 缺少说明`);
     const cover = photosById.get(Number(theme.coverPhotoId));
     if (!cover || cover.theme !== theme.id) errors.push(`新增主题 ${theme.id} 的封面编号无效`);
+    const hasPublishedPhotos = additions.photos.some((photo) => photo.theme === theme.id && photo.visibility === "published");
+    if (hasPublishedPhotos && cover?.visibility !== "published") {
+      errors.push(`新增主题 ${theme.id} 有公开照片时必须使用公开封面`);
+    }
   }
 
   for (const photo of additions.photos) {
@@ -628,6 +632,7 @@ export async function buildPortfolioVersion(options = {}) {
     join(root, "apps/portfolio-v2/app.js"),
     join(root, "apps/portfolio-v2/analytics.js"),
     join(root, "apps/portfolio-v2/catalog.js"),
+    join(root, "apps/portfolio-v2/portfolio-runtime.js"),
     join(root, "apps/portfolio-v2/wechat-share.js"),
     join(root, "apps/portfolio-v2/wechat-contact-qr.png"),
     join(root, "apps/portfolio-v2/privacy.html"),

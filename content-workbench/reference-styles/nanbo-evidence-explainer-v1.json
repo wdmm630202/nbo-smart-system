@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "profileId": "nanbo-evidence-explainer-v1",
+  "name": "南铂证据型行业解说",
+  "reference": {
+    "label": "博主 Codex 剪辑流程参考片",
+    "sha256": "2ca4433c58b413e127392ae6ba1fbd813a2f5d2210e1b3a47cfcbc0cc4d3bb01",
+    "durationSeconds": 310.25,
+    "canvas": { "width": 1920, "height": 1080, "fps": 30 },
+    "visualChangeCandidates": 56,
+    "meanVisualIntervalSeconds": 5.443,
+    "medianVisualIntervalSeconds": 4.9,
+    "transcriptSegments": 155,
+    "spokenChineseCharacters": 1880,
+    "spokenEnglishTokens": 45,
+    "medianPauseSeconds": 0.2,
+    "integratedLoudnessLufs": -20.5,
+    "loudnessRangeLu": 3.4,
+    "truePeakDbfs": -4.8
+  },
+  "adopt": [
+    "先给结果或公开证据，再解释方法",
+    "深色数据面板与暖色过程画面交替",
+    "每个画面只承担一个信息任务",
+    "底部字幕位置稳定并与配音严格对齐",
+    "章节卡、进度条和勾选状态降低理解成本",
+    "以配音时间轴作为画面和字幕的共同基准"
+  ],
+  "output": {
+    "canvas": { "width": 1080, "height": 1920, "fps": 30 },
+    "humanAppearance": false,
+    "targetDurationSeconds": { "min": 24, "preferred": 30, "max": 38 },
+    "safeArea": { "top": 150, "right": 72, "bottom": 260, "left": 72 }
+  },
+  "cadence": {
+    "hookDeadlineSeconds": 1.5,
+    "minShotSeconds": 1.4,
+    "preferredShotSeconds": 2.4,
+    "maxShotSeconds": 3,
+    "evidenceMinimumSeconds": 2.2,
+    "transitionStyle": "cut-or-soft-fade-on-semantic-beat",
+    "decorativeTransitionLimit": 0
+  },
+  "visualLanguage": {
+    "darkBackground": "#07120D",
+    "panelBackground": "#102019",
+    "accent": "#69F29A",
+    "warmBackground": "#F2EDE2",
+    "primaryText": "#F7FFF9",
+    "mutedText": "#9EB5A7",
+    "warning": "#FF8A72",
+    "fontStack": ["PingFang SC", "Noto Sans CJK SC", "sans-serif"],
+    "brandMark": "南铂摄影｜明码实价，拍得明白"
+  },
+  "captionRules": {
+    "position": "bottom-fixed",
+    "maxLines": 2,
+    "preferredChineseCharactersPerLine": 15,
+    "highlightOnlyKeywords": true,
+    "minimumContrastRatio": 4.5
+  },
+  "storyGrammar": [
+    "hook",
+    "problem",
+    "evidence",
+    "mechanism",
+    "nanbo-proof",
+    "cta"
+  ],
+  "originality": {
+    "principle": "学习信息结构、节奏和验证机制，不复制可识别表达",
+    "exclude": [
+      "参考博主的人物形象",
+      "参考视频原文案",
+      "参考视频界面截图",
+      "参考博主头像与装饰元素",
+      "参考视频的商业案例和效果数字"
+    ]
+  }
+}
+

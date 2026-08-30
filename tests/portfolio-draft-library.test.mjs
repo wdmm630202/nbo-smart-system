@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { appendFile, chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { execFile, spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { once } from "node:events";
+import { appendFile, chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -12,6 +14,7 @@ import {
   portfolioCatalog,
 } from "../apps/portfolio-v2/catalog.js";
 import { createDraftStore } from "../tools/portfolio-draft-store.mjs";
+import { root } from "../tools/portfolio-photo-lib.mjs";
 import {
   ingestDraftPhoto,
   loadPublicAdditions,
@@ -21,6 +24,82 @@ import {
 } from "../tools/portfolio-draft-photo-lib.mjs";
 
 const execFileAsync = promisify(execFile);
+
+function waitForOutput(child, pattern, timeout = 10_000) {
+  return new Promise((resolve, reject) => {
+    let output = "";
+    const timer = setTimeout(() => reject(new Error(`等待管理台超时：${output}`)), timeout);
+    const consume = (chunk) => {
+      output += chunk;
+      if (pattern.test(output)) {
+        clearTimeout(timer);
+        child.stdout.off("data", consume);
+        child.stderr.off("data", consume);
+        resolve(output);
+      }
+    };
+    child.stdout.on("data", consume);
+    child.stderr.on("data", consume);
+  });
+}
+
+async function startIsolatedManager(t, { additions, prepare } = {}) {
+  const sandbox = await mkdtemp(join(tmpdir(), "nanbo-manager-api-"));
+  const draftDirectory = join(sandbox, "drafts");
+  const additionsPath = join(sandbox, "catalog-additions.json");
+  const publicPhotoRoot = join(sandbox, "public");
+  const port = 45_000 + randomBytes(2).readUInt16BE() % 1_000;
+  const initialAdditions = additions || { schemaVersion: 1, themes: [], photos: [] };
+  await mkdir(publicPhotoRoot, { recursive: true });
+  await writeFile(additionsPath, `${JSON.stringify(initialAdditions, null, 2)}\n`);
+  const store = createDraftStore({ rootDir: draftDirectory, legacyMaxId: 158 });
+  await store.addPhoto({
+    id: 159,
+    uuid: "0123456789abcdef01234567",
+    originalName: "NB-159.jpg",
+    status: "draft",
+    approvedForPublicUse: false,
+  });
+  if (prepare) await prepare({ additionsPath, draftDirectory, publicPhotoRoot, sandbox, store });
+
+  const child = spawn(process.execPath, [join(root, "tools/portfolio-manager-server.mjs")], {
+    cwd: root,
+    env: {
+      ...process.env,
+      NANBO_PORTFOLIO_PORT: String(port),
+      NANBO_PORTFOLIO_DRAFT_ROOT: draftDirectory,
+      NANBO_PORTFOLIO_ADDITIONS_PATH: additionsPath,
+      NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: publicPhotoRoot,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  t.after(async () => {
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      await once(child, "exit");
+    }
+    await rm(sandbox, { recursive: true, force: true });
+  });
+  await waitForOutput(child, /南铂客片管理台：/);
+  const url = `http://127.0.0.1:${port}/`;
+  const token = (await (await fetch(`${url}api/session`)).json()).token;
+  return {
+    additionsPath,
+    draftDirectory,
+    publicPhotoRoot,
+    sandbox,
+    store,
+    url,
+    token,
+    postJson(path, body, headers = {}) {
+      return fetch(new URL(path, url), {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "content-type": "application/json", "x-nanbo-token": token, ...headers },
+      });
+    },
+  };
+}
 
 async function createTestPhoto(directory, name = "source.jpg") {
   const path = join(directory, name);
@@ -79,6 +158,283 @@ async function createPublicationSandbox(t) {
     },
   };
 }
+
+test("草稿修改接口拒绝缺少令牌和跨站请求", { timeout: 30_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const noToken = await fetch(`${server.url}api/drafts/update?id=159`, {
+    method: "POST",
+    body: "{}",
+    headers: { "content-type": "application/json" },
+  });
+  assert.equal(noToken.status, 403);
+
+  const crossSite = await fetch(`${server.url}api/drafts/update?id=159`, {
+    method: "POST",
+    body: "{}",
+    headers: {
+      "content-type": "application/json",
+      "x-nanbo-token": server.token,
+      origin: "https://example.com",
+    },
+  });
+  assert.equal(crossSite.status, 403);
+  const fetchMetadataCrossSite = await fetch(`${server.url}api/drafts/update?id=159`, {
+    method: "POST",
+    body: "{}",
+    headers: {
+      "content-type": "application/json",
+      "x-nanbo-token": server.token,
+      "sec-fetch-site": "cross-site",
+    },
+  });
+  assert.equal(fetchMetadataCrossSite.status, 403);
+});
+
+test("未授权草稿不能进入待公开", { timeout: 30_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const response = await server.postJson("api/drafts/ready?id=159", {});
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /公开授权/);
+
+  const withoutBody = await fetch(`${server.url}api/drafts/ready?id=159`, {
+    method: "POST",
+    headers: { "x-nanbo-token": server.token },
+  });
+  assert.equal(withoutBody.status, 400);
+  assert.match((await withoutBody.json()).error, /公开授权/);
+});
+
+test("管理台使用隔离目录合并草稿和公开增量", { timeout: 30_000 }, async (t) => {
+  const defaultAdditionsBefore = await readFile(join(root, "apps/portfolio-v2/catalog-additions.json"), "utf8");
+  const additions = {
+    schemaVersion: 1,
+    themes: [],
+    photos: [{
+      id: 160,
+      scene: "indoor",
+      theme: "magazine",
+      category: "mood",
+      title: "杂志肖像",
+      styleTitle: "情绪",
+      featured: false,
+      visibility: "published",
+      publishedAt: "2026-08-31T00:00:00.000Z",
+    }],
+  };
+  const server = await startIsolatedManager(t, {
+    additions,
+    async prepare({ publicPhotoRoot }) {
+      await mkdir(join(publicPhotoRoot, "full"), { recursive: true });
+      await mkdir(join(publicPhotoRoot, "thumbs"), { recursive: true });
+      await writeFile(join(publicPhotoRoot, "full/photo-160.jpg"), "registered-full");
+      await writeFile(join(publicPhotoRoot, "thumbs/photo-160.webp"), "registered-thumb");
+    },
+  });
+
+  const payload = await (await fetch(`${server.url}api/catalog`)).json();
+  assert.equal(payload.items.at(-1).id, 160);
+  assert.equal(payload.items.length, 159);
+  assert.equal(payload.drafts[0].id, 159);
+  assert.deepEqual(payload.counts, { public: 159, draft: 1, ready: 0, published: 0, archived: 0 });
+  assert.equal(payload.themes.find(({ id }) => id === "magazine").count, 19);
+
+  const registered = await fetch(`${server.url}media/full/160`);
+  assert.equal(registered.status, 200);
+  assert.equal(await registered.text(), "registered-full");
+  assert.equal((await fetch(`${server.url}media/full/161`)).status, 404);
+  assert.equal(await readFile(join(root, "apps/portfolio-v2/catalog-additions.json"), "utf8"), defaultAdditionsBefore);
+});
+
+test("草稿媒体同时校验会话、UUID 和资产目录", { timeout: 30_000 }, async (t) => {
+  const uuid = "0123456789abcdef01234567";
+  const escapedUuid = "abcdef0123456789abcdef01";
+  const server = await startIsolatedManager(t, {
+    async prepare({ draftDirectory, sandbox }) {
+      await mkdir(join(draftDirectory, "assets/full"), { recursive: true });
+      await mkdir(join(draftDirectory, "assets/thumbs"), { recursive: true });
+      await writeFile(join(draftDirectory, `assets/full/${uuid}.jpg`), "draft-full");
+      await writeFile(join(draftDirectory, `assets/thumbs/${uuid}.webp`), "draft-thumb");
+      await writeFile(join(sandbox, "outside.jpg"), "must-not-leak");
+      await symlink(join(sandbox, "outside.jpg"), join(draftDirectory, `assets/full/${escapedUuid}.jpg`));
+    },
+  });
+
+  assert.equal((await fetch(`${server.url}media/draft/full/${uuid}`)).status, 403);
+  assert.equal((await fetch(`${server.url}media/draft/full/not-a-uuid?token=${server.token}`)).status, 400);
+  const response = await fetch(`${server.url}media/draft/full/${uuid}?token=${server.token}`);
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "draft-full");
+  assert.equal((await fetch(`${server.url}media/draft/full/${escapedUuid}?token=${server.token}`)).status, 404);
+});
+
+test("启动时使用隔离路径恢复未完成的公开事务", { timeout: 30_000 }, async (t) => {
+  let transactionDir;
+  const before = `${JSON.stringify({ schemaVersion: 1, themes: [], photos: [] }, null, 2)}\n`;
+  const server = await startIsolatedManager(t, {
+    async prepare({ additionsPath, draftDirectory, publicPhotoRoot }) {
+      transactionDir = join(draftDirectory, "publication-transactions/photo-160-interrupted");
+      await mkdir(transactionDir, { recursive: true });
+      await writeFile(join(transactionDir, "before-additions.json"), before);
+      await writeFile(join(transactionDir, "transaction.json"), `${JSON.stringify({
+        schemaVersion: 1,
+        operation: "stage",
+        id: 160,
+        status: "manifest-installed",
+      }, null, 2)}\n`);
+      await writeFile(additionsPath, `${JSON.stringify({
+        schemaVersion: 1,
+        themes: [],
+        photos: [{ id: 160, scene: "indoor", theme: "magazine", category: "mood", visibility: "published" }],
+      }, null, 2)}\n`);
+      await mkdir(join(publicPhotoRoot, "full"), { recursive: true });
+      await mkdir(join(publicPhotoRoot, "thumbs"), { recursive: true });
+      await writeFile(join(publicPhotoRoot, "full/photo-160.jpg"), "partial-full");
+      await writeFile(join(publicPhotoRoot, "thumbs/photo-160.webp"), "partial-thumb");
+    },
+  });
+
+  assert.equal(await readFile(server.additionsPath, "utf8"), before);
+  await assert.rejects(() => stat(join(server.publicPhotoRoot, "full/photo-160.jpg")), /ENOENT/);
+  await assert.rejects(() => stat(join(server.publicPhotoRoot, "thumbs/photo-160.webp")), /ENOENT/);
+  await assert.rejects(() => stat(transactionDir), /ENOENT/);
+});
+
+test("草稿 API 校验主题并且归档恢复不删除资产", { timeout: 30_000 }, async (t) => {
+  const uuid = "0123456789abcdef01234567";
+  const server = await startIsolatedManager(t, {
+    async prepare({ draftDirectory }) {
+      await mkdir(join(draftDirectory, "assets/full"), { recursive: true });
+      await writeFile(join(draftDirectory, `assets/full/${uuid}.jpg`), "keep-me");
+    },
+  });
+
+  const theme = await server.postJson("api/draft-themes", {
+    id: "new-light",
+    label: "新光影",
+    scene: "indoor",
+    description: "干净光影",
+  });
+  assert.equal(theme.status, 200);
+  assert.equal((await server.postJson("api/draft-themes", {
+    id: "another-light",
+    label: "新光影",
+    scene: "indoor",
+    description: "另一主题",
+  })).status, 400);
+  assert.equal((await server.postJson("api/draft-themes", {
+    id: "Bad Theme",
+    label: "错误主题",
+    scene: "space",
+    description: "错误主题描述",
+  })).status, 400);
+
+  const update = await server.postJson("api/drafts/update?id=159", {
+    scene: "indoor",
+    theme: "new-light",
+    category: "mood",
+    approvedForPublicUse: true,
+  });
+  assert.equal(update.status, 200);
+  assert.equal((await server.postJson("api/drafts/ready?id=159", {})).status, 200);
+  assert.equal((await server.postJson("api/drafts/archive?id=159", {})).status, 200);
+  assert.equal((await server.postJson("api/drafts/restore?id=159", {})).status, 200);
+  assert.equal(await readFile(join(server.draftDirectory, `assets/full/${uuid}.jpg`), "utf8"), "keep-me");
+
+  const malformed = await fetch(new URL("api/drafts/update?id=159", server.url), {
+    method: "POST",
+    body: "{",
+    headers: { "content-type": "application/json", "x-nanbo-token": server.token },
+  });
+  assert.equal(malformed.status, 400);
+  assert.match((await malformed.json()).error, /有效 JSON/);
+});
+
+test("上传接口逐张返回成功或失败且成功草稿保留", { timeout: 60_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const source = await createTestPhoto(server.sandbox, "api-upload.jpg");
+  const upload = (body) => fetch(new URL("api/drafts/upload", server.url), {
+    method: "POST",
+    body,
+    headers: {
+      "content-type": "image/jpeg",
+      "x-file-name": encodeURIComponent("李先生_13800138000.jpg"),
+      "x-nanbo-token": server.token,
+    },
+  });
+
+  const accepted = await upload(await readFile(source));
+  assert.equal(accepted.status, 200);
+  assert.equal((await accepted.json()).result.id, 160);
+  const rejected = await upload(Buffer.from("not an image"));
+  assert.equal(rejected.status, 400);
+  const state = await createDraftStore({ rootDir: server.draftDirectory, legacyMaxId: 158 }).read();
+  assert.deepEqual(state.photos.map(({ id }) => id), [159, 160]);
+  assert.doesNotMatch(JSON.stringify(state), /李先生|13800138000/);
+});
+
+test("草稿更新只接受有效分类且不开放发布状态", { timeout: 30_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const invalidClassification = await server.postJson("api/drafts/update?id=159", {
+    scene: "space",
+    theme: "unknown-theme",
+    category: "unknown-category",
+    approvedForPublicUse: true,
+  });
+  assert.equal(invalidClassification.status, 400);
+
+  const genericPublish = await server.postJson("api/drafts/update?id=159", { status: "published" });
+  assert.equal(genericPublish.status, 400);
+  const [draft] = (await createDraftStore({ rootDir: server.draftDirectory, legacyMaxId: 158 }).read()).photos;
+  assert.equal(draft.status, "draft");
+});
+
+test("待公开安装与隐藏恢复保留编号和本地草稿", { timeout: 60_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const source = await createTestPhoto(server.sandbox, "stage-upload.jpg");
+  const upload = await fetch(new URL("api/drafts/upload", server.url), {
+    method: "POST",
+    body: await readFile(source),
+    headers: {
+      "content-type": "image/jpeg",
+      "x-file-name": "stage-upload.jpg",
+      "x-nanbo-token": server.token,
+    },
+  });
+  assert.equal(upload.status, 200);
+  const id = (await upload.json()).result.id;
+  assert.equal(id, 160);
+  assert.equal((await server.postJson(`api/drafts/update?id=${id}`, {
+    scene: "indoor",
+    theme: "magazine",
+    category: "mood",
+    approvedForPublicUse: true,
+  })).status, 200);
+  assert.equal((await server.postJson(`api/drafts/ready?id=${id}`, {})).status, 200);
+
+  const staged = await server.postJson(`api/drafts/stage?id=${id}`, {});
+  assert.equal(staged.status, 200);
+  let additions = JSON.parse(await readFile(server.additionsPath, "utf8"));
+  assert.equal(additions.photos[0].id, 160);
+  assert.equal(additions.photos[0].visibility, "published");
+  let state = await createDraftStore({ rootDir: server.draftDirectory, legacyMaxId: 158 }).read();
+  assert.equal(state.photos.find((photo) => photo.id === id).status, "ready");
+  assert.equal(typeof state.photos.find((photo) => photo.id === id).stagedAt, "string");
+
+  const hidden = await server.postJson(`api/public/visibility?id=${id}`, { visibility: "archived" });
+  assert.equal(hidden.status, 200);
+  additions = JSON.parse(await readFile(server.additionsPath, "utf8"));
+  assert.equal(additions.photos[0].visibility, "archived");
+  state = await createDraftStore({ rootDir: server.draftDirectory, legacyMaxId: 158 }).read();
+  assert.equal(state.photos.find((photo) => photo.id === id).status, "archived");
+
+  const restored = await server.postJson(`api/public/visibility?id=${id}`, { visibility: "published" });
+  assert.equal(restored.status, 200);
+  additions = JSON.parse(await readFile(server.additionsPath, "utf8"));
+  assert.equal(additions.photos[0].id, 160);
+  assert.equal(additions.photos[0].visibility, "published");
+  state = await createDraftStore({ rootDir: server.draftDirectory, legacyMaxId: 158 }).read();
+  assert.equal(state.photos.find((photo) => photo.id === id).status, "ready");
+});
 
 test("空增量保持 158 张、23 个主题和原顺序", async () => {
   const additions = JSON.parse(await readFile(new URL("../apps/portfolio-v2/catalog-additions.json", import.meta.url), "utf8"));

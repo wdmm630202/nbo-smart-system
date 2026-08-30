@@ -263,7 +263,19 @@ test("启动恢复会修复中断的首页图事务", { timeout: 30_000 }, async
 
 test("第二次启动不会恢复第一个进程的活跃事务", { timeout: 30_000 }, async () => {
   const port = 44_000 + randomBytes(2).readUInt16BE() % 1_000;
-  const environment = { ...process.env, NANBO_PORTFOLIO_PORT: String(port) };
+  const sandbox = await mkdtemp(join(tmpdir(), "nanbo-manager-startup-"));
+  const draftDirectory = join(sandbox, "drafts");
+  const additionsPath = join(sandbox, "catalog-additions.json");
+  const publicPhotoRoot = join(sandbox, "public");
+  await mkdir(publicPhotoRoot, { recursive: true });
+  await writeFile(additionsPath, `${JSON.stringify({ schemaVersion: 1, themes: [], photos: [] }, null, 2)}\n`);
+  const environment = {
+    ...process.env,
+    NANBO_PORTFOLIO_PORT: String(port),
+    NANBO_PORTFOLIO_DRAFT_ROOT: draftDirectory,
+    NANBO_PORTFOLIO_ADDITIONS_PATH: additionsPath,
+    NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: publicPhotoRoot,
+  };
   const serverScript = join(root, "tools/portfolio-manager-server.mjs");
   const first = spawn(process.execPath, [serverScript], { cwd: root, env: environment, stdio: ["ignore", "pipe", "pipe"] });
   const sentinelDir = join(transactionRoot, `active-instance-test-${Date.now()}-${randomBytes(4).toString("hex")}`);
@@ -284,5 +296,6 @@ test("第二次启动不会恢复第一个进程的活跃事务", { timeout: 30_
       first.kill("SIGTERM");
       await once(first, "exit");
     }
+    await rm(sandbox, { recursive: true, force: true });
   }
 });

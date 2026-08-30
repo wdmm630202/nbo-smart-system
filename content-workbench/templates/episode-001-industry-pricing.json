@@ -65,8 +65,8 @@
     "no_retouch_upsell"
   ],
   "script": {
-    "narration": "低价拍照，真正该问的不是标价，而是拍完以后，总价还会不会变。公开投诉分析提到，摄影服务投诉中出现过低价引流、底片归属和退款纠纷。消费提示也提醒，精修单价、制作费、底片是否赠送，都要写清。南铂268拍摄2套，全部原片全送，不推销加精修。拍前问清总价、底片、精修和交付时间。明码实价，拍得明白。",
-    "estimatedCharacters": 143,
+    "narration": "低价拍照，真正该问的不是标价。而是拍完以后，总价还会不会变。公开投诉分析提到：低价引流、底片归属、退款纠纷。精修单价、制作费、底片是否赠送，都要写清。南铂268拍摄2套。全部原片全送，不推销加精修。拍前问清总价、底片、精修和交付时间。明码实价，拍得明白。",
+    "estimatedCharacters": 126,
     "captions": [
       "低价拍照，真正该问的不是标价",
       "而是拍完以后，总价还会不会变",
@@ -79,14 +79,14 @@
     ]
   },
   "storyboard": [
-    { "role": "hook", "durationSeconds": 3.4, "visual": "深绿账单数字跳动，问号定格", "headline": "标价 ≠ 最终总价？" },
-    { "role": "problem", "durationSeconds": 4.0, "visual": "价格路径卡：低价入口→选片→额外收费", "headline": "拍完才知道，要再加钱" },
-    { "role": "evidence", "durationSeconds": 4.2, "visual": "官方投诉分析来源卡", "headline": "投诉分析点名三类争议" },
-    { "role": "mechanism", "durationSeconds": 4.0, "visual": "四项合同核对清单逐项亮起", "headline": "拍前先写清" },
-    { "role": "nanbo-proof", "durationSeconds": 3.6, "visual": "南铂套餐透明卡", "headline": "268拍摄2套" },
-    { "role": "nanbo-proof", "durationSeconds": 3.8, "visual": "原片文件夹和禁止加购图标", "headline": "原片全送｜不推销加精修" },
-    { "role": "checklist", "durationSeconds": 4.0, "visual": "总价、底片、精修、交付四格", "headline": "四件事，拍前问清" },
-    { "role": "cta", "durationSeconds": 3.0, "visual": "南铂品牌收口卡", "headline": "明码实价，拍得明白" }
+    { "role": "hook", "durationSeconds": 3.7, "visual": "深绿账单数字跳动，问号定格", "headline": "标价 ≠ 最终总价？" },
+    { "role": "problem", "durationSeconds": 3.7, "visual": "价格路径卡：低价入口→选片→额外收费", "headline": "拍完才知道，要再加钱" },
+    { "role": "evidence", "durationSeconds": 5.87, "visual": "官方投诉分析来源卡", "headline": "投诉分析点名三类争议" },
+    { "role": "mechanism", "durationSeconds": 5.13, "visual": "四项合同核对清单逐项亮起", "headline": "拍前先写清" },
+    { "role": "nanbo-proof", "durationSeconds": 2.57, "visual": "南铂套餐透明卡", "headline": "268拍摄2套" },
+    { "role": "nanbo-proof", "durationSeconds": 3.5, "visual": "原片文件夹和禁止加购图标", "headline": "原片全送｜不推销加精修" },
+    { "role": "checklist", "durationSeconds": 4.43, "visual": "总价、底片、精修、交付四格", "headline": "四件事，拍前问清" },
+    { "role": "cta", "durationSeconds": 2.7, "visual": "南铂品牌收口卡", "headline": "明码实价，拍得明白" }
   ],
   "publication": {
     "autoPublish": false,

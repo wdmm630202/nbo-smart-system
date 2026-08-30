@@ -7,6 +7,8 @@
 - `templates/episode-001-industry-pricing.json`：机器可读的完整内容包。
 - `templates/episode-001-evidence.md`：公开来源与可说/不可说边界。
 - `templates/episode-001-script.md`：首期旁白和剪辑节奏。
+- `templates/episode-001-sync-map.md`：按真实音频时长记录的音画对齐表。
+- `templates/episode-001-render-receipt.json`：成片规格、路径与质检回执。
 - `templates/photography-industry-chaos-catalog.md`：后续日更选题库。
 
 ## 安全边界

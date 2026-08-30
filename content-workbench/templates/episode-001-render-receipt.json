@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "renderedAt": "2026-08-31",
+  "chatcutProjectId": "f99d38d1-2afc-4f50-ad76-d625e88d6738",
+  "chatcutTimelineId": "4c18ae6d-d3f9-4dfa-85ed-3f6c0b250fb3",
+  "previewPath": "/Users/nanbosheyingimacpro/Documents/NBO-行业内容工作台/exports/episode-001-industry-pricing/episode-001-industry-pricing.mp4",
+  "subtitlePath": "/Users/nanbosheyingimacpro/Documents/NBO-行业内容工作台/exports/episode-001-industry-pricing/episode-001-industry-pricing.srt",
+  "video": {
+    "durationSeconds": 31.6,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "sampleRate": 48000,
+    "channels": 2,
+    "sizeBytes": 6126486
+  },
+  "audio": {
+    "integratedLufs": -19.1,
+    "loudnessRangeLu": 4.0,
+    "truePeakDbfs": -3.4
+  },
+  "verification": {
+    "machineSpec": "passed",
+    "representativeFrames": 8,
+    "captionCards": 13,
+    "knownWarnings": [
+      "深色品牌底会被黑场检测器识别为黑场；8张代表帧证明画面实际有内容。",
+      "存在3段超过1秒的自然停顿。",
+      "结尾品牌句由固定画面承载，自动字幕未生成该句。"
+    ]
+  },
+  "publication": {
+    "published": false,
+    "humanPreviewApproved": false
+  }
+}

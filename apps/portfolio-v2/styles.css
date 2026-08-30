@@ -33,16 +33,32 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .header-work-link { display: flex; align-items: center; gap: .45rem; padding: .48rem .68rem; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.62); font-size: .62rem; }
 .header-work-link b { display: grid; min-width: 1.4rem; height: 1.4rem; place-items: center; border-radius: 999px; color: white; background: var(--ink); font-family: Georgia, serif; font-size: .58rem; }
 
-.campaign { position: relative; min-height: min(128vw, 38rem); overflow: hidden; background: #191914; }
-.campaign > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 34%; }
-.campaign-shade { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(0,0,0,.03) 25%,rgba(0,0,0,.86) 100%), linear-gradient(90deg,rgba(0,0,0,.28),transparent 70%); }
-.campaign-copy { position: absolute; z-index: 2; right: 1.2rem; bottom: 5.8rem; left: 1.2rem; color: white; }
-.campaign-copy p { margin: 0 0 .7rem; color: rgba(255,255,255,.7); font-size: .55rem; font-weight: 650; letter-spacing: .22em; }
-.campaign-copy h1 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: clamp(2.5rem, 11.8vw, 4.6rem); font-weight: 400; letter-spacing: -.055em; line-height: 1.03; }
-.campaign-copy > span { display: block; margin-top: .85rem; color: rgba(255,255,255,.66); font-size: .68rem; letter-spacing: .09em; }
-.campaign-copy a { display: inline-flex; align-items: center; gap: 1.5rem; margin-top: 1.15rem; padding: .7rem 1rem; border-radius: 999px; color: var(--ink); background: white; font-size: .69rem; font-weight: 700; }
-.campaign-copy a b { font-size: .9rem; font-weight: 400; }
-.campaign-code { position: absolute; z-index: 2; right: 1rem; top: 1rem; color: rgba(255,255,255,.7); font-family: Georgia, serif; font-size: .52rem; letter-spacing: .14em; writing-mode: vertical-rl; }
+.campaign { position: relative; height: min(145vw,41rem); min-height: 31rem; overflow: hidden; background: #11120f; }
+.campaign-track { display: flex; width: 100%; height: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-behavior: smooth; scroll-snap-type: x mandatory; scrollbar-width: none; touch-action: pan-x pan-y; cursor: grab; }
+.campaign-track::-webkit-scrollbar { display: none; }
+.campaign-track.is-dragging { cursor: grabbing; scroll-behavior: auto; scroll-snap-type: none; }
+.campaign-slide { position: relative; width: 100%; height: 100%; flex: 0 0 100%; overflow: hidden; background: #171813; scroll-snap-align: start; scroll-snap-stop: always; }
+.campaign-slide > a { position: absolute; inset: 0; display: block; color: white; }
+.campaign-slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 34%; transform: scale(1.002); transition: transform .45s cubic-bezier(.2,.8,.2,1), filter .2s ease; }
+.campaign-slide[data-theme="city-street"] img { object-position: center 42%; }
+.campaign-slide[data-theme="forest"] img { object-position: center 38%; }
+.campaign-slide[data-theme="retro-hk"] img { object-position: center 42%; }
+.campaign-slide-shade { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(0,0,0,.02) 24%,rgba(0,0,0,.13) 48%,rgba(0,0,0,.9) 100%), linear-gradient(90deg,rgba(0,0,0,.18),transparent 62%); }
+.campaign-slide-copy { position: absolute; z-index: 2; right: 1.35rem; bottom: 6.75rem; left: 1.35rem; display: grid; justify-items: center; color: white; text-align: center; text-shadow: 0 2px 18px rgba(0,0,0,.5); }
+.campaign-slide-copy > small { color: rgba(255,255,255,.73); font-family: Georgia,"Times New Roman",serif; font-size: .5rem; font-weight: 650; letter-spacing: .24em; }
+.campaign-slide-title { max-width: 100%; margin-top: .22rem; font-family: "HanziPen SC","STKaiti","Kaiti SC","KaiTi","Songti SC",serif; font-size: clamp(3.25rem,16vw,5.9rem); font-weight: 400; letter-spacing: -.09em; line-height: .96; white-space: nowrap; transform: rotate(-1.6deg); text-wrap: nowrap; }
+.campaign-slide-copy > span { margin-top: .35rem; font-family: Georgia,"Songti SC",serif; font-size: clamp(1.05rem,4.8vw,1.45rem); letter-spacing: .04em; }
+.campaign-slide-copy > em { margin-top: .45rem; color: rgba(255,255,255,.72); font-size: .62rem; font-style: normal; letter-spacing: .08em; }
+.campaign-slide-copy > b { display: inline-flex; align-items: center; gap: .5rem; margin-top: .72rem; padding: .4rem .66rem; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; color: rgba(255,255,255,.9); background: rgba(12,13,11,.25); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: .5rem; font-weight: 600; letter-spacing: .08em; }
+.campaign-slide-copy > b i { font-family: Georgia,serif; font-size: .68rem; font-style: normal; font-weight: 400; }
+.campaign-slide:active img { filter: brightness(.9); transform: scale(1.02); }
+.campaign-code { position: absolute; z-index: 2; right: 1rem; top: 1rem; color: rgba(255,255,255,.72); font-family: Georgia, serif; font-size: .5rem; letter-spacing: .14em; writing-mode: vertical-rl; }
+.campaign-progress { position: absolute; z-index: 4; right: 2.2rem; bottom: 4.7rem; left: 2.2rem; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .18rem; pointer-events: auto; }
+.campaign-progress button { position: relative; height: 1.05rem; padding: 0; overflow: hidden; border: 0; background: transparent; }
+.campaign-progress button::before { position: absolute; top: 50%; right: 0; left: 0; height: 2px; background: rgba(255,255,255,.3); content: ""; transform: translateY(-50%); }
+.campaign-progress button::after { position: absolute; top: 50%; bottom: auto; left: 0; width: 100%; height: 2px; background: white; content: ""; transform: translate(-105%,-50%); transition: transform .28s ease; }
+.campaign-progress button[aria-current="true"]::after { transform: translate(0,-50%); }
+.campaign-progress button:focus-visible { outline: 1px solid rgba(255,255,255,.72); outline-offset: 1px; border-radius: .2rem; }
 
 .quick-panel { position: relative; z-index: 5; display: grid; width: calc(100% - 1.5rem); grid-template-columns: repeat(4,1fr); margin: -3.6rem auto 0; overflow: hidden; border: 1px solid rgba(17,18,16,.07); border-radius: 1.35rem; background: rgba(255,255,255,.94); box-shadow: 0 18px 55px rgba(27,26,21,.18); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 .quick-panel > * { display: grid; min-width: 0; padding: .9rem .2rem .82rem; place-items: center; border: 0; border-right: 1px solid var(--line); background: transparent; text-align: center; }
@@ -150,26 +166,44 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .promise-grid span { color: var(--subtle); font-size: .5rem; }
 .promise > a { display: flex; max-width: 22rem; justify-content: space-between; margin: 2rem auto 0; padding: 1rem 1.2rem; border-radius: 999px; color: white; background: var(--ink); font-size: .7rem; font-weight: 700; }
 
-.page-footer { display: grid; gap: 1.3rem; padding: 2.8rem 1rem calc(6.5rem + env(safe-area-inset-bottom)); color: white; background: #10110f; text-align: left; }
-.footer-identity { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: .35rem .2rem; }
-.footer-brand { justify-self: start; }
+.page-footer { --footer-left-column: clamp(8.1rem,37.45vw,9.36rem); --footer-qr-column: 8.15rem; display: grid; gap: .55rem; padding: 1rem 1rem calc(4.6rem + env(safe-area-inset-bottom)); color: white; background: #10110f; text-align: left; }
+.footer-identity { display: flex; width: 100%; min-width: 0; align-items: flex-start; padding: 0; }
+.footer-brand { display: grid; width: 100%; grid-template-columns: calc(1px + .42rem + 1.05rem + .32rem) minmax(0,1fr) calc(.32rem + 1.45rem + .42rem + 1px); align-items: center; justify-self: start; gap: 0; }
+.footer-brand > span:last-child { min-width: 0; grid-template-columns: max-content; justify-content: end; justify-self: stretch; text-align: right; text-align-last: right; }
 .footer-brand .brand-seal { border-color: rgba(255,255,255,.65); }
-.footer-brand small, .footer-identity > p, .footer-identity > small { color: rgba(255,255,255,.42); }
-.footer-identity > p { margin: 1.15rem 0 .55rem; font-size: .55rem; letter-spacing: .1em; }
-.footer-identity > small { font-size: .5rem; letter-spacing: .12em; }
-.wechat-contact-card { position: relative; display: grid; min-width: 0; grid-template-columns: minmax(0,1fr) clamp(6.9rem,30vw,8rem); align-items: center; gap: .85rem; overflow: hidden; padding: .9rem; border: 1px solid rgba(197,165,105,.28); border-radius: 1.2rem; background: linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018)); box-shadow: inset 0 1px rgba(255,255,255,.07), 0 20px 52px rgba(0,0,0,.24); isolation: isolate; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.footer-brand small, .wechat-contact-details { color: rgba(255,255,255,.42); }
+.footer-brand .brand-seal { width: 1.75rem; height: 1.75rem; font-size: .88rem; }
+.footer-brand strong { min-width: 0; font-size: .78rem; letter-spacing: 0; text-align: justify; text-align-last: justify; text-justify: inter-character; }
+.footer-brand small { font-size: .43rem; letter-spacing: .12em; white-space: nowrap; }
+.wechat-contact-card { position: relative; display: grid; width: min(100%,36rem); min-width: 0; grid-template-columns: minmax(0,1fr) var(--footer-left-column) minmax(0,1fr) var(--footer-qr-column) minmax(0,1fr); align-items: stretch; overflow: hidden; margin-inline: auto; padding-block: .7rem; border: 1px solid rgba(197,165,105,.28); border-radius: 1.05rem; background: linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018)); box-shadow: inset 0 1px rgba(255,255,255,.07), 0 16px 38px rgba(0,0,0,.22); isolation: isolate; }
 .wechat-contact-card::before { position: absolute; z-index: -1; top: -5rem; left: -4rem; width: 13rem; height: 13rem; border-radius: 50%; background: radial-gradient(circle,rgba(169,137,85,.15),transparent 68%); content: ""; }
-.wechat-contact-card:active { border-color: rgba(197,165,105,.58); background: linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.03)); transform: scale(.985); }
-.wechat-contact-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; }
-.wechat-contact-copy > strong { font-family: Georgia,"Songti SC",serif; font-size: clamp(1.12rem,5.3vw,1.45rem); font-weight: 400; letter-spacing: -.035em; line-height: 1.16; }
-.wechat-contact-link { display: flex; max-width: 100%; align-items: center; gap: .42rem; margin-top: .9rem; padding: .52rem .58rem; border-radius: 999px; color: #141510; background: #f5f3ed; font-size: .56rem; font-weight: 720; box-shadow: 0 7px 22px rgba(0,0,0,.18); }
-.wechat-contact-link i { flex: 0 0 auto; padding: .22rem .34rem; border-radius: 999px; color: white; background: #23a849; font-size: .43rem; font-style: normal; letter-spacing: .06em; }
-.wechat-contact-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wechat-contact-link b { flex: 0 0 auto; color: #8f7448; font-size: .72rem; font-weight: 400; }
-.wechat-contact-copy > small { margin-top: .58rem; color: rgba(255,255,255,.43); font-size: .48rem; letter-spacing: .07em; line-height: 1.5; }
-.wechat-qr-frame { display: grid; min-width: 0; gap: .42rem; padding: .45rem .45rem .5rem; border: 1px solid rgba(255,255,255,.7); border-radius: .95rem; color: #6f6d66; background: #f7f6f1; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
-.wechat-qr-frame img { width: 100%; height: auto; aspect-ratio: 1; border-radius: .52rem; background: white; -webkit-touch-callout: default; }
-.wechat-qr-frame small { font-size: .45rem; font-weight: 650; letter-spacing: .12em; text-align: center; }
+.wechat-contact-left { --contact-flow-gap: .55rem; display: grid; min-width: 0; grid-column: 2; grid-template-rows: repeat(4,auto); align-content: center; align-items: start; justify-items: start; padding-block: .12rem .08rem; }
+.wechat-contact-title { width: 100%; max-width: none; font-family: Georgia,"Songti SC",serif; font-size: clamp(.69rem,3.2vw,.8rem); font-weight: 400; letter-spacing: -.025em; line-height: 1.2; white-space: nowrap; }
+.contact-action-stack { display: grid; width: 100%; overflow: hidden; margin-top: var(--contact-flow-gap); border: 1px solid rgba(255,255,255,.18); border-radius: .82rem; color: white; background: #0d0e0c; box-shadow: 0 8px 20px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.1); }
+.wechat-contact-link { display: grid; width: 100%; min-width: 0; grid-template-columns: 1.05rem minmax(0,1fr) 1.45rem; align-items: center; gap: .32rem; margin: 0; padding: .32rem .42rem; border-radius: 0; color: white; background: transparent; font-size: .48rem; font-weight: 720; box-shadow: none; }
+.wechat-contact-link i { display: grid; width: 1.05rem; height: 1.05rem; place-items: center; border-radius: 50%; color: white; background: #23a849; font-size: .39rem; font-style: normal; letter-spacing: .04em; }
+.wechat-logo { display: block; width: .78rem; height: .78rem; fill: currentColor; }
+.wechat-logo circle { fill: #23a849; }
+.wechat-contact-link > span { overflow: hidden; letter-spacing: 0; text-align: justify; text-align-last: justify; text-justify: inter-character; text-overflow: ellipsis; white-space: nowrap; }
+.wechat-contact-link b { justify-self: end; color: rgba(255,255,255,.72); font-size: .68rem; font-weight: 400; line-height: 1; }
+.phone-contact-link { display: grid; width: 100%; min-width: 0; min-height: 1.35rem; grid-template-columns: 1.05rem minmax(0,1fr) 1.45rem; align-items: center; gap: .32rem; margin: 0; padding: .25rem .42rem; border: 0; border-radius: 0; color: white; background: transparent; box-shadow: inset 0 1px rgba(255,255,255,.11); }
+.phone-contact-icon { display: grid; width: 1.05rem; height: 1.05rem; place-items: center; border-radius: 50%; color: #5bdc78; background: rgba(52,199,89,.16); }
+.phone-contact-icon svg { width: .5rem; height: .5rem; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.phone-contact-number { min-width: 0; font-size: .49rem; font-variant-numeric: tabular-nums; font-weight: 620; letter-spacing: 0; text-align: justify; text-align-last: justify; text-justify: inter-character; white-space: nowrap; }
+.phone-contact-link small { justify-self: end; color: rgba(255,255,255,.58); font-size: .36rem; letter-spacing: .04em; white-space: nowrap; }
+.wechat-contact-link, .phone-contact-link, .wechat-contact-right { transition: transform .12s ease, opacity .12s ease; }
+.wechat-contact-link:active, .phone-contact-link:active { opacity: .68; transform: none; }
+.wechat-contact-right:active { opacity: .82; transform: scale(.97); }
+.wechat-contact-left .footer-identity { align-self: start; margin-top: var(--contact-flow-gap); }
+.wechat-contact-details { margin-top: .4rem; margin-left: calc(.42rem + 1px); font-size: .46rem; letter-spacing: .06em; line-height: 1.5; }
+.wechat-contact-right { display: grid; min-width: 0; grid-column: 4; align-items: center; }
+.wechat-qr-frame { display: grid; min-width: 0; gap: .24rem; padding: .3rem; border: 1px solid rgba(255,255,255,.7); border-radius: .8rem; color: #6f6d66; background: #f7f6f1; box-shadow: 0 10px 24px rgba(0,0,0,.22); }
+.wechat-qr-frame img { width: 100%; height: auto; aspect-ratio: 1; border-radius: .42rem; background: white; -webkit-touch-callout: default; }
+.wechat-qr-frame small { font-size: .39rem; font-weight: 650; letter-spacing: .08em; text-align: center; }
+.footer-signature { display: grid; width: min(calc(100% - 2px),calc(36rem - 2px)); grid-template-columns: minmax(0,1fr) var(--footer-left-column) minmax(0,1fr) var(--footer-qr-column) minmax(0,1fr); align-items: center; margin: 0 auto .55rem; color: rgba(255,255,255,.38); font-size: .43rem; letter-spacing: .08em; white-space: nowrap; }
+.footer-signature > span { grid-column: 2; margin-left: calc(.42rem + 1px); }
+.footer-signature > small { grid-column: 4; justify-self: center; }
+.footer-signature small { font-size: inherit; letter-spacing: .1em; }
 
 .viewer { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; color: white; background: #090a08; }
 .viewer::backdrop { background: #090a08; }
@@ -283,14 +317,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .noscript { margin: 0; padding: 1rem; color: white; background: #9c2f26; text-align: center; }
 
 @media (min-width: 700px) {
-  .campaign { min-height: 39rem; }
+  .campaign { height: 41rem; }
   .quick-panel { width: calc(100% - 3rem); }
   .style-card { width: 18rem; }
   .theme-directory { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .gallery-grid { gap: .45rem; padding: 0 1rem; }
-  .page-footer { grid-template-columns: minmax(0,.72fr) minmax(23rem,1.28fr); gap: 1.8rem; padding-inline: 2rem; }
-  .footer-identity { padding-left: .4rem; }
-  .wechat-contact-card { grid-template-columns: minmax(0,1fr) 8.3rem; gap: 1.1rem; padding: 1rem; }
+  .page-footer { padding-inline: 2rem; }
   .viewer-arrow { display: grid; }
 }
 @media (min-width: 900px) {
@@ -298,7 +330,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
   .tab-bar { bottom: 1rem; border: 1px solid rgba(17,18,16,.09); border-radius: 1.3rem 1.3rem 0 0; }
   .selection-bar { bottom: 5.7rem; }
 }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *,*::before,*::after { animation-duration: .01ms!important; transition-duration: .01ms!important; } }
+@media (prefers-reduced-motion: reduce) { html,.campaign-track { scroll-behavior: auto; } *,*::before,*::after { animation-duration: .01ms!important; transition-duration: .01ms!important; } }
 @media (prefers-reduced-transparency: reduce) { .mini-header,.filter-bar,.tab-bar,.selection-bar { background: #f7f6f2; -webkit-backdrop-filter: none; backdrop-filter: none; } .selection-bar { color: white; background: #111210; } }
 @keyframes selection-in { from { opacity: 0; transform: translateY(1.2rem) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes sheet-in { from { opacity: .5; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }

@@ -47,10 +47,15 @@ const customerNameInput = document.querySelector("#customer-name");
 const additionalNoteInput = document.querySelector("#additional-note");
 const focusInputs = [...document.querySelectorAll('input[name="brief-focus"]')];
 const toast = document.querySelector("#toast");
+const campaignTrack = document.querySelector("#campaign-track");
+const campaignSlides = [...document.querySelectorAll(".campaign-slide")];
+const campaignProgressButtons = [...document.querySelectorAll("[data-campaign-target]")];
+const campaignLinks = [...document.querySelectorAll("[data-campaign-theme]")];
 
 const PAGE_SIZE = 30;
-let activeScene = "all";
-let activeTheme = "all";
+const initialThemeId = new URLSearchParams(window.location.search).get("theme") || "";
+let activeTheme = themeById[initialThemeId] ? initialThemeId : "all";
+let activeScene = activeTheme === "all" ? "all" : themeById[activeTheme].scene;
 let filteredItems = [...galleryItems];
 let visibleCount = PAGE_SIZE;
 let viewerIndex = 0;
@@ -66,6 +71,11 @@ let generationId = 0;
 let settingsRefreshTimer;
 let lastCopiedSignature = "";
 let lastCopyMode = "";
+let campaignPointerId = -1;
+let campaignDragStartX = 0;
+let campaignDragStartScroll = 0;
+let campaignDidDrag = false;
+let suppressCampaignClick = false;
 
 function trackProductEvent(type, detail = {}) {
   const event = { id: crypto.randomUUID(), type, detail, at: new Date().toISOString() };
@@ -307,6 +317,118 @@ function loadMore() {
   renderGallery();
   trackProductEvent("load_more", { targetId: String(visibleCount), theme: activeTheme, scene: activeScene });
 }
+
+function campaignIndex() {
+  if (!campaignTrack?.clientWidth) return 0;
+  return Math.max(0, Math.min(campaignSlides.length - 1, Math.round(campaignTrack.scrollLeft / campaignTrack.clientWidth)));
+}
+
+function updateCampaignProgress() {
+  const currentIndex = campaignIndex();
+  campaignProgressButtons.forEach((button, index) => {
+    button.setAttribute("aria-current", String(index === currentIndex));
+  });
+}
+
+function scrollCampaignTo(index, behavior = "smooth") {
+  const slide = campaignSlides[index];
+  if (!campaignTrack || !slide) return;
+  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  campaignTrack.scrollTo({ left: slide.offsetLeft, behavior: reduceMotion ? "auto" : behavior });
+}
+
+function restoreThemeFromLocation() {
+  const themeId = new URLSearchParams(window.location.search).get("theme") || "";
+  if (themeById[themeId]) {
+    activeTheme = themeId;
+    activeScene = themeById[themeId].scene;
+  } else {
+    activeTheme = "all";
+    activeScene = "all";
+  }
+  visibleCount = PAGE_SIZE;
+  applyGalleryFilters();
+  renderFilters();
+  renderGallery();
+}
+
+function openCampaignTheme(themeId) {
+  if (!themeById[themeId]) return;
+  setTheme(themeId);
+  const url = new URL(window.location.href);
+  url.searchParams.set("theme", themeId);
+  url.hash = "works";
+  window.history.pushState({ theme: themeId }, "", url);
+  document.querySelector("#works")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  trackProductEvent("campaign_theme_open", { targetId: themeId, targetLabel: themeById[themeId].label, theme: themeId, scene: themeById[themeId].scene });
+}
+
+function finishCampaignDrag(event, cancelled = false) {
+  if (campaignPointerId !== event.pointerId) return;
+  campaignTrack?.releasePointerCapture?.(event.pointerId);
+  campaignTrack?.classList.remove("is-dragging");
+  campaignPointerId = -1;
+  if (cancelled) {
+    campaignDidDrag = false;
+    return;
+  }
+  suppressCampaignClick = campaignDidDrag;
+  scrollCampaignTo(campaignIndex());
+  window.setTimeout(() => { suppressCampaignClick = false; }, 0);
+}
+
+if (campaignTrack) {
+  campaignTrack.addEventListener("scroll", updateCampaignProgress, { passive: true });
+
+  campaignTrack.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    scrollCampaignTo(campaignIndex() + direction);
+  });
+
+  campaignTrack.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    campaignPointerId = event.pointerId;
+    campaignDragStartX = event.clientX;
+    campaignDragStartScroll = campaignTrack.scrollLeft;
+    campaignDidDrag = false;
+    campaignTrack.setPointerCapture?.(event.pointerId);
+  });
+
+  campaignTrack.addEventListener("pointermove", (event) => {
+    if (campaignPointerId !== event.pointerId) return;
+    const deltaX = event.clientX - campaignDragStartX;
+    if (!campaignDidDrag && Math.abs(deltaX) > 8) {
+      campaignDidDrag = true;
+      campaignTrack.classList.add("is-dragging");
+    }
+    if (!campaignDidDrag) return;
+    event.preventDefault();
+    campaignTrack.scrollLeft = campaignDragStartScroll - deltaX;
+  });
+
+  campaignTrack.addEventListener("pointerup", (event) => finishCampaignDrag(event));
+  campaignTrack.addEventListener("pointercancel", (event) => finishCampaignDrag(event, true));
+}
+
+campaignProgressButtons.forEach((button) => {
+  button.addEventListener("click", () => scrollCampaignTo(Number(button.dataset.campaignTarget)));
+});
+
+campaignLinks.forEach((link) => {
+  link.addEventListener("click", (event) => {
+    if (suppressCampaignClick) {
+      event.preventDefault();
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    openCampaignTheme(link.dataset.campaignTheme);
+  });
+});
+
+window.addEventListener("popstate", restoreThemeFromLocation);
 
 function updateLikeButton(button, id) {
   const selected = favoriteIds.has(id);
@@ -882,11 +1004,12 @@ tabTargets.forEach((id) => {
   if (section) tabObserver.observe(section);
 });
 
-document.querySelector("#year").textContent = new Date().getFullYear();
 hydrateSettingsForm();
+applyGalleryFilters();
 renderFilters();
 renderGallery();
 updateSelectionUi();
+updateCampaignProgress();
 
 function scheduleAnalytics() {
   const load = () => import(`./analytics.js?v=${encodeURIComponent(buildVersion)}`).catch(() => {});

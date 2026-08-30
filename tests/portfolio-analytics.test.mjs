@@ -211,7 +211,10 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
           slideCount: slides.length,
           progressCount: progress.length,
           uniqueThemes: new Set(slides.map((slide) => slide.dataset.theme)).size,
+          themes: slides.map((slide) => slide.dataset.theme),
           linkTargets: slides.map((slide) => slide.querySelector("a")?.getAttribute("href") || ""),
+          imageSources: slides.map((slide) => slide.querySelector("img")?.getAttribute("src") || ""),
+          deferredImageCount: slides.filter((slide) => slide.querySelector("img")?.getAttribute("loading") === "lazy").length,
           scrollSnapType: trackStyle?.scrollSnapType || "",
           overflowX: trackStyle?.overflowX || "",
           scrollLeft: track?.scrollLeft || 0,
@@ -499,9 +502,25 @@ test("微信入口使用微信 Logo 和点击文案", { skip: !(await exists(new
 
 test("首页新品轮播可原生横向滑动并同步进度", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
   const metrics = await measureMobileCampaign({ slideIndex: 1 });
-  assert.equal(metrics.slideCount, 4, "首屏应展示 4 个不重复新品主题");
-  assert.equal(metrics.uniqueThemes, 4, "新品轮播不应重复跳转到同一主题");
-  assert.equal(metrics.progressCount, 4, "每个新品都应有对应进度段");
+  assert.equal(metrics.slideCount, 10, "首屏应展示 10 个不重复新品主题");
+  assert.equal(metrics.uniqueThemes, 10, "新品轮播不应重复跳转到同一主题");
+  assert.equal(metrics.progressCount, 10, "每个新品都应有对应进度段");
+  assert.deepEqual(metrics.themes, [
+    "magazine",
+    "city-street",
+    "forest",
+    "retro-hk",
+    "business-boss",
+    "boxing",
+    "cyberpunk",
+    "moto",
+    "city-night",
+    "wuxia-outdoor",
+  ]);
+  assert.equal(new Set(metrics.linkTargets).size, 10, "10 个新品应分别进入自己的主题详情");
+  assert.equal(new Set(metrics.imageSources).size, 10, "10 个新品不应重复使用同一张主视觉");
+  assert.ok(metrics.imageSources.every((source) => /\/featured\/photo-\d{3}\.webp/.test(source)), "新品主视觉应使用轻量首页 WebP");
+  assert.equal(metrics.deferredImageCount, 9, "除第一张外的主视觉应延迟加载");
   assert.match(metrics.scrollSnapType, /^x/);
   assert.ok(["auto", "scroll"].includes(metrics.overflowX), `首屏无法横向滑动：${metrics.overflowX}`);
   assert.equal(metrics.slidesFitTrack, true, "每次滑动应精确对齐一张新品");

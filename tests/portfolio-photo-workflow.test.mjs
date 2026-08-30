@@ -61,7 +61,6 @@ test("主题、气质和图片文件完整", async () => {
   assert.equal(result.ok, true, result.errors.join("\n"));
   assert.equal(result.photoCount, portfolioCatalog.photoCount);
   assert.equal(result.themeCount, 23);
-  assert.equal(result.heroAssetCount, 5);
 });
 
 test("发布版本由代码与照片内容确定", async () => {

@@ -43,6 +43,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .campaign-slide[data-theme="city-street"] img { object-position: center 42%; }
 .campaign-slide[data-theme="forest"] img { object-position: center 38%; }
 .campaign-slide[data-theme="retro-hk"] img { object-position: center 42%; }
+.campaign-slide[data-theme="business-boss"] img { object-position: center 38%; }
+.campaign-slide[data-theme="boxing"] img { object-position: center 38%; }
+.campaign-slide[data-theme="cyberpunk"] img { object-position: center 36%; }
+.campaign-slide[data-theme="moto"] img { object-position: center 42%; }
+.campaign-slide[data-theme="city-night"] img { object-position: center 40%; }
+.campaign-slide[data-theme="wuxia-outdoor"] img { object-position: center 38%; }
 .campaign-slide-shade { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(0,0,0,.02) 24%,rgba(0,0,0,.13) 48%,rgba(0,0,0,.9) 100%), linear-gradient(90deg,rgba(0,0,0,.18),transparent 62%); }
 .campaign-slide-copy { position: absolute; z-index: 2; right: 1.35rem; bottom: 6.75rem; left: 1.35rem; display: grid; justify-items: center; color: white; text-align: center; text-shadow: 0 2px 18px rgba(0,0,0,.5); }
 .campaign-slide-copy > small { color: rgba(255,255,255,.73); font-family: Georgia,"Times New Roman",serif; font-size: .5rem; font-weight: 650; letter-spacing: .24em; }
@@ -53,7 +59,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .campaign-slide-copy > b i { font-family: Georgia,serif; font-size: .68rem; font-style: normal; font-weight: 400; }
 .campaign-slide:active img { filter: brightness(.9); transform: scale(1.02); }
 .campaign-code { position: absolute; z-index: 2; right: 1rem; top: 1rem; color: rgba(255,255,255,.72); font-family: Georgia, serif; font-size: .5rem; letter-spacing: .14em; writing-mode: vertical-rl; }
-.campaign-progress { position: absolute; z-index: 4; right: 2.2rem; bottom: 4.7rem; left: 2.2rem; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .18rem; pointer-events: auto; }
+.campaign-progress { position: absolute; z-index: 4; right: 2.2rem; bottom: 4.7rem; left: 2.2rem; display: grid; grid-template-columns: repeat(10,minmax(0,1fr)); gap: .12rem; pointer-events: auto; }
 .campaign-progress button { position: relative; height: 1.05rem; padding: 0; overflow: hidden; border: 0; background: transparent; }
 .campaign-progress button::before { position: absolute; top: 50%; right: 0; left: 0; height: 2px; background: rgba(255,255,255,.3); content: ""; transform: translateY(-50%); }
 .campaign-progress button::after { position: absolute; top: 50%; bottom: auto; left: 0; width: 100%; height: 2px; background: white; content: ""; transform: translate(-105%,-50%); transition: transform .28s ease; }

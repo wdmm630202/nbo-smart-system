@@ -46,7 +46,7 @@ export const portfolioCatalog = Object.freeze({
     { id: "sport-documentary", scene: "outdoor", label: "运动纪实", description: "棒球、场地与动态感", series: [57] },
   ],
   featuredIds: [137, 37, 115, 127, 111, 77, 107, 51, 81, 129, 11, 59, 93, 139, 147, 157, 45, 49, 73, 99, 21, 65, 85, 119, 13, 95, 105, 123, 143, 31],
-  heroAssetIds: [31, 37, 77, 127, 137],
+  heroAssetIds: [13, 21, 31, 37, 77, 79, 85, 111, 127, 137, 154],
 });
 
 export function buildPortfolioItems(catalog = portfolioCatalog) {

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>南铂行业内容工作台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-lockup" aria-label="南铂摄影行业内容工作台">
+      <span class="brand-mark" aria-hidden="true">NBO</span>
+      <span><strong>行业内容工作台</strong><small>明码实价，拍得明白</small></span>
+    </div>
+    <div class="top-status">
+      <span class="security-pill"><i aria-hidden="true"></i>本机运行 · 素材不上传</span>
+      <button class="quiet-button" id="new-project-button" type="button">新建一期</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="project-sidebar" aria-label="内容项目">
+      <div class="sidebar-heading">
+        <p class="eyebrow">PROJECTS</p>
+        <h1>日更项目</h1>
+      </div>
+      <form class="new-project-form" id="new-project-form" hidden>
+        <label for="new-project-title">这一期讲什么</label>
+        <input id="new-project-title" name="title" autocomplete="off" placeholder="例如：低价摄影的真实价格" required>
+        <div class="form-actions">
+          <button class="small-primary" type="submit">创建</button>
+          <button class="small-quiet" type="button" id="cancel-new-project">取消</button>
+        </div>
+      </form>
+      <div class="project-list" id="project-list" role="list"></div>
+      <div class="sidebar-note">
+        <strong>隐私边界</strong>
+        <span>只索引你主动选择的文件夹；不扫描照片库，不自动发布。</span>
+      </div>
+    </aside>
+
+    <section class="production-shell" aria-labelledby="project-heading">
+      <div class="project-header">
+        <div>
+          <p class="eyebrow">CURRENT EPISODE</p>
+          <h2 id="project-heading">先创建一期内容</h2>
+          <p id="project-summary">从选题证据开始，工作台会保存每一步。</p>
+        </div>
+        <div class="progress-ring" aria-label="制作进度"><b id="progress-value">0%</b><span>完成</span></div>
+      </div>
+
+      <nav class="stage-rail" aria-label="制作步骤">
+        <button data-stage="evidence" type="button" aria-current="step"><b>01</b><span>选题与证据</span><em>当前</em></button>
+        <button data-stage="script" type="button"><b>02</b><span>文案</span><em>待处理</em></button>
+        <button data-stage="voice" type="button"><b>03</b><span>旁白</span><em>待处理</em></button>
+        <button data-stage="storyboard" type="button"><b>04</b><span>分镜与素材</span><em>待处理</em></button>
+        <button data-stage="qa" type="button"><b>05</b><span>字幕与质检</span><em>待处理</em></button>
+        <button data-stage="export" type="button"><b>06</b><span>导出</span><em>待处理</em></button>
+      </nav>
+
+      <div class="workspace-grid">
+        <section class="task-card" aria-labelledby="stage-title">
+          <div class="task-heading">
+            <span class="stage-number" id="stage-number">01</span>
+            <div>
+              <p class="eyebrow" id="stage-kicker">FACT CHECK</p>
+              <h3 id="stage-title">选题与证据</h3>
+              <p id="stage-description">先把行业说法和可追溯来源分开，再进入正式文案。</p>
+            </div>
+          </div>
+          <div class="stage-content" id="stage-content"></div>
+          <details class="advanced-panel">
+            <summary>查看执行边界</summary>
+            <p id="stage-boundary">投诉只作为公开反映，不直接写成已证实事实；不点名攻击具体商家。</p>
+          </details>
+          <div class="task-actions">
+            <button class="secondary-action" id="copy-task" type="button">复制给 Codex</button>
+            <button class="primary-action" data-primary-action id="primary-action" type="button">准备证据研究任务</button>
+          </div>
+        </section>
+
+        <aside class="preview-card" aria-label="视频结构预览">
+          <div class="preview-heading"><span>结构预览</span><small>不出镜 · 9:16</small></div>
+          <div class="phone-preview" aria-label="南铂证据型视频预览示意">
+            <div class="preview-safe preview-safe-top">行业避坑 / 01</div>
+            <div class="preview-message"><small>拍照前先问清</small><strong>底片到底<br>给不给？</strong></div>
+            <div class="preview-evidence"><span>公开证据</span><b>来源可追溯</b></div>
+            <div class="preview-proof"><i>✓</i><span>全部原片全送</span></div>
+            <div class="preview-caption">价格、底片、精修，拍前一次讲明白</div>
+          </div>
+          <ul class="preview-checks">
+            <li><span>风格</span><strong>证据型解说</strong></li>
+            <li><span>节奏</span><strong>1.4–3.0 秒/镜头</strong></li>
+            <li><span>发布</span><strong>始终手动</strong></li>
+          </ul>
+        </aside>
+      </div>
+      <p class="status-region" id="status-region" role="status" aria-live="polite">工作台就绪。所有修改会保存在本机。</p>
+    </section>
+  </main>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

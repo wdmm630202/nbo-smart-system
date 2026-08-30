@@ -1,8 +1,8 @@
 import { createReadStream } from "node:fs";
 import { access } from "node:fs/promises";
 import { createServer } from "node:http";
-import { extname } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, extname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { randomBytes } from "node:crypto";
 import { execFile } from "node:child_process";
 
@@ -37,6 +37,9 @@ const PATCHABLE_FIELDS = new Set([
 ]);
 
 const CONTENT_TYPES = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
   ".mp4": "video/mp4",
   ".mov": "video/quicktime",
   ".m4a": "audio/mp4",
@@ -47,6 +50,14 @@ const CONTENT_TYPES = {
   ".png": "image/png",
   ".webp": "image/webp",
 };
+
+const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/industry-content-workbench");
+const STATIC_FILES = new Map([
+  ["/", "index.html"],
+  ["/index.html", "index.html"],
+  ["/styles.css", "styles.css"],
+  ["/app.js", "app.js"],
+]);
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -125,6 +136,23 @@ export async function createWorkbenchServer({
       requireAllowedHost(request);
       const url = new URL(request.url || "/", origin);
       const pathname = decodeURIComponent(url.pathname);
+
+      if (request.method === "GET" && STATIC_FILES.has(pathname)) {
+        const filename = STATIC_FILES.get(pathname);
+        const path = resolve(APP_DIR, filename);
+        await access(path);
+        const headers = {
+          "cache-control": "no-store",
+          "content-type": CONTENT_TYPES[extname(path)] || "application/octet-stream",
+          "x-content-type-options": "nosniff",
+        };
+        if (filename === "index.html") {
+          headers["content-security-policy"] = "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+        }
+        response.writeHead(200, headers);
+        createReadStream(path).pipe(response);
+        return;
+      }
 
       if (request.method === "GET" && pathname === "/healthz") {
         return json(response, 200, {

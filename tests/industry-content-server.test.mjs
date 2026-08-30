@@ -161,3 +161,31 @@ test("媒体端点只服务账本内且指纹未变化的文件", async () => {
     await server.cleanup();
   }
 });
+
+test("工作台首页提供六阶段引导、唯一主操作和无障碍状态", async () => {
+  const server = await startTestServer();
+  try {
+    const htmlResponse = await fetch(server.origin);
+    const html = await htmlResponse.text();
+    assert.equal(htmlResponse.status, 200);
+    for (const label of ["选题与证据", "文案", "旁白", "分镜与素材", "字幕与质检", "导出"]) {
+      assert.match(html, new RegExp(label));
+    }
+    assert.match(html, /aria-live="polite"/);
+    assert.match(html, /data-primary-action/);
+    assert.match(html, /本机运行/);
+
+    const css = await (await fetch(`${server.origin}/styles.css`)).text();
+    assert.match(css, /prefers-reduced-motion:\s*reduce/);
+    assert.match(css, /prefers-reduced-transparency:\s*reduce/);
+    assert.match(css, /prefers-contrast:\s*more/);
+    assert.match(css, /:active/);
+
+    const app = await (await fetch(`${server.origin}/app.js`)).text();
+    assert.match(app, /x-nanbo-token/);
+    assert.match(app, /复制给 Codex/);
+    assert.doesNotMatch(app, /https?:\/\//);
+  } finally {
+    await server.cleanup();
+  }
+});

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -88,4 +89,18 @@ test("只允许已确认的南铂商业事实", () => {
     ok: false,
     errors: ["未确认的南铂商业说法：same_day_delivery"],
   });
+});
+
+test("首期行业乱象内容包只使用可追溯来源和已确认的南铂事实", async () => {
+  const packagePath = new URL("../content-workbench/templates/episode-001-industry-pricing.json", import.meta.url);
+  const episode = JSON.parse(await readFile(packagePath, "utf8"));
+
+  assert.equal(episode.schemaVersion, 1);
+  assert.equal(episode.title, "低价拍照，拍完以后总价会不会变？");
+  assert.equal(episode.evidence.length >= 2, true);
+  for (const item of episode.evidence) assert.equal(validateEvidenceItem(item).ok, true, item.sourceId);
+  for (const claim of episode.claims) assert.equal(validateClaim(claim, episode.evidence).ok, true, claim.claimId);
+  assert.equal(validateNanboClaims(episode.nanboClaimIds).ok, true);
+  assert.equal(episode.script.narration.includes("最快"), false);
+  assert.equal(episode.script.narration.includes("保证"), false);
 });

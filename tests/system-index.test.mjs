@@ -142,11 +142,12 @@ test("封面卡片统一显示为自媒体封面制作", async () => {
 });
 
 test("行业内容工作台登记本地生产入口和安全边界", async () => {
-  const [source, visuals, readme, launcher] = await Promise.all([
+  const [source, visuals, readme, launcher, launchAgent] = await Promise.all([
     read("app/page.tsx"),
     read("app/project-visuals.mjs"),
     read("README.md"),
     read("打开南铂行业内容工作台.command"),
+    read("tools/industry-content-workbench/com.nanbo.industry-content-workbench.plist"),
   ]);
   const card = source.match(/id: "industry-content-workbench",[\s\S]*?linkLabel: "打开行业内容工作台档案",/);
   assert.ok(card, "industry content workbench card exists");
@@ -164,6 +165,9 @@ test("行业内容工作台登记本地生产入口和安全边界", async () =>
   assert.match(visuals, /行业视频生产工作台/);
   assert.match(visuals, /低价拍照/);
   assert.match(launcher, /industry-content-workbench\/server\.mjs/);
+  assert.match(launcher, /launchctl (bootstrap|kickstart)/);
+  assert.match(launchAgent, /com\.nanbo\.industry-content-workbench/);
+  assert.match(launchAgent, /<key>KeepAlive<\/key>\s*<true\/>/);
 });
 
 test("南铂店内选片系统有固定项目页和 Intel Mac 恢复包", async () => {

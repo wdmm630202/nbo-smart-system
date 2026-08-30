@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nanbo.industry-content-workbench</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/nanbosheyingimacpro/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node</string>
+    <string>/Users/nanbosheyingimacpro/Documents/ChatGPT/NBO-作品与智能体中心/tools/industry-content-workbench/server.mjs</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/nanbosheyingimacpro/Documents/ChatGPT/NBO-作品与智能体中心</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Interactive</string>
+  <key>StandardOutPath</key>
+  <string>/Users/nanbosheyingimacpro/Documents/NBO-行业内容工作台/workbench.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/nanbosheyingimacpro/Documents/NBO-行业内容工作台/workbench-error.log</string>
+</dict>
+</plist>

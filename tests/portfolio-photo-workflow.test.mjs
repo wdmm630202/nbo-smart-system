@@ -7,7 +7,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { buildPortfolioItems, portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
+import {
+  buildPortfolioItems,
+  buildPortfolioThemes,
+  emptyPortfolioAdditions,
+  portfolioCatalog,
+} from "../apps/portfolio-v2/catalog.js";
 import {
   assetPaths,
   buildPortfolioVersion,
@@ -29,6 +34,69 @@ async function hashes(paths) {
   return Object.fromEntries(await Promise.all(Object.entries(paths)
     .filter(([, path]) => path)
     .map(async ([key, path]) => [key, await fileHash(path)])));
+}
+
+async function createAdditionsLibraryFixture(t, additions) {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-additions-library-"));
+  const photoRoot = join(directory, "photos");
+  const additionsPath = join(directory, "catalog-additions.json");
+  await Promise.all(["full", "thumbs", "featured"].map((name) => mkdir(join(photoRoot, name), { recursive: true })));
+  const files = [];
+  for (let id = 1; id <= portfolioCatalog.photoCount; id += 1) {
+    const base = `photo-${String(id).padStart(3, "0")}`;
+    files.push(writeFile(join(photoRoot, "full", `${base}.jpg`), `legacy-full-${id}\n`));
+    files.push(writeFile(join(photoRoot, "thumbs", `${base}.webp`), `legacy-thumb-${id}\n`));
+  }
+  for (const id of portfolioCatalog.heroAssetIds) {
+    const base = `photo-${String(id).padStart(3, "0")}`;
+    files.push(writeFile(join(photoRoot, "featured", `${base}.webp`), `legacy-featured-${id}\n`));
+  }
+  for (const photo of additions.photos) {
+    const base = `photo-${String(photo.id).padStart(3, "0")}`;
+    files.push(writeFile(join(photoRoot, "full", `${base}.jpg`), `addition-full-${photo.id}\n`));
+    files.push(writeFile(join(photoRoot, "thumbs", `${base}.webp`), `addition-thumb-${photo.id}\n`));
+  }
+  await Promise.all(files);
+  await writeFile(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  return { additionsPath, photoRoot };
+}
+
+function registeredAdditions() {
+  return {
+    schemaVersion: 1,
+    themes: [{
+      id: "new-light",
+      scene: "indoor",
+      label: "新光影",
+      description: "新主题",
+      coverPhotoId: 159,
+    }],
+    photos: [
+      {
+        id: 159,
+        scene: "indoor",
+        theme: "new-light",
+        category: "mood",
+        title: "新光影",
+        styleTitle: "情绪",
+        featured: false,
+        visibility: "published",
+        publishedAt: "2026-08-31T00:00:00.000Z",
+      },
+      {
+        id: 160,
+        scene: "indoor",
+        theme: "magazine",
+        category: "business",
+        title: "杂志肖像",
+        styleTitle: "商务",
+        featured: false,
+        visibility: "archived",
+        publishedAt: "2026-08-31T00:01:00.000Z",
+      },
+    ],
+  };
 }
 
 function waitForOutput(child, pattern, timeout = 10_000) {
@@ -63,6 +131,118 @@ test("主题、气质和图片文件完整", async () => {
   assert.equal(result.themeCount, 23);
 });
 
+test("公开库验证已发布和已归档增量的完整资源", async (t) => {
+  const fixture = await createAdditionsLibraryFixture(t, registeredAdditions());
+  const complete = await validatePortfolioLibrary(fixture);
+  assert.equal(complete.ok, true, complete.errors.join("\n"));
+  assert.equal(complete.photoCount, 159);
+  assert.equal(complete.themeCount, 24);
+
+  await rm(join(fixture.photoRoot, "thumbs/photo-160.webp"));
+  const incompleteArchived = await validatePortfolioLibrary(fixture);
+  assert.equal(incompleteArchived.ok, false);
+  assert.match(incompleteArchived.errors.join("\n"), /NB-160.*缩略图/);
+});
+
+test("公开库验证拒绝未知主题引用和断号增量", async (t) => {
+  const additions = registeredAdditions();
+  additions.photos[1].id = 161;
+  additions.photos[1].theme = "missing-theme";
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const result = await validatePortfolioLibrary(fixture);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /NB-160|断号/);
+  assert.match(result.errors.join("\n"), /missing-theme/);
+});
+
+test("新主题有公开照片时必须使用公开封面", async (t) => {
+  const additions = registeredAdditions();
+  additions.photos[0].visibility = "archived";
+  additions.photos[1] = {
+    ...additions.photos[1],
+    theme: "new-light",
+    title: "新光影",
+    visibility: "published",
+  };
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const result = await validatePortfolioLibrary(fixture);
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /新光影|new-light/);
+  assert.match(result.errors.join("\n"), /封面.*公开|公开.*封面/);
+});
+
+test("完全归档的新主题可保留归档封面且不展示", async (t) => {
+  const additions = registeredAdditions();
+  additions.photos[0].visibility = "archived";
+  additions.photos[1] = {
+    ...additions.photos[1],
+    theme: "new-light",
+    title: "新光影",
+    visibility: "archived",
+  };
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const result = await validatePortfolioLibrary(fixture);
+  assert.equal(result.ok, true, result.errors.join("\n"));
+  assert.equal(result.photoCount, 158);
+  assert.equal(result.themeCount, 23);
+});
+
+test("客户运行时对网络、HTTP、畸形 JSON 和合并错误都降级到历史图库", async () => {
+  const { buildCustomerPortfolio, loadPortfolioAdditions } = await import("../apps/portfolio-v2/portfolio-runtime.js");
+  const warnings = [];
+  const networkFallback = await loadPortfolioAdditions({
+    fetchImpl: async () => { throw new Error("offline"); },
+    url: "./catalog-additions.json?v=test",
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => warnings.push(args),
+  });
+  const httpFallback = await loadPortfolioAdditions({
+    fetchImpl: async () => ({ ok: false, status: 503 }),
+    url: "./catalog-additions.json?v=test",
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => warnings.push(args),
+  });
+  assert.equal(networkFallback, emptyPortfolioAdditions);
+  assert.equal(httpFallback, emptyPortfolioAdditions);
+  const malformedFallback = await loadPortfolioAdditions({
+    fetchImpl: async () => ({ ok: true, json: async () => { throw new SyntaxError("broken JSON"); } }),
+    url: "./catalog-additions.json?v=test",
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => warnings.push(args),
+  });
+  assert.equal(malformedFallback, emptyPortfolioAdditions);
+  assert.equal(warnings.length, 3);
+
+  const malformedModel = buildCustomerPortfolio({
+    catalog: portfolioCatalog,
+    additions: { schemaVersion: 1, themes: [], photos: [{ id: 159, phone: "13800138000" }] },
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => warnings.push(args),
+    buildItems: buildPortfolioItems,
+    buildThemes: buildPortfolioThemes,
+  });
+  assert.equal(malformedModel.items.length, 158);
+  assert.equal(malformedModel.themes.length, 23);
+  assert.equal(warnings.length, 4);
+
+  const model = buildCustomerPortfolio({
+    catalog: portfolioCatalog,
+    additions: registeredAdditions(),
+    buildItems: buildPortfolioItems,
+    buildThemes: buildPortfolioThemes,
+  });
+  assert.equal(model.items.length, 159);
+  assert.equal(model.themes.length, 24);
+  assert.equal(model.items.some(({ id }) => id === 159), true);
+  assert.equal(model.items.some(({ id }) => id === 160), false);
+  assert.deepEqual(model.counts, {
+    photos: 159,
+    themes: 24,
+    scenes: { indoor: 121, outdoor: 38 },
+    sceneThemes: { indoor: 14, outdoor: 10 },
+  });
+});
+
 test("发布版本由代码与照片内容确定", async () => {
   const [first, second, sourceIndex] = await Promise.all([
     buildPortfolioVersion(),
@@ -75,6 +255,21 @@ test("发布版本由代码与照片内容确定", async () => {
   assert.match(sourceIndex, /__NBO_BUILD_VERSION__/);
   assert.match(sourceIndex, /https:\/\/res\.wx\.qq\.com\/open\/js\/jweixin-1\.6\.0\.js/);
   assert.match(sourceIndex, /wechat-share\.js\?v=__NBO_BUILD_VERSION__/);
+});
+
+test("发布版本包含增量清单和已归档资源", async (t) => {
+  const additions = registeredAdditions();
+  const fixture = await createAdditionsLibraryFixture(t, additions);
+  const before = await buildPortfolioVersion(fixture);
+
+  await writeFile(join(fixture.photoRoot, "full/photo-160.jpg"), "archived-asset-changed\n");
+  const afterArchivedAsset = await buildPortfolioVersion(fixture);
+  assert.notEqual(afterArchivedAsset, before);
+
+  additions.photos[1].visibility = "published";
+  await writeFile(fixture.additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  const afterManifest = await buildPortfolioVersion(fixture);
+  assert.notEqual(afterManifest, afterArchivedAsset);
 });
 
 test("企业微信二维码跟随客片版本刷新", async () => {
@@ -263,7 +458,19 @@ test("启动恢复会修复中断的首页图事务", { timeout: 30_000 }, async
 
 test("第二次启动不会恢复第一个进程的活跃事务", { timeout: 30_000 }, async () => {
   const port = 44_000 + randomBytes(2).readUInt16BE() % 1_000;
-  const environment = { ...process.env, NANBO_PORTFOLIO_PORT: String(port) };
+  const sandbox = await mkdtemp(join(tmpdir(), "nanbo-manager-startup-"));
+  const draftDirectory = join(sandbox, "drafts");
+  const additionsPath = join(sandbox, "catalog-additions.json");
+  const publicPhotoRoot = join(sandbox, "public");
+  await mkdir(publicPhotoRoot, { recursive: true });
+  await writeFile(additionsPath, `${JSON.stringify({ schemaVersion: 1, themes: [], photos: [] }, null, 2)}\n`);
+  const environment = {
+    ...process.env,
+    NANBO_PORTFOLIO_PORT: String(port),
+    NANBO_PORTFOLIO_DRAFT_ROOT: draftDirectory,
+    NANBO_PORTFOLIO_ADDITIONS_PATH: additionsPath,
+    NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: publicPhotoRoot,
+  };
   const serverScript = join(root, "tools/portfolio-manager-server.mjs");
   const first = spawn(process.execPath, [serverScript], { cwd: root, env: environment, stdio: ["ignore", "pipe", "pipe"] });
   const sentinelDir = join(transactionRoot, `active-instance-test-${Date.now()}-${randomBytes(4).toString("hex")}`);
@@ -284,5 +491,6 @@ test("第二次启动不会恢复第一个进程的活跃事务", { timeout: 30_
       first.kill("SIGTERM");
       await once(first, "exit");
     }
+    await rm(sandbox, { recursive: true, force: true });
   }
 });

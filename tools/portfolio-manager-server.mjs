@@ -5,9 +5,21 @@ import { readFile, realpath, rm, stat } from "node:fs/promises";
 import { extname, join, normalize, relative, resolve, sep } from "node:path";
 import { URL } from "node:url";
 
-import { buildPortfolioItems, portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
 import {
-  assetPaths,
+  buildPortfolioItems,
+  buildPortfolioThemes,
+  normalizePortfolioAdditions,
+  portfolioCatalog,
+} from "../apps/portfolio-v2/catalog.js";
+import {
+  ingestDraftPhoto,
+  loadPublicAdditions,
+  recoverIncompletePublicationTransactions,
+  setPublishedPhotoVisibility,
+  stageDraftForPublication,
+} from "./portfolio-draft-photo-lib.mjs";
+import { createDraftStore, draftRoot } from "./portfolio-draft-store.mjs";
+import {
   buildPortfolioVersion,
   onlinePortfolioUrl,
   recoverIncompletePhotoTransactions,
@@ -15,6 +27,7 @@ import {
   root,
   run,
   slotCode,
+  sourcePhotoRoot,
   undoLatestPhotoReplacement,
   validateChangedPhotoBundles,
   validatePortfolioLibrary,
@@ -23,9 +36,23 @@ import {
 
 const host = "127.0.0.1";
 const requestedPort = Number(process.env.NANBO_PORTFOLIO_PORT || 4174);
+let activePort = requestedPort;
 const managerRoot = join(root, "tools/portfolio-manager");
 const previewRoot = join(root, "apps/portfolio-v2");
 const sharedPortfolioRoot = join(root, "apps/portfolio");
+const configuredDraftRoot = process.env.NANBO_PORTFOLIO_DRAFT_ROOT || draftRoot;
+const additionsPath = process.env.NANBO_PORTFOLIO_ADDITIONS_PATH || join(root, "apps/portfolio-v2/catalog-additions.json");
+const publicPhotoRoot = process.env.NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT || sourcePhotoRoot;
+const draftStore = createDraftStore({ rootDir: configuredDraftRoot, legacyMaxId: portfolioCatalog.photoCount });
+const publicationOptions = {
+  store: draftStore,
+  draftRoot: configuredDraftRoot,
+  additionsPath,
+  publicPhotoRoot,
+  ...(process.env.NANBO_PORTFOLIO_DRAFT_ROOT
+    ? { publicationTransactionRoot: join(configuredDraftRoot, "publication-transactions") }
+    : {}),
+};
 const sessionToken = randomBytes(24).toString("hex");
 const uploadLimit = 50 * 1024 * 1024;
 let activeMutation = "";
@@ -51,7 +78,15 @@ const publishPrefixes = [
   "docs/projects/portfolio-v2/",
   "docs/p/",
 ];
-const allowedHosts = new Set([`${host}:${requestedPort}`, `localhost:${requestedPort}`]);
+const publishExactPaths = new Set([
+  "apps/portfolio-v2/catalog-additions.json",
+  "docs/i/index.html",
+]);
+const publicationMetadata = "apps/portfolio-v2/catalog-additions.json";
+
+function allowedLocalHosts() {
+  return new Set([`${host}:${activePort}`, `localhost:${activePort}`]);
+}
 
 function json(response, status, body) {
   response.writeHead(status, {
@@ -89,9 +124,9 @@ function isPathInside(base, path) {
   return target === basePath || target.startsWith(`${basePath}${sep}`);
 }
 
-async function sendFile(response, path, cache = "no-cache") {
+async function sendFile(response, path, cache = "no-cache", allowedRoots = [managerRoot, previewRoot, sharedPortfolioRoot]) {
   try {
-    const allowedBase = [managerRoot, previewRoot, sharedPortfolioRoot].find((base) => isPathInside(base, path));
+    const allowedBase = allowedRoots.find((base) => isPathInside(base, path));
     if (!allowedBase) throw new Error("文件路径无效");
     const info = await stat(path);
     if (!info.isFile()) throw new Error("不是文件");
@@ -111,6 +146,11 @@ async function sendFile(response, path, cache = "no-cache") {
   }
 }
 
+function notFound(response) {
+  response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+  response.end("文件不存在");
+}
+
 async function readBody(request) {
   const chunks = [];
   let size = 0;
@@ -123,8 +163,27 @@ async function readBody(request) {
   return Buffer.concat(chunks);
 }
 
+async function readJsonBody(request) {
+  const content = await readBody(request);
+  try {
+    return JSON.parse(content.toString("utf8"));
+  } catch {
+    throw new Error("提交的数据不是有效 JSON");
+  }
+}
+
 async function git(args, options = {}) {
   return run("git", args, { cwd: root, ...options });
+}
+
+async function restoreGeneratedPaths(paths, commit) {
+  const tracked = [];
+  for (const path of paths) {
+    const { code } = await git(["cat-file", "-e", `${commit}:${path}`], { allowFailure: true });
+    if (code === 0) tracked.push(path);
+    else await rm(join(root, path), { recursive: true, force: true });
+  }
+  if (tracked.length) await git(["restore", `--source=${commit}`, "--worktree", "--", ...tracked]);
 }
 
 function parseStatusLine(line) {
@@ -132,52 +191,133 @@ function parseStatusLine(line) {
   return { state: line.slice(0, 2), path };
 }
 
+function isPendingDraftReconciliation(photo, publishedIds) {
+  return publishedIds.has(photo.id)
+    && ((photo.status === "ready" && photo.stagedAt)
+      || (photo.status === "archived" && photo.publishedCommit));
+}
+
 async function repositoryStatus() {
-  const [{ stdout: porcelain }, { stdout: head }, { stdout: branch }] = await Promise.all([
+  const [{ stdout: porcelain }, { stdout: head }, { stdout: branch }, additions, draftState] = await Promise.all([
     git(["status", "--porcelain=v1", "--untracked-files=all"], { preserveWhitespace: true }),
     git(["rev-parse", "--short", "HEAD"]),
     git(["branch", "--show-current"]),
+    readPublicAdditions(),
+    draftStore.read(),
   ]);
   const files = porcelain ? porcelain.split("\n").filter(Boolean).map(parseStatusLine) : [];
   const changedFiles = files.map((item) => item.path);
   const sourcePhotoChanges = changedFiles.filter((path) => path.startsWith("apps/portfolio/assets/photos/"));
+  const registeredIds = new Set([
+    ...Array.from({ length: portfolioCatalog.photoCount }, (_, index) => index + 1),
+    ...additions.photos.map(({ id }) => Number(id)),
+  ]);
+  const sourcePhotoId = (path) => {
+    const match = path.match(/photo-(\d{3,})\.(?:jpg|webp)$/i);
+    return match ? Number(match[1]) : null;
+  };
   const dirtySlots = [...new Set(sourcePhotoChanges.flatMap((path) => {
-    const match = path.match(/photo-(\d{3})\.(?:jpg|webp)$/i);
-    return match ? [Number(match[1])] : [];
+    const id = sourcePhotoId(path);
+    return id !== null && registeredIds.has(id) ? [id] : [];
   }))].sort((a, b) => a - b);
-  const unrelatedFiles = changedFiles.filter((path) => !publishPrefixes.some((prefix) => path.startsWith(prefix)));
+  const publishedAdditionIds = new Set(additions.photos
+    .filter(({ visibility }) => visibility === "published")
+    .map(({ id }) => Number(id)));
+  const pendingReconciliationIds = draftState.photos
+    .filter((photo) => isPendingDraftReconciliation(photo, publishedAdditionIds))
+    .map(({ id }) => id)
+    .sort((a, b) => a - b);
+  const publishableSourceChanges = changedFiles.filter((path) => path === publicationMetadata
+    || (path.startsWith("apps/portfolio/assets/photos/") && registeredIds.has(sourcePhotoId(path))));
+  const pendingPublicationIds = [...new Set([...dirtySlots, ...pendingReconciliationIds])].sort((a, b) => a - b);
+  const hasPendingPublication = publishableSourceChanges.length > 0 || pendingReconciliationIds.length > 0;
+  const unrelatedFiles = changedFiles.filter((path) => !(publishExactPaths.has(path)
+    || publishPrefixes.some((prefix) => path.startsWith(prefix)))
+    || (path.startsWith("apps/portfolio/assets/photos/") && !registeredIds.has(sourcePhotoId(path))));
   return {
     head,
     branch,
     dirtySlots,
+    pendingPublicationIds,
+    pendingPublicationCount: pendingPublicationIds.length,
+    hasPendingPublication,
     changedFiles,
     unrelatedFiles,
     buildVersion: await buildPortfolioVersion(),
   };
 }
 
+async function readPublicAdditions() {
+  return loadPublicAdditions(additionsPath);
+}
+
 async function catalogPayload() {
-  const version = await buildPortfolioVersion();
-  const items = buildPortfolioItems().map((item) => ({
+  const [version, additions, draftState] = await Promise.all([
+    buildPortfolioVersion(),
+    readPublicAdditions(),
+    draftStore.read(),
+  ]);
+  const items = buildPortfolioItems(portfolioCatalog, additions).map((item) => ({
     ...item,
     isHeroAsset: portfolioCatalog.heroAssetIds.includes(item.id),
     thumbUrl: `/media/thumb/${item.id}?v=${version}`,
     fullUrl: `/media/full/${item.id}?v=${version}`,
   }));
+  const publicThemes = buildPortfolioThemes(portfolioCatalog, additions);
+  const publicThemeIds = new Set(publicThemes.map(({ id }) => id));
+  const themes = [
+    ...publicThemes,
+    ...draftState.themes.filter(({ id }) => !publicThemeIds.has(id)),
+  ].map((theme) => {
+    const result = {
+      ...theme,
+      count: items.filter((item) => item.theme === theme.id).length,
+    };
+    delete result.series;
+    return result;
+  });
+  const drafts = draftState.photos.map((draft) => ({
+    ...draft,
+    thumbUrl: `/media/draft/thumb/${draft.uuid}?token=${sessionToken}`,
+    fullUrl: `/media/draft/full/${draft.uuid}?token=${sessionToken}`,
+  }));
+  const counts = {
+    public: items.length,
+    draft: drafts.filter(({ status }) => status === "draft").length,
+    ready: drafts.filter(({ status }) => status === "ready").length,
+    published: drafts.filter(({ status }) => status === "published").length,
+    archived: drafts.filter(({ status }) => status === "archived").length,
+  };
   return {
     items,
+    drafts,
+    counts,
     scenes: portfolioCatalog.scenes,
-    themes: portfolioCatalog.themes.map(({ series, ...theme }) => ({ ...theme, count: series.length * 2 })),
+    themes,
     photoCount: portfolioCatalog.photoCount,
     onlineUrl: onlinePortfolioUrl,
     version,
   };
 }
 
+function numericDraftId(url) {
+  const id = Number(url.searchParams.get("id"));
+  if (!Number.isInteger(id) || id <= portfolioCatalog.photoCount) throw new Error("草稿编号无效");
+  return id;
+}
+
+function decodedUploadName(request) {
+  try {
+    return decodeURIComponent(String(request.headers["x-file-name"] || "未命名图片"));
+  } catch {
+    throw new Error("图片文件名无效");
+  }
+}
+
 function requireSession(request) {
   const origin = String(request.headers.origin || "");
   const fetchSite = String(request.headers["sec-fetch-site"] || "");
-  const allowedOrigins = new Set([`http://${host}:${requestedPort}`, `http://localhost:${requestedPort}`]);
+  const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
   if ((origin && !allowedOrigins.has(origin)) || fetchSite === "cross-site") {
     const error = new Error("为保护本地客片，已拒绝其他网页发起的操作");
     error.status = 403;
@@ -227,9 +367,189 @@ async function undoPhotoRequest(request, response, url) {
   }
 }
 
+async function draftUploadRequest(request, response) {
+  requireSession(request);
+  beginMutation("新增草稿");
+  try {
+    const originalName = decodedUploadName(request);
+    const extension = extname(originalName).toLowerCase();
+    const contentType = String(request.headers["content-type"] || "").split(";")[0];
+    const buffer = await readBody(request);
+    const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".upload");
+    try {
+      const additions = await readPublicAdditions();
+      const result = await ingestDraftPhoto({
+        inputPath: temporary.path,
+        originalName,
+        contentType,
+        store: draftStore,
+        rootDir: configuredDraftRoot,
+        publicIds: additions.photos.map(({ id }) => id),
+      });
+      json(response, 200, { ok: true, result, catalog: await catalogPayload() });
+    } finally {
+      await rm(temporary.directory, { recursive: true, force: true });
+    }
+  } finally {
+    finishMutation();
+  }
+}
+
+async function draftUpdateRequest(request, response, url) {
+  requireSession(request);
+  beginMutation("保存草稿");
+  try {
+    const id = numericDraftId(url);
+    const patch = await readJsonBody(request);
+    if (!patch || Array.isArray(patch) || typeof patch !== "object") throw new Error("草稿更新数据无效");
+    const allowedKeys = new Set(["scene", "theme", "category", "approvedForPublicUse", "featured"]);
+    const invalidKey = Object.keys(patch).find((key) => !allowedKeys.has(key));
+    if (invalidKey) throw new Error(`不允许通过草稿更新修改 ${invalidKey}`);
+    for (const key of ["scene", "theme", "category"]) {
+      if (key in patch && typeof patch[key] !== "string") throw new Error(`草稿${key}必须是文本`);
+    }
+    for (const key of ["approvedForPublicUse", "featured"]) {
+      if (key in patch && typeof patch[key] !== "boolean") throw new Error(`草稿${key}必须是布尔值`);
+    }
+    const [state, additions] = await Promise.all([draftStore.read(), readPublicAdditions()]);
+    const current = state.photos.find((photo) => photo.id === id);
+    if (!current) throw new Error(`找不到草稿 ${slotCode(id)}`);
+    const next = { ...current, ...patch };
+    const scenes = new Set(portfolioCatalog.scenes.filter(({ id: sceneId }) => sceneId !== "all").map(({ id: sceneId }) => sceneId));
+    const categories = new Set(portfolioCatalog.categories.map(({ id: categoryId }) => categoryId));
+    const themes = [...portfolioCatalog.themes, ...additions.themes, ...state.themes];
+    if (next.scene && !scenes.has(next.scene)) throw new Error(`草稿场景 ${next.scene} 无效`);
+    if (next.category && !categories.has(next.category)) throw new Error(`草稿风格 ${next.category} 无效`);
+    const theme = next.theme ? themes.find(({ id: themeId }) => themeId === next.theme) : null;
+    if (next.theme && !theme) throw new Error(`草稿主题 ${next.theme} 无效`);
+    if (theme && next.scene && theme.scene !== next.scene) throw new Error(`草稿主题 ${next.theme} 与场景不一致`);
+    const result = await draftStore.updatePhoto(id, patch);
+    json(response, 200, { ok: true, result, catalog: await catalogPayload() });
+  } finally {
+    finishMutation();
+  }
+}
+
+async function draftTransitionRequest(request, response, url, nextStatus, label) {
+  requireSession(request);
+  beginMutation(label);
+  try {
+    const result = await draftStore.transitionPhoto(numericDraftId(url), nextStatus);
+    json(response, 200, { ok: true, result, catalog: await catalogPayload() });
+  } finally {
+    finishMutation();
+  }
+}
+
+async function draftStageRequest(request, response, url) {
+  requireSession(request);
+  beginMutation("安装待公开客片");
+  try {
+    const result = await stageDraftForPublication(numericDraftId(url), publicationOptions);
+    json(response, 200, { ok: true, result, catalog: await catalogPayload(), status: await repositoryStatus() });
+  } finally {
+    finishMutation();
+  }
+}
+
+function stringLength(value) {
+  return typeof value === "string" ? Array.from(value.trim()).length : 0;
+}
+
+async function draftThemeRequest(request, response) {
+  requireSession(request);
+  beginMutation("新建草稿主题");
+  try {
+    const body = await readJsonBody(request);
+    const allowedKeys = new Set(["id", "label", "scene", "description"]);
+    const extraKey = Object.keys(body).find((key) => !allowedKeys.has(key));
+    if (extraKey) throw new Error(`不允许保存主题字段 ${extraKey}`);
+    const id = typeof body.id === "string" ? body.id.trim() : "";
+    const label = typeof body.label === "string" ? body.label.trim() : "";
+    const scene = typeof body.scene === "string" ? body.scene.trim() : "";
+    const description = typeof body.description === "string" ? body.description.trim() : "";
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error("主题英文标识只能使用小写字母、数字和中划线");
+    if (stringLength(label) < 2 || stringLength(label) > 12) throw new Error("主题名称需要 2–12 个字符");
+    if (!portfolioCatalog.scenes.some((item) => item.id === scene && item.id !== "all")) throw new Error("主题场景无效");
+    if (stringLength(description) < 2 || stringLength(description) > 30) throw new Error("主题描述需要 2–30 个字符");
+    const [draftState, additions] = await Promise.all([draftStore.read(), readPublicAdditions()]);
+    const allThemes = [...portfolioCatalog.themes, ...additions.themes, ...draftState.themes];
+    if (allThemes.some((theme) => theme.id === id)) throw new Error(`主题编号 ${id} 已存在`);
+    if (allThemes.some((theme) => theme.label === label)) throw new Error(`主题名称 ${label} 已存在`);
+    const result = await draftStore.addTheme({ id, label, scene, description });
+    json(response, 200, { ok: true, result, catalog: await catalogPayload() });
+  } finally {
+    finishMutation();
+  }
+}
+
+async function publicVisibilityRequest(request, response, url) {
+  requireSession(request);
+  beginMutation("更新公开状态");
+  try {
+    const { visibility } = await readJsonBody(request);
+    const id = numericDraftId(url);
+    const result = await setPublishedPhotoVisibility(id, visibility, publicationOptions);
+    const state = await draftStore.read();
+    const draft = state.photos.find((photo) => photo.id === id);
+    if (draft && visibility === "archived" && (draft.status === "ready" || draft.status === "published")) {
+      await draftStore.transitionPhoto(id, "archived");
+    } else if (draft && visibility === "published" && draft.status === "archived" && !draft.publishedCommit) {
+      await draftStore.transitionPhoto(id, "draft");
+      await draftStore.transitionPhoto(id, "ready");
+    }
+    json(response, 200, { ok: true, result, catalog: await catalogPayload(), status: await repositoryStatus() });
+  } finally {
+    finishMutation();
+  }
+}
+
+async function committedAdditions(commit) {
+  const { code, stdout } = await git(["show", `${commit}:${publicationMetadata}`], {
+    allowFailure: true,
+    preserveWhitespace: true,
+  });
+  if (code !== 0) throw new Error("当前提交不包含公开增量清单，不能完成草稿对账");
+  try {
+    return normalizePortfolioAdditions(JSON.parse(stdout));
+  } catch (error) {
+    throw new Error(`当前提交的公开增量清单无效，不能完成草稿对账：${error.message}`);
+  }
+}
+
+async function assertCommittedAdditionBundle(commit, id) {
+  for (const path of [
+    `apps/portfolio/assets/photos/full/photo-${String(id).padStart(3, "0")}.jpg`,
+    `apps/portfolio/assets/photos/thumbs/photo-${String(id).padStart(3, "0")}.webp`,
+  ]) {
+    const { code } = await git(["cat-file", "-e", `${commit}:${path}`], { allowFailure: true });
+    if (code !== 0) throw new Error(`${slotCode(id)} 的公开图片尚未进入当前提交，不能完成草稿对账`);
+  }
+}
+
+async function reconcileStagedDraftsToCommit(commit) {
+  const [state, additions] = await Promise.all([draftStore.read(), readPublicAdditions()]);
+  const publishedIds = new Set(additions.photos.filter(({ visibility }) => visibility === "published").map(({ id }) => Number(id)));
+  const ids = state.photos.filter((photo) => isPendingDraftReconciliation(photo, publishedIds))
+    .map(({ id }) => id);
+  if (!ids.length) return ids;
+  const committed = await committedAdditions(commit);
+  const committedPublishedIds = new Set(committed.photos
+    .filter(({ visibility }) => visibility === "published")
+    .map(({ id }) => Number(id)));
+  for (const id of ids) {
+    if (!committedPublishedIds.has(id)) {
+      throw new Error(`${slotCode(id)} 尚未进入当前提交的公开清单，不能完成草稿对账`);
+    }
+    await assertCommittedAdditionBundle(commit, id);
+  }
+  await draftStore.markPublished(ids, commit);
+  return ids;
+}
+
 async function sourcePhotoFilesFromGit() {
   const { stdout } = await git(
-    ["status", "--porcelain=v1", "--untracked-files=all", "--", "apps/portfolio/assets/photos"],
+    ["status", "--porcelain=v1", "--untracked-files=all", "--", "apps/portfolio/assets/photos", "apps/portfolio-v2/catalog-additions.json"],
     { preserveWhitespace: true },
   );
   if (!stdout) return [];
@@ -260,56 +580,105 @@ async function publishPhotos(request, response) {
 
     const sourceFiles = await sourcePhotoFilesFromGit();
     if (!sourceFiles.length) {
-      json(response, 200, { ok: true, noChanges: true, message: "本地没有待同步的新照片", status: statusBefore });
+      const reconciledDraftIds = await reconcileStagedDraftsToCommit(statusBefore.head);
+      json(response, 200, {
+        ok: true,
+        noChanges: true,
+        reconciledDraftIds,
+        message: reconciledDraftIds.length
+          ? "网站文件已在当前提交中，已完成本地发布状态对账"
+          : "本地没有待同步的新照片",
+        status: await repositoryStatus(),
+      });
       return;
     }
-    const allowedSourceFiles = new Set();
-    for (let id = 1; id <= portfolioCatalog.photoCount; id += 1) {
-      const filename = `photo-${String(id).padStart(3, "0")}`;
-      allowedSourceFiles.add(`apps/portfolio/assets/photos/full/${filename}.jpg`);
-      allowedSourceFiles.add(`apps/portfolio/assets/photos/thumbs/${filename}.webp`);
-      if (portfolioCatalog.heroAssetIds.includes(id)) allowedSourceFiles.add(`apps/portfolio/assets/photos/featured/${filename}.webp`);
+    const additions = await readPublicAdditions();
+    const registeredIds = new Set([
+      ...Array.from({ length: portfolioCatalog.photoCount }, (_, index) => index + 1),
+      ...additions.photos.map(({ id }) => Number(id)),
+    ]);
+    const allowedSourceFiles = new Set([...registeredIds].flatMap((id) => [
+      `apps/portfolio/assets/photos/full/photo-${String(id).padStart(3, "0")}.jpg`,
+      `apps/portfolio/assets/photos/thumbs/photo-${String(id).padStart(3, "0")}.webp`,
+    ]));
+    allowedSourceFiles.add(publicationMetadata);
+    for (const id of portfolioCatalog.heroAssetIds) {
+      allowedSourceFiles.add(`apps/portfolio/assets/photos/featured/photo-${String(id).padStart(3, "0")}.webp`);
     }
     const invalidSourceFile = sourceFiles.find((path) => !allowedSourceFiles.has(path));
     if (invalidSourceFile) throw new Error(`未登记的照片文件不会发布：${invalidSourceFile}`);
-    const bundleValidation = validateChangedPhotoBundles(sourceFiles);
+    const changedPhotoFiles = sourceFiles.filter((path) => path !== publicationMetadata);
+    const bundleValidation = validateChangedPhotoBundles(changedPhotoFiles);
     if (!bundleValidation.ok) {
       throw new Error(`同一编号的图片不完整，已停止发布：${bundleValidation.errors.join("；")}`);
     }
     const nonSourceChanges = statusBefore.changedFiles.filter((path) => !sourceFiles.includes(path));
     if (nonSourceChanges.length) throw new Error(`发布前存在非源图片改动：${nonSourceChanges.slice(0, 5).join("、")}`);
 
-    await run(process.execPath, [join(root, "tools/export-github-pages.mjs")], { cwd: root });
-    const version = await buildPortfolioVersion();
+    const publishedMetadata = "docs/projects/portfolio-v2/catalog-additions.json";
     const stagePaths = new Set([
       ...sourceFiles,
+      publicationMetadata,
+      publishedMetadata,
       "docs/projects/portfolio-v2/index.html",
       "docs/projects/portfolio-v2/app.js",
       "docs/projects/portfolio-v2/build.json",
       "docs/p/index.html",
       "docs/p/build.json",
+      "docs/i/index.html",
     ]);
-    for (const sourcePath of sourceFiles) {
+    for (const sourcePath of changedPhotoFiles) {
       const suffix = relative("apps/portfolio", sourcePath);
       stagePaths.add(join("docs/projects/portfolio", suffix));
     }
-    const statusAfterExport = await repositoryStatus();
-    const unexpectedExport = statusAfterExport.changedFiles.filter((path) => !stagePaths.has(path));
-    if (unexpectedExport.length) {
-      throw new Error(`导出产生了超出客片范围的改动，已停止提交：${unexpectedExport.slice(0, 5).join("、")}`);
+    const generatedPaths = [...stagePaths].filter((path) => path.startsWith("docs/"));
+    let version;
+    try {
+      await run(process.execPath, [join(root, "tools/export-github-pages.mjs")], { cwd: root });
+      version = await buildPortfolioVersion();
+      const statusAfterExport = await repositoryStatus();
+      const unexpectedExport = statusAfterExport.changedFiles.filter((path) => !stagePaths.has(path));
+      if (unexpectedExport.length) {
+        throw new Error(`导出产生了超出客片范围的改动，已停止提交：${unexpectedExport.slice(0, 5).join("、")}`);
+      }
+    } catch (error) {
+      try {
+        // 只恢复明确登记的 Pages 生成物；未知路径保留给人工核查。
+        await restoreGeneratedPaths(generatedPaths, statusBefore.head);
+      } catch (cleanupError) {
+        throw new Error(`${error.message}；提交前生成物恢复失败：${cleanupError.message}`);
+      }
+      throw error;
     }
     await git(["add", "--", ...stagePaths]);
     const { code: hasNoStagedDiff } = await git(["diff", "--cached", "--quiet"], { allowFailure: true });
     if (hasNoStagedDiff === 0) {
+      await reconcileStagedDraftsToCommit(statusBefore.head);
       json(response, 200, { ok: true, noChanges: true, message: "生成结果与线上完全一致", status: await repositoryStatus() });
       return;
     }
 
     const slots = bundleValidation.slots;
-    const summary = slots.length <= 6 ? slots.map(slotCode).join("、") : `${slots.length} 张客片`;
+    const summary = slots.length === 0
+      ? "公开状态"
+      : (slots.length <= 6 ? slots.map(slotCode).join("、") : `${slots.length} 张客片`);
+    const { stdout: commitBeforePublish } = await git(["rev-parse", "HEAD"]);
     await git(["commit", "-m", `更新南铂客片 ${summary}`]);
-    await git(["push", "origin", "main"]);
+    try {
+      await git(["push", "origin", "main"]);
+    } catch (pushError) {
+      try {
+        // 发布前已确认没有人工暂存或无关改动。这里只撤回本次
+        // 未推送的提交，保留工作树中的公开清单和成套图片以便重试。
+        await git(["reset", "--mixed", commitBeforePublish]);
+        await restoreGeneratedPaths(generatedPaths, commitBeforePublish);
+      } catch (rollbackError) {
+        throw new Error(`${pushError.message}；未推送提交恢复失败：${rollbackError.message}`);
+      }
+      throw pushError;
+    }
     const { stdout: commit } = await git(["rev-parse", "--short", "HEAD"]);
+    await reconcileStagedDraftsToCommit(commit);
     json(response, 200, {
       ok: true,
       published: true,
@@ -346,9 +715,9 @@ async function deployStatus(response, url) {
 }
 
 async function route(request, response) {
-  const url = new URL(request.url || "/", `http://${host}:${requestedPort}`);
+  const url = new URL(request.url || "/", `http://${host}:${activePort}`);
   try {
-    if (!allowedHosts.has(String(request.headers.host || ""))) {
+    if (!allowedLocalHosts().has(String(request.headers.host || ""))) {
       const error = new Error("已拒绝非本机地址访问");
       error.status = 403;
       throw error;
@@ -378,6 +747,38 @@ async function route(request, response) {
       await undoPhotoRequest(request, response, url);
       return;
     }
+    if (request.method === "POST" && url.pathname === "/api/drafts/upload") {
+      await draftUploadRequest(request, response);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/drafts/update") {
+      await draftUpdateRequest(request, response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/drafts/ready") {
+      await draftTransitionRequest(request, response, url, "ready", "准备公开草稿");
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/drafts/archive") {
+      await draftTransitionRequest(request, response, url, "archived", "归档草稿");
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/drafts/restore") {
+      await draftTransitionRequest(request, response, url, "draft", "恢复草稿");
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/drafts/stage") {
+      await draftStageRequest(request, response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/draft-themes") {
+      await draftThemeRequest(request, response);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/public/visibility") {
+      await publicVisibilityRequest(request, response, url);
+      return;
+    }
     if (request.method === "POST" && url.pathname === "/api/publish") {
       await publishPhotos(request, response);
       return;
@@ -386,11 +787,32 @@ async function route(request, response) {
       await deployStatus(response, url);
       return;
     }
+    if (request.method === "GET" && url.pathname.startsWith("/media/draft/")) {
+      if (url.searchParams.get("token") !== sessionToken) {
+        const error = new Error("草稿预览会话已过期，请刷新页面后重试");
+        error.status = 403;
+        throw error;
+      }
+      const match = url.pathname.match(/^\/media\/draft\/(full|thumb)\/([0-9a-f]{24})$/);
+      if (!match) throw new Error("草稿图片路径无效");
+      const directory = join(configuredDraftRoot, "assets", match[1] === "full" ? "full" : "thumbs");
+      const extension = match[1] === "full" ? ".jpg" : ".webp";
+      await sendFile(response, join(directory, `${match[2]}${extension}`), "no-store", [directory]);
+      return;
+    }
     if (request.method === "GET" && url.pathname.startsWith("/media/")) {
-      const match = url.pathname.match(/^\/media\/(thumb|full)\/(\d{1,3})$/);
+      const match = url.pathname.match(/^\/media\/(thumb|full)\/(\d+)$/);
       if (!match) throw new Error("客片路径无效");
-      const paths = assetPaths(Number(match[2]));
-      await sendFile(response, match[1] === "thumb" ? paths.thumb : paths.full, "no-cache");
+      const id = Number(match[2]);
+      const additions = await readPublicAdditions();
+      const registered = id >= 1 && (id <= portfolioCatalog.photoCount || additions.photos.some((photo) => Number(photo.id) === id));
+      if (!registered) {
+        notFound(response);
+        return;
+      }
+      const directory = join(publicPhotoRoot, match[1] === "thumb" ? "thumbs" : "full");
+      const filename = `photo-${String(id).padStart(3, "0")}${match[1] === "thumb" ? ".webp" : ".jpg"}`;
+      await sendFile(response, join(directory, filename), "no-cache", [directory]);
       return;
     }
     if (request.method === "GET" && url.pathname.startsWith("/preview")) {
@@ -434,13 +856,21 @@ server.on("error", async (error) => {
   throw error;
 });
 server.listen(requestedPort, host, async () => {
-  const url = `http://${host}:${requestedPort}/`;
+  const address = server.address();
+  activePort = address && typeof address !== "string" ? address.port : requestedPort;
+  const url = `http://${host}:${activePort}/`;
   try {
     // 只有成功绑定端口的单一进程才允许检查事务目录。第二次双击会先走
     // EADDRINUSE，不会把第一个进程的正在换图误当成崩溃恢复。
-    const recoveredTransactions = await recoverIncompletePhotoTransactions();
-    if (recoveredTransactions.length) {
-      console.log(`已自动恢复中断的换图：${recoveredTransactions.join("、")}`);
+    const [recoveredPhotoTransactions, recoveredPublicationTransactions] = await Promise.all([
+      recoverIncompletePhotoTransactions(),
+      recoverIncompletePublicationTransactions(publicationOptions),
+    ]);
+    if (recoveredPhotoTransactions.length) {
+      console.log(`已自动恢复中断的换图：${recoveredPhotoTransactions.join("、")}`);
+    }
+    if (recoveredPublicationTransactions.length) {
+      console.log(`已自动恢复中断的客片公开：${recoveredPublicationTransactions.join("、")}`);
     }
     serverReady = true;
     console.log(`南铂客片管理台：${url}`);

@@ -1,20 +1,44 @@
-import { buildPortfolioItems, portfolioCatalog } from "./catalog.js?v=pv2-ebb81b71cc6f";
+import {
+  buildPortfolioItems,
+  buildPortfolioThemes,
+  emptyPortfolioAdditions,
+  portfolioCatalog,
+} from "./catalog.js?v=pv2-aff0a3a8b888";
+import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=pv2-aff0a3a8b888";
 
-const embeddedBuildVersion = "pv2-ebb81b71cc6f";
+const embeddedBuildVersion = "pv2-aff0a3a8b888";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;
 const versionPhoto = (path) => `${path}?v=${encodeURIComponent(buildVersion)}`;
 
-const sceneConfig = portfolioCatalog.scenes;
-const themeConfig = portfolioCatalog.themes.map((theme) => ({ ...theme, series: new Set(theme.series) }));
-const sceneById = Object.fromEntries(sceneConfig.map((item) => [item.id, item]));
-const themeById = Object.fromEntries(themeConfig.map((item) => [item.id, item]));
-const galleryItems = buildPortfolioItems().map((item) => ({
+const portfolioAdditions = await loadPortfolioAdditions({
+  fetchImpl: fetch,
+  url: `./catalog-additions.json?v=${encodeURIComponent(buildVersion)}`,
+  fallback: emptyPortfolioAdditions,
+  warn: (...args) => console.warn(...args),
+});
+const customerPortfolio = buildCustomerPortfolio({
+  catalog: portfolioCatalog,
+  additions: portfolioAdditions,
+  fallback: emptyPortfolioAdditions,
+  warn: (...args) => console.warn(...args),
+  buildItems: (catalog, additions) => buildPortfolioItems(catalog, additions),
+  buildThemes: (catalog, additions) => buildPortfolioThemes(catalog, additions),
+});
+const themeConfig = customerPortfolio.themes
+  .map((theme) => ({ ...theme, series: new Set(theme.series || []) }));
+const galleryItems = customerPortfolio.items.map((item) => ({
   ...item,
+  sceneTitle: item.sceneTitle || portfolioCatalog.scenes.find((scene) => scene.id === item.scene)?.label || "",
   thumb: versionPhoto(`../portfolio/assets/photos/thumbs/photo-${String(item.id).padStart(3, "0")}.webp`),
   full: versionPhoto(`../portfolio/assets/photos/full/photo-${String(item.id).padStart(3, "0")}.jpg`),
 }));
+const sceneConfig = portfolioCatalog.scenes.map((scene) => scene.id === "all"
+  ? { ...scene, description: `${galleryItems.length} 张真实客片` }
+  : scene);
+const sceneById = Object.fromEntries(sceneConfig.map((item) => [item.id, item]));
+const themeById = Object.fromEntries(themeConfig.map((item) => [item.id, item]));
 const itemById = new Map(galleryItems.map((item) => [item.id, item]));
 
 const filters = document.querySelector("#filters");
@@ -53,6 +77,22 @@ const campaignTrack = document.querySelector("#campaign-track");
 const campaignSlides = [...document.querySelectorAll(".campaign-slide")];
 const campaignProgressButtons = [...document.querySelectorAll("[data-campaign-target]")];
 const campaignLinks = [...document.querySelectorAll("[data-campaign-theme]")];
+
+function setCount(id, value, suffix = "") {
+  const element = document.querySelector(`#${id}`);
+  if (element) element.textContent = `${value}${suffix}`;
+}
+
+function renderCatalogCounts() {
+  setCount("header-photo-count", customerPortfolio.counts.photos);
+  setCount("quick-theme-count", customerPortfolio.counts.themes, " 个主题");
+  setCount("quick-photo-count", customerPortfolio.counts.photos, " 张");
+  setCount("indoor-photo-count", customerPortfolio.counts.scenes.indoor);
+  setCount("outdoor-photo-count", customerPortfolio.counts.scenes.outdoor);
+  setCount("indoor-theme-count", customerPortfolio.counts.sceneThemes.indoor);
+  setCount("outdoor-theme-count", customerPortfolio.counts.sceneThemes.outdoor);
+  setCount("promise-photo-count", customerPortfolio.counts.photos);
+}
 
 const PAGE_SIZE = 30;
 const initialThemeId = new URLSearchParams(window.location.search).get("theme") || "";
@@ -1009,6 +1049,7 @@ tabTargets.forEach((id) => {
 });
 
 hydrateSettingsForm();
+renderCatalogCounts();
 applyGalleryFilters();
 renderFilters();
 renderGallery();

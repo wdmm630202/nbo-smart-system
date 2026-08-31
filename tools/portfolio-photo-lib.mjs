@@ -16,10 +16,17 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { buildPortfolioItems, portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
+import {
+  buildPortfolioItems,
+  buildPortfolioThemes,
+  emptyPortfolioAdditions,
+  normalizePortfolioAdditions,
+  portfolioCatalog,
+} from "../apps/portfolio-v2/catalog.js";
 
 export const root = dirname(dirname(fileURLToPath(import.meta.url)));
 export const sourcePhotoRoot = join(root, "apps/portfolio/assets/photos");
+export const sourceAdditionsPath = join(root, "apps/portfolio-v2/catalog-additions.json");
 export const backupRoot = join(root, ".local/portfolio-photo-backups");
 export const transactionRoot = join(root, ".local/portfolio-photo-transactions");
 // 这是对外唯一入口。内部项目目录以后可以升级，客户链接始终保持 /p/。
@@ -114,7 +121,7 @@ export async function probeImage(path) {
   const result = await run(ffprobe, [
     "-v", "error",
     "-select_streams", "v:0",
-    "-show_entries", "stream=width,height:stream_tags=rotate:stream_side_data=rotation",
+    "-show_entries", "stream=codec_name,width,height:stream_tags=rotate:stream_side_data=rotation",
     "-of", "json",
     path,
   ]);
@@ -123,20 +130,22 @@ export async function probeImage(path) {
   const rotation = Number(stream.tags?.rotate || stream.side_data_list?.[0]?.rotation || 0);
   const rotated = Math.abs(rotation) % 180 === 90;
   return {
+    codec: String(stream.codec_name || "").toLowerCase(),
     width: rotated ? stream.height : stream.width,
     height: rotated ? stream.width : stream.height,
     rotation,
   };
 }
 
-function validateIncomingDimensions({ width, height }) {
+export function validateIncomingImage({ width, height }) {
   const ratio = width / height;
   if (width < 900 || height < 1200) {
-    throw new Error(`图片只有 ${width}×${height}，请使用至少 900×1200 像素的精修图`);
+    throw new Error(`图片只有 ${width}×${height}，至少需要 900×1200`);
   }
-  if (Math.abs(ratio - 0.75) > 0.005) {
+  if (Math.abs(ratio - 0.75) > 0.02) {
     throw new Error(`图片比例是 ${width}:${height}，请先在像素蛋糕或 Photoshop 裁成 3:4，系统不会自动裁掉人物`);
   }
+  return { width, height };
 }
 
 async function renderAsset(ffmpeg, input, output, width, height, type) {
@@ -153,6 +162,12 @@ async function renderAsset(ffmpeg, input, output, width, height, type) {
     ...codecArgs,
     output,
   ]);
+}
+
+export async function renderPhotoDerivatives(inputPath, { full, thumb }) {
+  const ffmpeg = await resolveBinary("ffmpeg");
+  await renderAsset(ffmpeg, inputPath, full, 1080, 1440, "jpg");
+  await renderAsset(ffmpeg, inputPath, thumb, 480, 640, "webp");
 }
 
 async function copyExistingAssets(paths, destination) {
@@ -325,7 +340,7 @@ export async function recoverIncompletePhotoTransactions() {
 export async function replacePhoto(id, inputPath, originalName = "") {
   const numericId = assertPhotoId(id);
   const sourceInfo = await probeImage(inputPath);
-  validateIncomingDimensions(sourceInfo);
+  validateIncomingImage(sourceInfo);
 
   const ffmpeg = await resolveBinary("ffmpeg");
   const temporaryDir = await mkdtemp(join(tmpdir(), `nanbo-${slotFilename(numericId)}-`));
@@ -341,8 +356,7 @@ export async function replacePhoto(id, inputPath, originalName = "") {
   const backupDir = join(slotBackupRoot, backupName);
 
   try {
-    await renderAsset(ffmpeg, inputPath, generated.full, 1080, 1440, "jpg");
-    await renderAsset(ffmpeg, inputPath, generated.thumb, 480, 640, "thumb");
+    await renderPhotoDerivatives(inputPath, generated);
     if (generated.featured) await renderAsset(ffmpeg, inputPath, generated.featured, 900, 1200, "featured");
 
     const [fullInfo, thumbInfo] = await Promise.all([probeImage(generated.full), probeImage(generated.thumb)]);
@@ -457,10 +471,71 @@ function exactSeriesCoverage(groups, expectedCount, label) {
   return errors;
 }
 
-export async function validatePortfolioLibrary() {
+function additionAssetPaths(id, photoRoot) {
+  const base = slotFilename(id);
+  return {
+    full: join(photoRoot, "full", `${base}.jpg`),
+    thumb: join(photoRoot, "thumbs", `${base}.webp`),
+  };
+}
+
+async function readPortfolioAdditions(path) {
+  return normalizePortfolioAdditions(JSON.parse(await readFile(path, "utf8")));
+}
+
+function validatePortfolioAdditions(additions, catalog) {
+  const errors = [];
+  const categoryIds = new Set(catalog.categories.map(({ id }) => id));
+  const sceneIds = new Set(catalog.scenes.filter(({ id }) => id !== "all").map(({ id }) => id));
+  const themes = new Map([
+    ...catalog.themes.map((theme) => [theme.id, theme]),
+    ...additions.themes.map((theme) => [theme.id, theme]),
+  ]);
+  const photosById = new Map(additions.photos.map((photo) => [photo.id, photo]));
+  const sortedIds = [...photosById.keys()].sort((a, b) => a - b);
+  sortedIds.forEach((id, index) => {
+    const expected = catalog.photoCount + index + 1;
+    if (id !== expected) errors.push(`新增客片编号断号：缺少 ${slotCode(expected)}`);
+  });
+
+  for (const theme of additions.themes) {
+    if (!sceneIds.has(theme.scene)) errors.push(`新增主题 ${theme.id} 的场景 ${String(theme.scene)} 无效`);
+    if (typeof theme.label !== "string" || !theme.label.trim()) errors.push(`新增主题 ${theme.id} 缺少名称`);
+    if (typeof theme.description !== "string" || !theme.description.trim()) errors.push(`新增主题 ${theme.id} 缺少说明`);
+    const cover = photosById.get(Number(theme.coverPhotoId));
+    if (!cover || cover.theme !== theme.id) errors.push(`新增主题 ${theme.id} 的封面编号无效`);
+    const hasPublishedPhotos = additions.photos.some((photo) => photo.theme === theme.id && photo.visibility === "published");
+    if (hasPublishedPhotos && cover?.visibility !== "published") {
+      errors.push(`新增主题 ${theme.id} 有公开照片时必须使用公开封面`);
+    }
+  }
+
+  for (const photo of additions.photos) {
+    const theme = themes.get(photo.theme);
+    if (!theme) errors.push(`${slotCode(photo.id)} 引用未知主题 ${String(photo.theme)}`);
+    if (!sceneIds.has(photo.scene)) errors.push(`${slotCode(photo.id)} 的场景 ${String(photo.scene)} 无效`);
+    if (theme && photo.scene !== theme.scene) errors.push(`${slotCode(photo.id)} 的场景与主题 ${photo.theme} 不一致`);
+    if (!categoryIds.has(photo.category)) errors.push(`${slotCode(photo.id)} 的风格 ${String(photo.category)} 无效`);
+    if (typeof photo.title !== "string" || !photo.title.trim()) errors.push(`${slotCode(photo.id)} 缺少主题名称`);
+    if (typeof photo.styleTitle !== "string" || !photo.styleTitle.trim()) errors.push(`${slotCode(photo.id)} 缺少风格名称`);
+  }
+  return errors;
+}
+
+export async function validatePortfolioLibrary(options = {}) {
   const errors = [];
   const warnings = [];
   const catalog = portfolioCatalog;
+  const photoRoot = options.photoRoot || sourcePhotoRoot;
+  const additionsPath = options.additionsPath || sourceAdditionsPath;
+  let additions = emptyPortfolioAdditions;
+
+  try {
+    additions = await readPortfolioAdditions(additionsPath);
+    errors.push(...validatePortfolioAdditions(additions, catalog));
+  } catch (error) {
+    errors.push(`公开增量清单无效：${error.message}`);
+  }
 
   if (catalog.photoCount !== catalog.pairCount * 2) errors.push("照片数与双图组数不一致");
   const categoryIds = catalog.categories.map((category) => category.id);
@@ -494,9 +569,9 @@ export async function validatePortfolioLibrary() {
   }
 
   try {
-    const items = buildPortfolioItems(catalog);
-    if (items.length !== catalog.photoCount) errors.push(`清单生成 ${items.length} 张，应为 ${catalog.photoCount} 张`);
-    if (new Set(items.map((item) => item.id)).size !== catalog.photoCount) errors.push("清单中有重复客片编号");
+    const legacyItems = buildPortfolioItems(catalog);
+    if (legacyItems.length !== catalog.photoCount) errors.push(`历史清单生成 ${legacyItems.length} 张，应为 ${catalog.photoCount} 张`);
+    if (new Set(legacyItems.map((item) => item.id)).size !== catalog.photoCount) errors.push("历史清单中有重复客片编号");
   } catch (error) {
     errors.push(error.message);
   }
@@ -506,29 +581,50 @@ export async function validatePortfolioLibrary() {
     thumbs: new Set(Array.from({ length: catalog.photoCount }, (_, index) => `${slotFilename(index + 1)}.webp`)),
     featured: new Set(catalog.heroAssetIds.map((id) => `${slotFilename(id)}.webp`)),
   };
+  for (const photo of additions.photos) {
+    expected.full.add(`${slotFilename(photo.id)}.jpg`);
+    expected.thumbs.add(`${slotFilename(photo.id)}.webp`);
+  }
+  const assetLabels = { full: "高清图", thumbs: "缩略图", featured: "首页图" };
   for (const [directory, names] of Object.entries(expected)) {
     let actual = [];
     try {
-      actual = (await readdir(join(sourcePhotoRoot, directory))).filter((name) => !name.startsWith("."));
+      actual = (await readdir(join(photoRoot, directory))).filter((name) => !name.startsWith("."));
     } catch {
       errors.push(`缺少图片目录 ${directory}`);
       continue;
     }
-    for (const name of names) if (!actual.includes(name)) errors.push(`${directory} 缺少 ${name}`);
+    for (const name of names) {
+      if (actual.includes(name)) continue;
+      const id = Number(name.match(/photo-(\d+)\./)?.[1]);
+      errors.push(Number.isInteger(id) ? `${slotCode(id)} 缺少${assetLabels[directory]}` : `${directory} 缺少 ${name}`);
+    }
     for (const name of actual) if (!names.has(name)) errors.push(`${directory} 有未记录文件 ${name}，为防止误公开已停止发布`);
+  }
+
+  let items = [];
+  let themes = [];
+  try {
+    items = buildPortfolioItems(catalog, additions);
+    themes = buildPortfolioThemes(catalog, additions);
+  } catch (error) {
+    errors.push(error.message);
   }
 
   return {
     ok: errors.length === 0,
     errors,
     warnings,
-    photoCount: catalog.photoCount,
-    themeCount: catalog.themes.length,
+    photoCount: items.length || catalog.photoCount,
+    themeCount: themes.length || catalog.themes.length,
     heroAssetCount: catalog.heroAssetIds.length,
   };
 }
 
-export async function buildPortfolioVersion() {
+export async function buildPortfolioVersion(options = {}) {
+  const photoRoot = options.photoRoot || sourcePhotoRoot;
+  const additionsPath = options.additionsPath || sourceAdditionsPath;
+  const additions = await readPortfolioAdditions(additionsPath);
   const hash = createHash("sha256");
   const files = [
     join(root, "apps/portfolio-v2/index.html"),
@@ -536,15 +632,26 @@ export async function buildPortfolioVersion() {
     join(root, "apps/portfolio-v2/app.js"),
     join(root, "apps/portfolio-v2/analytics.js"),
     join(root, "apps/portfolio-v2/catalog.js"),
+    join(root, "apps/portfolio-v2/portfolio-runtime.js"),
     join(root, "apps/portfolio-v2/wechat-share.js"),
     join(root, "apps/portfolio-v2/wechat-contact-qr.png"),
     join(root, "apps/portfolio-v2/privacy.html"),
     join(root, "apps/portfolio-v2/share-card.jpg"),
+    additionsPath,
   ];
   for (let id = 1; id <= portfolioCatalog.photoCount; id += 1) {
-    const paths = assetPaths(id);
+    const paths = {
+      ...additionAssetPaths(id, photoRoot),
+      featured: portfolioCatalog.heroAssetIds.includes(id)
+        ? join(photoRoot, "featured", `${slotFilename(id)}.webp`)
+        : null,
+    };
     files.push(paths.full, paths.thumb);
     if (paths.featured) files.push(paths.featured);
+  }
+  for (const photo of additions.photos) {
+    const paths = additionAssetPaths(photo.id, photoRoot);
+    files.push(paths.full, paths.thumb);
   }
   for (const path of files.sort()) {
     hash.update(relative(root, path));

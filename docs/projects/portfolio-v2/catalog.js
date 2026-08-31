@@ -49,7 +49,115 @@ export const portfolioCatalog = Object.freeze({
   heroAssetIds: [13, 21, 31, 37, 77, 79, 85, 111, 127, 137, 154],
 });
 
-export function buildPortfolioItems(catalog = portfolioCatalog) {
+export const emptyPortfolioAdditions = Object.freeze({ schemaVersion: 1, themes: [], photos: [] });
+
+const additionTopLevelKeys = new Set(["schemaVersion", "themes", "photos"]);
+const additionThemeKeys = new Set(["id", "scene", "label", "description", "coverPhotoId"]);
+const additionPhotoKeys = new Set([
+  "id",
+  "scene",
+  "theme",
+  "category",
+  "title",
+  "styleTitle",
+  "featured",
+  "visibility",
+  "publishedAt",
+]);
+
+function assertRecord(value, label) {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    throw new Error(`${label}格式无效`);
+  }
+}
+
+function assertAllowedKeys(value, allowedKeys, label) {
+  const unknownKey = Object.keys(value).find((key) => !allowedKeys.has(key));
+  if (unknownKey) throw new Error(`${label}不允许字段 ${unknownKey}`);
+}
+
+function requireText(value, label) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label}字段格式无效`);
+  return value;
+}
+
+export function normalizePortfolioAdditions(value = emptyPortfolioAdditions) {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    throw new Error("公开增量清单格式无效");
+  }
+  assertAllowedKeys(value, additionTopLevelKeys, "公开增量清单顶层");
+  if (value.schemaVersion !== 1 || !Array.isArray(value.themes) || !Array.isArray(value.photos)) {
+    throw new Error("公开增量清单格式无效");
+  }
+  const ids = new Set();
+  const photos = value.photos.map((photo) => {
+    assertRecord(photo, "新增客片");
+    assertAllowedKeys(photo, additionPhotoKeys, "新增客片");
+    const id = photo.id;
+    if (!Number.isInteger(id)) throw new Error("新增客片编号字段格式无效");
+    if (id <= portfolioCatalog.photoCount) {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 与历史编号冲突`);
+    }
+    if (ids.has(id)) throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 重复`);
+    if (photo.visibility !== "published" && photo.visibility !== "archived") {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 可见性无效`);
+    }
+    const scene = requireText(photo.scene, `新增客片 NB-${String(id).padStart(3, "0")} 场景`);
+    if (!portfolioCatalog.scenes.some((item) => item.id === scene && item.id !== "all")) {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 场景字段格式无效`);
+    }
+    const category = requireText(photo.category, `新增客片 NB-${String(id).padStart(3, "0")} 风格`);
+    if (!portfolioCatalog.categories.some((item) => item.id === category)) {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 风格字段格式无效`);
+    }
+    if (typeof photo.featured !== "boolean") {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} featured 字段格式无效`);
+    }
+    const publishedAt = requireText(photo.publishedAt, `新增客片 NB-${String(id).padStart(3, "0")} 公开时间`);
+    if (Number.isNaN(Date.parse(publishedAt))) {
+      throw new Error(`新增客片 NB-${String(id).padStart(3, "0")} 公开时间字段格式无效`);
+    }
+    ids.add(id);
+    return {
+      id,
+      scene,
+      theme: requireText(photo.theme, `新增客片 NB-${String(id).padStart(3, "0")} 主题`),
+      category,
+      title: requireText(photo.title, `新增客片 NB-${String(id).padStart(3, "0")} 标题`),
+      styleTitle: requireText(photo.styleTitle, `新增客片 NB-${String(id).padStart(3, "0")} 风格标题`),
+      featured: photo.featured,
+      visibility: photo.visibility,
+      publishedAt,
+    };
+  });
+  const themeIds = new Set(portfolioCatalog.themes.map((theme) => theme.id));
+  const themes = value.themes.map((theme) => {
+    assertRecord(theme, "新增主题");
+    assertAllowedKeys(theme, additionThemeKeys, "新增主题");
+    if (typeof theme.id !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(theme.id) || themeIds.has(theme.id)) {
+      throw new Error(`新增主题编号 ${String(theme.id)} 无效或重复`);
+    }
+    const scene = requireText(theme.scene, `新增主题 ${theme.id} 场景`);
+    if (!portfolioCatalog.scenes.some((item) => item.id === scene && item.id !== "all")) {
+      throw new Error(`新增主题 ${theme.id} 场景字段格式无效`);
+    }
+    const coverPhotoId = Number(theme.coverPhotoId);
+    if (!Number.isInteger(theme.coverPhotoId) || coverPhotoId <= portfolioCatalog.photoCount) {
+      throw new Error(`新增主题 ${theme.id} 封面字段格式无效`);
+    }
+    themeIds.add(theme.id);
+    return {
+      id: theme.id,
+      scene,
+      label: requireText(theme.label, `新增主题 ${theme.id} 名称`),
+      description: requireText(theme.description, `新增主题 ${theme.id} 描述`),
+      coverPhotoId,
+    };
+  });
+  return { schemaVersion: 1, themes, photos };
+}
+
+function buildLegacyPortfolioItems(catalog = portfolioCatalog) {
   const sceneById = Object.fromEntries(catalog.scenes.map((item) => [item.id, item]));
   const titleByCategory = Object.fromEntries(catalog.categories.map((item) => [item.id, item.label]));
   const categorySeries = Object.fromEntries(
@@ -80,4 +188,36 @@ export function buildPortfolioItems(catalog = portfolioCatalog) {
     .filter((id) => !catalog.featuredIds.includes(id));
   const variantB = Array.from({ length: catalog.pairCount }, (_, index) => index * 2 + 2);
   return [...catalog.featuredIds, ...remainingA, ...variantB].map(itemFromId);
+}
+
+export function buildPortfolioItems(catalog = portfolioCatalog, additions = emptyPortfolioAdditions) {
+  const legacy = buildLegacyPortfolioItems(catalog);
+  const normalized = normalizePortfolioAdditions(additions);
+  const published = normalized.photos
+    .filter((photo) => photo.visibility === "published")
+    .sort((a, b) => a.id - b.id);
+  const additionItem = (photo) => ({
+    id: photo.id,
+    code: `NB-${String(photo.id).padStart(3, "0")}`,
+    scene: photo.scene,
+    theme: photo.theme,
+    category: photo.category,
+    title: photo.title,
+    styleTitle: photo.styleTitle,
+    featured: photo.featured,
+    visibility: photo.visibility,
+    publishedAt: photo.publishedAt,
+    isHeroAsset: false,
+  });
+  const featured = published.filter((photo) => photo.featured).map(additionItem);
+  const regular = published.filter((photo) => !photo.featured).map(additionItem);
+  return [...featured, ...legacy, ...regular];
+}
+
+export function buildPortfolioThemes(catalog = portfolioCatalog, additions = emptyPortfolioAdditions) {
+  const normalized = normalizePortfolioAdditions(additions);
+  const newThemes = normalized.themes.filter((theme) => normalized.photos.some((photo) => photo.visibility === "published"
+    && photo.id === Number(theme.coverPhotoId)
+    && photo.theme === theme.id));
+  return [...catalog.themes, ...newThemes];
 }

@@ -39,7 +39,7 @@
           <span class="brand-seal">N</span>
           <span><strong>南铂摄影</strong><small>NANBO PORTRAIT</small></span>
         </a>
-        <a class="header-work-link" href="#works"><span>真实客片</span><b>158</b></a>
+        <a class="header-work-link" href="#works"><span>真实客片</span><b id="header-photo-count">0</b></a>
       </header>
 
       <main>
@@ -201,8 +201,8 @@
         </section>
 
         <section class="quick-panel" aria-label="快捷服务">
-          <a href="#styles"><span class="quick-icon">⌁</span><strong>挑主题</strong><small>23 个主题</small></a>
-          <a href="#works"><span class="quick-icon">▦</span><strong>看客片</strong><small>158 张</small></a>
+          <a href="#styles"><span class="quick-icon">⌁</span><strong>挑主题</strong><small id="quick-theme-count">0 个主题</small></a>
+          <a href="#works"><span class="quick-icon">▦</span><strong>看客片</strong><small id="quick-photo-count">0 张</small></a>
           <button id="quick-favorites" type="button"><span class="quick-icon">♡</span><strong>我的喜欢</strong><small>生成需求</small></button>
           <a href="#prep"><span class="quick-icon">✓</span><strong>拍前准备</strong><small>到店不慌</small></a>
         </section>
@@ -220,11 +220,11 @@
           <div class="style-rail">
             <button class="style-card" type="button" data-scene-link="indoor">
               <img src="../portfolio/assets/photos/thumbs/photo-137.webp?v=__NBO_BUILD_VERSION__" alt="商务质感男士写真" loading="lazy" />
-              <span><small>01 / INDOOR · 120 PHOTOS</small><strong>内景主题</strong><em>灯光可控 · 造型完整 · 13 个主题</em></span>
+              <span><small>01 / INDOOR · <span id="indoor-photo-count">0</span> PHOTOS</small><strong>内景主题</strong><em>灯光可控 · 造型完整 · <span id="indoor-theme-count">0</span> 个主题</em></span>
             </button>
             <button class="style-card" type="button" data-scene-link="outdoor">
               <img src="../portfolio/assets/photos/thumbs/photo-111.webp?v=__NBO_BUILD_VERSION__" alt="城市机车外景男士写真" loading="lazy" />
-              <span><small>02 / OUTDOOR · 38 PHOTOS</small><strong>外景主题</strong><em>环境真实 · 行走自然 · 10 个主题</em></span>
+              <span><small>02 / OUTDOOR · <span id="outdoor-photo-count">0</span> PHOTOS</small><strong>外景主题</strong><em>环境真实 · 行走自然 · <span id="outdoor-theme-count">0</span> 个主题</em></span>
             </button>
           </div>
           <div class="theme-directory" aria-label="内景与外景主题快速选择">
@@ -272,7 +272,7 @@
             <div class="filter-level"><span>场景</span><div class="filters" id="filters"></div></div>
             <div class="filter-level"><span>主题</span><div class="filters theme-filters" id="theme-filters"></div></div>
           </nav>
-          <div class="gallery-status"><span id="gallery-summary">全部作品</span><span id="gallery-progress">显示 0 / 158</span></div>
+          <div class="gallery-status"><span id="gallery-summary">全部作品</span><span id="gallery-progress">显示 0 / 0</span></div>
           <div class="gallery-grid" id="gallery-grid" aria-live="polite"></div>
           <div class="load-area"><button class="load-more" id="load-more" type="button"><span>继续浏览更多真实客片</span><small id="load-remaining"></small></button></div>
         </section>
@@ -293,7 +293,7 @@
           <p class="promise-kicker">NANBO PROMISE</p>
           <h2>不靠话术，靠真实客片和清楚流程。</h2>
           <div class="promise-grid">
-            <div><b>158</b><span>张真实风格参考</span></div>
+            <div><b id="promise-photo-count">0</b><span>张真实风格参考</span></div>
             <div><b>1对1</b><span>拍摄动作指导</span></div>
             <div><b>透明</b><span>拍前讲清楚内容</span></div>
           </div>

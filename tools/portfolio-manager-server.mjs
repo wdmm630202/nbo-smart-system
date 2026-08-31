@@ -318,7 +318,9 @@ function requireSession(request) {
   const origin = String(request.headers.origin || "");
   const fetchSite = String(request.headers["sec-fetch-site"] || "");
   const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
-  if ((origin && !allowedOrigins.has(origin)) || fetchSite === "cross-site") {
+  const hasBlockedOrigin = origin && !allowedOrigins.has(origin);
+  const hasUntrustedFetchMetadata = !origin && fetchSite === "cross-site";
+  if (hasBlockedOrigin || hasUntrustedFetchMetadata) {
     const error = new Error("为保护本地客片，已拒绝其他网页发起的操作");
     error.status = 403;
     throw error;

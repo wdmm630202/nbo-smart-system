@@ -25,7 +25,7 @@ const elements = {
   currentPhotoFallback: $("#current-photo-fallback"), photoFile: $("#photo-file"), candidatePhoto: $("#candidate-photo"),
   candidateDimensions: $("#candidate-dimensions"), dropZone: $("#drop-zone"), dropPrompt: $("#drop-prompt"),
   fileFeedback: $("#file-feedback"), replaceButton: $("#replace-button"), undoButton: $("#undo-button"),
-  chooseAnotherButton: $("#choose-another-button"), publishDialog: $("#publish-dialog"), publishCount: $("#publish-count"),
+  chooseAnotherButton: $("#choose-another-button"), publishDialog: $("#publish-dialog"), publishCount: $("#publish-count"), publishSummaryTitle: $("#publish-summary-title"),
   publishSlots: $("#publish-slots"), publishApproval: $("#publish-approval"), publishConfirm: $("#publish-confirm"),
   publishError: $("#publish-error"), deployPanel: $("#deploy-panel"), deployTitle: $("#deploy-title"),
   deployMessage: $("#deploy-message"), deploySteps: [...document.querySelectorAll("#deploy-steps li")],
@@ -123,7 +123,7 @@ function updateStatusCard() {
   elements.statusIndicator.className = `status-indicator${publication.hasPendingPublication ? " is-dirty" : ""}`;
   elements.statusTitle.textContent = publication.title;
   elements.statusDescription.textContent = publication.description;
-  elements.dirtyCount.textContent = String(publication.pendingCount);
+  elements.dirtyCount.textContent = publication.pendingCount ? String(publication.pendingCount) : (publication.hasPendingPublication ? "状态" : "0");
   elements.catalogCount.textContent = String(state.catalog.items.length);
   elements.headVersion.textContent = state.status.head;
   elements.branchName.textContent = `${state.status.branch} 分支 · ${state.status.buildVersion}`;
@@ -621,7 +621,8 @@ async function undoSelectedPhoto() {
 function openPreview() { if (state.catalog) window.open(`/preview/?v=${encodeURIComponent(state.catalog.version)}`, "_blank", "noopener,noreferrer"); }
 function openPublishDialog() {
   const publication = publicationControlState(state.status); if (!publication.hasPendingPublication) return;
-  elements.publishCount.textContent = String(publication.pendingCount); elements.publishSlots.textContent = publication.pendingLabel;
+  elements.publishCount.hidden = publication.pendingCount === 0;
+  elements.publishCount.textContent = String(publication.pendingCount); elements.publishSummaryTitle.textContent = publication.pendingSummary; elements.publishSlots.textContent = publication.pendingLabel;
   elements.publishApproval.checked = false; elements.publishConfirm.disabled = true; elements.publishError.hidden = true; elements.publishDialog.showModal();
 }
 function setDeploySteps(states) {

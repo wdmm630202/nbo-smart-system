@@ -191,6 +191,12 @@ function parseStatusLine(line) {
   return { state: line.slice(0, 2), path };
 }
 
+function isPendingDraftReconciliation(photo, publishedIds) {
+  return publishedIds.has(photo.id)
+    && ((photo.status === "ready" && photo.stagedAt)
+      || (photo.status === "archived" && photo.publishedCommit));
+}
+
 async function repositoryStatus() {
   const [{ stdout: porcelain }, { stdout: head }, { stdout: branch }, additions, draftState] = await Promise.all([
     git(["status", "--porcelain=v1", "--untracked-files=all"], { preserveWhitespace: true }),
@@ -217,14 +223,14 @@ async function repositoryStatus() {
   const publishedAdditionIds = new Set(additions.photos
     .filter(({ visibility }) => visibility === "published")
     .map(({ id }) => Number(id)));
-  const stagedReadyIds = draftState.photos
-    .filter((photo) => photo.status === "ready" && photo.stagedAt && publishedAdditionIds.has(photo.id))
+  const pendingReconciliationIds = draftState.photos
+    .filter((photo) => isPendingDraftReconciliation(photo, publishedAdditionIds))
     .map(({ id }) => id)
     .sort((a, b) => a - b);
   const publishableSourceChanges = changedFiles.filter((path) => path === publicationMetadata
     || (path.startsWith("apps/portfolio/assets/photos/") && registeredIds.has(sourcePhotoId(path))));
-  const pendingPublicationIds = [...new Set([...dirtySlots, ...stagedReadyIds])].sort((a, b) => a - b);
-  const hasPendingPublication = publishableSourceChanges.length > 0 || stagedReadyIds.length > 0;
+  const pendingPublicationIds = [...new Set([...dirtySlots, ...pendingReconciliationIds])].sort((a, b) => a - b);
+  const hasPendingPublication = publishableSourceChanges.length > 0 || pendingReconciliationIds.length > 0;
   const unrelatedFiles = changedFiles.filter((path) => !(publishExactPaths.has(path)
     || publishPrefixes.some((prefix) => path.startsWith(prefix)))
     || (path.startsWith("apps/portfolio/assets/photos/") && !registeredIds.has(sourcePhotoId(path))));
@@ -233,7 +239,7 @@ async function repositoryStatus() {
     branch,
     dirtySlots,
     pendingPublicationIds,
-    pendingPublicationCount: pendingPublicationIds.length || (hasPendingPublication ? 1 : 0),
+    pendingPublicationCount: pendingPublicationIds.length,
     hasPendingPublication,
     changedFiles,
     unrelatedFiles,
@@ -524,8 +530,7 @@ async function assertCommittedAdditionBundle(commit, id) {
 async function reconcileStagedDraftsToCommit(commit) {
   const [state, additions] = await Promise.all([draftStore.read(), readPublicAdditions()]);
   const publishedIds = new Set(additions.photos.filter(({ visibility }) => visibility === "published").map(({ id }) => Number(id)));
-  const ids = state.photos.filter((photo) => publishedIds.has(photo.id)
-    && ((photo.status === "ready" && photo.stagedAt) || (photo.status === "archived" && photo.publishedCommit)))
+  const ids = state.photos.filter((photo) => isPendingDraftReconciliation(photo, publishedIds))
     .map(({ id }) => id);
   if (!ids.length) return ids;
   const committed = await committedAdditions(commit);

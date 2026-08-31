@@ -576,8 +576,22 @@ test("同步控件使用服务端待发布状态而不是仅看换图编号", as
   });
   assert.equal(view.buttonDisabled, false);
   assert.equal(view.hasPendingPublication, true);
-  assert.match(view.title, /公开状态.*同步/);
+  assert.equal(view.title, "有待同步状态变更");
   assert.match(view.description, /隐藏或恢复.*本机.*同步成功/);
+});
+
+test("无编号的元数据同步使用无数量状态文案", async () => {
+  const { publicationControlState } = await loadDraftUiState();
+  const view = publicationControlState({
+    branch: "main",
+    dirtySlots: [],
+    pendingPublicationIds: [],
+    hasPendingPublication: true,
+    unrelatedFiles: [],
+  });
+  assert.equal(view.pendingCount, 0);
+  assert.equal(view.title, "有待同步状态变更");
+  assert.equal(view.pendingSummary, "有待同步状态变更");
 });
 
 test("草稿修改接口拒绝缺少令牌和跨站请求", { timeout: 30_000 }, async (t) => {
@@ -923,6 +937,38 @@ test("推送后进程退出可在干净仓库把 staged ready 安全对账到当
   const [draft] = (await server.store.read()).photos;
   assert.equal(draft.status, "published");
   assert.equal(draft.publishedCommit, localBefore.slice(0, 7));
+  const [{ stdout: localAfter }, { stdout: remoteAfter }] = await Promise.all([
+    gitAt(server.repository, ["rev-parse", "HEAD"]),
+    gitAt(server.sandbox, [`--git-dir=${server.remote}`, "rev-parse", "main"]),
+  ]);
+  assert.equal(localAfter, localBefore);
+  assert.equal(remoteAfter, remoteBefore);
+});
+
+test("干净 HEAD 下已恢复的归档草稿会进入待对账并恢复为已公开", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { sourceChange: "none" });
+  const [{ stdout: localBefore }, { stdout: remoteBefore }] = await Promise.all([
+    gitAt(server.repository, ["rev-parse", "HEAD"]),
+    gitAt(server.sandbox, [`--git-dir=${server.remote}`, "rev-parse", "main"]),
+  ]);
+  await server.store.markPublished([159], localBefore.slice(0, 7));
+  await server.store.transitionPhoto(159, "archived");
+  await server.store.addPhoto({ id: 160, uuid: "archived-unrelated", originalName: "NB-160.jpg" });
+  await server.store.transitionPhoto(160, "archived");
+
+  const before = await server.status();
+  assert.equal(before.hasPendingPublication, true);
+  assert.deepEqual(before.pendingPublicationIds, [159]);
+
+  const response = await server.publish();
+  const payload = await response.json();
+  assert.equal(response.status, 200, payload.error);
+  assert.equal(payload.noChanges, true);
+  assert.deepEqual(payload.reconciledDraftIds, [159]);
+  assert.equal(payload.status.hasPendingPublication, false);
+  const drafts = (await server.store.read()).photos;
+  assert.equal(drafts.find((photo) => photo.id === 159).status, "published");
+  assert.equal(drafts.find((photo) => photo.id === 160).status, "archived");
   const [{ stdout: localAfter }, { stdout: remoteAfter }] = await Promise.all([
     gitAt(server.repository, ["rev-parse", "HEAD"]),
     gitAt(server.sandbox, [`--git-dir=${server.remote}`, "rev-parse", "main"]),

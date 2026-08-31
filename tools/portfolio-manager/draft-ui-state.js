@@ -17,19 +17,21 @@ export function publicationControlState(status = {}) {
   const pendingIds = Array.isArray(status.pendingPublicationIds) ? status.pendingPublicationIds : dirtySlots;
   const unrelatedFiles = Array.isArray(status.unrelatedFiles) ? status.unrelatedFiles : [];
   const hasPendingPublication = status.hasPendingPublication === true;
-  const pendingCount = Number.isInteger(status.pendingPublicationCount) && status.pendingPublicationCount > 0
-    ? status.pendingPublicationCount
-    : (pendingIds.length || (hasPendingPublication ? 1 : 0));
+  const pendingCount = pendingIds.length;
+  const pendingSummary = pendingCount
+    ? `${pendingCount} 张客片将同步`
+    : "有待同步状态变更";
   return {
     hasPendingPublication,
     pendingCount,
+    pendingSummary,
     pendingLabel: pendingIds.length
       ? pendingIds.map(draftCode).join("、")
-      : "公开清单状态变更",
+      : "有待同步状态变更",
     buttonDisabled: !hasPendingPublication || unrelatedFiles.length > 0 || status.branch !== "main",
-    title: dirtySlots.length
-      ? `有 ${dirtySlots.length} 张客片等待同步`
-      : (hasPendingPublication ? "有公开状态等待同步" : "本地客片库已就绪"),
+    title: pendingCount
+      ? `有 ${pendingCount} 张客片等待同步`
+      : (hasPendingPublication ? "有待同步状态变更" : "本地客片库已就绪"),
     description: hasPendingPublication
       ? "新增、隐藏或恢复目前只保存在本机；请检查预览，只有同步成功后网站才会更新。"
       : "现在可以选一张客片开始替换。",

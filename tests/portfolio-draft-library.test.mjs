@@ -624,6 +624,18 @@ test("草稿修改接口拒绝缺少令牌和跨站请求", { timeout: 30_000 },
     },
   });
   assert.equal(fetchMetadataCrossSite.status, 403);
+
+  const portlessWithoutManagerReferer = await fetch(`${server.url}api/drafts/update?id=159`, {
+    method: "POST",
+    body: "{}",
+    headers: {
+      "content-type": "application/json",
+      "x-nanbo-token": server.token,
+      origin: "http://127.0.0.1",
+      "sec-fetch-site": "same-origin",
+    },
+  });
+  assert.equal(portlessWithoutManagerReferer.status, 403);
 });
 
 test("精确匹配本机来源时不因 Chrome 跨站辅助字段误拒绝", { timeout: 30_000 }, async (t) => {
@@ -637,6 +649,25 @@ test("精确匹配本机来源时不因 Chrome 跨站辅助字段误拒绝", { t
       "x-nanbo-token": server.token,
       origin: new URL(server.url).origin,
       "sec-fetch-site": "cross-site",
+    },
+  });
+
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /只支持 JPG、PNG 或 WebP 图片/);
+});
+
+test("Chrome 省略本机非默认端口时仍允许当前管理台换图", { timeout: 30_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const response = await fetch(`${server.url}api/replace?id=137`, {
+    method: "POST",
+    body: "not-an-image",
+    headers: {
+      "content-type": "text/plain",
+      "x-file-name": "test.txt",
+      "x-nanbo-token": server.token,
+      origin: "http://127.0.0.1",
+      referer: server.url,
+      "sec-fetch-site": "same-origin",
     },
   });
 

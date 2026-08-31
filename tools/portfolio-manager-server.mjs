@@ -316,9 +316,18 @@ function decodedUploadName(request) {
 
 function requireSession(request) {
   const origin = String(request.headers.origin || "");
+  const referer = String(request.headers.referer || "");
   const fetchSite = String(request.headers["sec-fetch-site"] || "");
+  // Chrome 的本地网络访问保护有时会把非默认端口从 Origin 中省略，
+  // 但 Referer、Host 和 Sec-Fetch-Site 仍表明请求来自当前管理台。
+  // 令牌仍是每次启动随机生成，外部网页既读不到也不能伪造。
   const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
-  const hasBlockedOrigin = origin && !allowedOrigins.has(origin);
+  const portlessOrigins = new Set([`http://${host}`, "http://localhost"]);
+  const allowedReferers = [`http://${host}:${activePort}/`, `http://localhost:${activePort}/`];
+  const hasTrustedPortlessOrigin = portlessOrigins.has(origin)
+    && allowedReferers.some((allowed) => referer.startsWith(allowed))
+    && fetchSite === "same-origin";
+  const hasBlockedOrigin = origin && !allowedOrigins.has(origin) && !hasTrustedPortlessOrigin;
   const hasUntrustedFetchMetadata = !origin && fetchSite === "cross-site";
   if (hasBlockedOrigin || hasUntrustedFetchMetadata) {
     const error = new Error("为保护本地客片，已拒绝其他网页发起的操作");

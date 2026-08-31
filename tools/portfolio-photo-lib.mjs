@@ -624,12 +624,14 @@ export async function validatePortfolioLibrary(options = {}) {
 export async function buildPortfolioVersion(options = {}) {
   const photoRoot = options.photoRoot || sourcePhotoRoot;
   const additionsPath = options.additionsPath || sourceAdditionsPath;
+  const interactionModelPath = options.interactionModelPath || join(root, "apps/portfolio-v2/interaction-model.js");
   const additions = await readPortfolioAdditions(additionsPath);
   const hash = createHash("sha256");
   const files = [
     join(root, "apps/portfolio-v2/index.html"),
     join(root, "apps/portfolio-v2/styles.css"),
     join(root, "apps/portfolio-v2/app.js"),
+    interactionModelPath,
     join(root, "apps/portfolio-v2/analytics.js"),
     join(root, "apps/portfolio-v2/catalog.js"),
     join(root, "apps/portfolio-v2/portfolio-runtime.js"),

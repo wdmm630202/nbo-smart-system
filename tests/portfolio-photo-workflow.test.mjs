@@ -272,6 +272,17 @@ test("发布版本包含增量清单和已归档资源", async (t) => {
   assert.notEqual(afterManifest, afterArchivedAsset);
 });
 
+test("交互模型变化必须生成新的发布版本", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-interaction-version-"));
+  const interactionModelPath = join(directory, "interaction-model.js");
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await writeFile(interactionModelPath, "export const gesture = 1;\n");
+  const before = await buildPortfolioVersion({ interactionModelPath });
+  await writeFile(interactionModelPath, "export const gesture = 2;\n");
+  const after = await buildPortfolioVersion({ interactionModelPath });
+  assert.notEqual(after, before, "只修改滑动交互模型时也必须刷新缓存版本");
+});
+
 test("企业微信二维码跟随客片版本刷新", async () => {
   const qrPath = join(root, "apps/portfolio-v2/wechat-contact-qr.png");
   const [sourceIndex, originalQr, before] = await Promise.all([

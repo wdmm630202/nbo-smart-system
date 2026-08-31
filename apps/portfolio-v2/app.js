@@ -5,6 +5,7 @@ import {
   portfolioCatalog,
 } from "./catalog.js?v=__NBO_BUILD_VERSION__";
 import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=__NBO_BUILD_VERSION__";
+import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=__NBO_BUILD_VERSION__";
 
 const embeddedBuildVersion = "__NBO_BUILD_VERSION__";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
@@ -77,6 +78,23 @@ const campaignTrack = document.querySelector("#campaign-track");
 const campaignSlides = [...document.querySelectorAll(".campaign-slide")];
 const campaignProgressButtons = [...document.querySelectorAll("[data-campaign-target]")];
 const campaignLinks = [...document.querySelectorAll("[data-campaign-theme]")];
+const campaignCurrent = document.querySelector("#campaign-current");
+const themeExperience = document.querySelector("#theme-experience");
+const themeExperienceShell = document.querySelector("#theme-experience-shell");
+const themeExperienceDrag = document.querySelector("#theme-experience-drag");
+const themeExperienceClose = document.querySelector("#theme-experience-close");
+const themeExperienceImage = document.querySelector("#theme-experience-image");
+const themeExperienceKicker = document.querySelector("#theme-experience-kicker");
+const themeExperienceTitle = document.querySelector("#theme-experience-title");
+const themeExperienceSubtitle = document.querySelector("#theme-experience-subtitle");
+const themeExperienceLabel = document.querySelector("#theme-experience-label");
+const themeExperienceDescription = document.querySelector("#theme-experience-description");
+const themeExperienceCount = document.querySelector("#theme-experience-count");
+const themeExperiencePreviews = document.querySelector("#theme-experience-previews");
+const themeExperienceView = document.querySelector("#theme-experience-view");
+const themeExperienceSelection = document.querySelector("#theme-experience-selection");
+const themeExperienceSelectionCount = document.querySelector("#theme-experience-selection-count");
+const themeExperienceBooking = document.querySelector("#theme-experience-booking");
 
 function setCount(id, value, suffix = "") {
   const element = document.querySelector(`#${id}`);
@@ -101,6 +119,7 @@ let activeScene = activeTheme === "all" ? "all" : themeById[activeTheme].scene;
 let filteredItems = [...galleryItems];
 let visibleCount = PAGE_SIZE;
 let viewerIndex = 0;
+let viewerItems = filteredItems;
 let toastTimer;
 let dragStartX = 0;
 let dragStartY = 0;
@@ -118,6 +137,15 @@ let campaignDragStartX = 0;
 let campaignDragStartScroll = 0;
 let campaignDidDrag = false;
 let suppressCampaignClick = false;
+let campaignVelocitySamples = [];
+let activeExperienceTheme = "";
+let themeExperienceTrigger = null;
+let themeSheetPosition = 0;
+let themeSheetAnimation = 0;
+let themeSheetPointerId = -1;
+let themeSheetDragStartY = 0;
+let themeSheetDragStartPosition = 0;
+let themeSheetVelocitySamples = [];
 
 function trackProductEvent(type, detail = {}) {
   const event = { id: crypto.randomUUID(), type, detail, at: new Date().toISOString() };
@@ -372,6 +400,7 @@ function updateCampaignProgress() {
   campaignProgressButtons.forEach((button, index) => {
     button.setAttribute("aria-current", String(index === currentIndex));
   });
+  if (campaignCurrent) campaignCurrent.textContent = String(currentIndex + 1).padStart(2, "0");
 }
 
 function scrollCampaignTo(index, behavior = "smooth") {
@@ -396,15 +425,153 @@ function restoreThemeFromLocation() {
   renderGallery();
 }
 
-function openCampaignTheme(themeId) {
+function enterThemeGallery(themeId) {
   if (!themeById[themeId]) return;
+  closeThemeExperience({ restoreFocus: false, immediate: true });
   setTheme(themeId);
   const url = new URL(window.location.href);
   url.searchParams.set("theme", themeId);
   url.hash = "works";
   window.history.pushState({ theme: themeId }, "", url);
-  document.querySelector("#works")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  document.querySelector("#works")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
   trackProductEvent("campaign_theme_open", { targetId: themeId, targetLabel: themeById[themeId].label, theme: themeId, scene: themeById[themeId].scene });
+}
+
+function themeItems(themeId) {
+  return galleryItems.filter((item) => item.theme === themeId);
+}
+
+function themeEditorial(themeId) {
+  const theme = themeById[themeId];
+  const campaignLink = campaignLinks.find((link) => link.dataset.campaignTheme === themeId);
+  const items = themeItems(themeId);
+  const fallbackItem = items[0];
+  return {
+    title: campaignLink?.querySelector(".campaign-slide-title")?.textContent.trim() || theme.label,
+    kicker: campaignLink?.querySelector(".campaign-slide-copy > small")?.textContent.trim() || `${theme.scene.toUpperCase()} PORTRAIT`,
+    subtitle: campaignLink?.querySelector(".campaign-slide-copy > span")?.textContent.trim() || `${theme.label}主题`,
+    description: campaignLink?.querySelector(".campaign-slide-copy > em")?.textContent.trim() || theme.description,
+    image: campaignLink?.querySelector("img")?.src || fallbackItem?.full || "",
+    imageAlt: campaignLink?.querySelector("img")?.alt || `${theme.label}真实客片`,
+    items,
+  };
+}
+
+function setThemeSheetPosition(position) {
+  themeSheetPosition = Number.isFinite(position) ? position : 0;
+  if (themeExperienceShell) themeExperienceShell.style.transform = `translate3d(0,${themeSheetPosition.toFixed(2)}px,0)`;
+}
+
+function stopThemeSheetAnimation() {
+  if (themeSheetAnimation) cancelAnimationFrame(themeSheetAnimation);
+  themeSheetAnimation = 0;
+}
+
+function animateThemeSheet(target, { velocity = 0, onComplete } = {}) {
+  stopThemeSheetAnimation();
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    setThemeSheetPosition(target);
+    onComplete?.();
+    return;
+  }
+  let position = themeSheetPosition;
+  let currentVelocity = velocity;
+  let lastTime = performance.now();
+  const stiffness = 230;
+  const damping = 30;
+  const step = (now) => {
+    const delta = Math.min(.032, Math.max(.001, (now - lastTime) / 1000));
+    lastTime = now;
+    currentVelocity += (-stiffness * (position - target) - damping * currentVelocity) * delta;
+    position += currentVelocity * delta;
+    setThemeSheetPosition(position);
+    if (Math.abs(position - target) < .5 && Math.abs(currentVelocity) < 7) {
+      setThemeSheetPosition(target);
+      themeSheetAnimation = 0;
+      onComplete?.();
+      return;
+    }
+    themeSheetAnimation = requestAnimationFrame(step);
+  };
+  themeSheetAnimation = requestAnimationFrame(step);
+}
+
+function finishThemeExperienceClose(restoreFocus) {
+  stopThemeSheetAnimation();
+  if (themeExperience?.open) themeExperience.close();
+  document.body.classList.remove("theme-experience-open");
+  setThemeSheetPosition(0);
+  themeExperienceShell?.style.setProperty("--theme-sheet-scroll", "0px");
+  if (restoreFocus && themeExperienceTrigger?.isConnected) themeExperienceTrigger.focus({ preventScroll: true });
+  activeExperienceTheme = "";
+  themeExperienceTrigger = null;
+}
+
+function closeThemeExperience({ restoreFocus = true, immediate = false, velocity = 0 } = {}) {
+  if (!themeExperience?.open) return;
+  if (immediate) {
+    finishThemeExperienceClose(restoreFocus);
+    return;
+  }
+  const target = Math.max(themeExperienceShell?.getBoundingClientRect().height || 0, window.innerHeight * .72) + 36;
+  animateThemeSheet(target, { velocity: Math.max(0, velocity), onComplete: () => finishThemeExperienceClose(restoreFocus) });
+}
+
+function openThemePreview(itemId) {
+  const themeId = activeExperienceTheme;
+  const items = themeItems(themeId);
+  const index = items.findIndex((item) => item.id === itemId);
+  if (index >= 0) openViewer(index, items);
+  trackProductEvent("theme_preview_open", { targetId: String(itemId), theme: themeId, scene: themeById[themeId]?.scene || "" });
+}
+
+function renderThemeExperience(themeId) {
+  const theme = themeById[themeId];
+  const editorial = themeEditorial(themeId);
+  themeExperience.dataset.theme = themeId;
+  themeExperienceImage.src = editorial.image;
+  themeExperienceImage.alt = editorial.imageAlt;
+  themeExperienceKicker.textContent = editorial.kicker;
+  themeExperienceTitle.textContent = editorial.title;
+  themeExperienceSubtitle.textContent = editorial.subtitle;
+  themeExperienceLabel.textContent = theme.label;
+  themeExperienceDescription.textContent = editorial.description;
+  themeExperienceCount.textContent = `${editorial.items.length} 张真实客片 · ${theme.scene === "indoor" ? "内景" : "外景"}`;
+  const previews = editorial.items.slice(0, 3).map((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.previewId = String(item.id);
+    button.setAttribute("aria-label", `查看${item.code}高清客片`);
+    const image = document.createElement("img");
+    image.src = item.thumb;
+    image.alt = `${theme.label}${item.code}客片预览`;
+    image.loading = "eager";
+    const code = document.createElement("span");
+    code.textContent = item.code;
+    button.append(image, code);
+    button.addEventListener("click", () => openThemePreview(item.id));
+    return button;
+  });
+  themeExperiencePreviews.dataset.count = String(previews.length);
+  themeExperiencePreviews.replaceChildren(...previews);
+}
+
+function openCampaignTheme(themeId, trigger = null) {
+  if (!themeById[themeId] || !themeExperience) return;
+  if (viewer.open) closeViewer();
+  activeExperienceTheme = themeId;
+  themeExperienceTrigger = trigger || document.activeElement;
+  renderThemeExperience(themeId);
+  if (!themeExperience.open) themeExperience.showModal();
+  document.body.classList.add("theme-experience-open");
+  themeExperienceShell.scrollTo({ top: 0, behavior: "auto" });
+  themeExperienceShell.style.setProperty("--theme-sheet-scroll", "0px");
+  const startPosition = Math.max(themeExperienceShell.getBoundingClientRect().height, window.innerHeight * .72) + 24;
+  setThemeSheetPosition(startPosition);
+  requestAnimationFrame(() => animateThemeSheet(0));
+  themeExperience.focus({ preventScroll: true });
+  trackProductEvent("theme_experience_open", { targetId: themeId, targetLabel: themeById[themeId].label, theme: themeId, scene: themeById[themeId].scene });
 }
 
 function finishCampaignDrag(event, cancelled = false) {
@@ -414,10 +581,19 @@ function finishCampaignDrag(event, cancelled = false) {
   campaignPointerId = -1;
   if (cancelled) {
     campaignDidDrag = false;
+    campaignVelocitySamples = [];
     return;
   }
   suppressCampaignClick = campaignDidDrag;
-  scrollCampaignTo(campaignIndex());
+  const velocity = releaseVelocity(campaignVelocitySamples, performance.now(), "scrollLeft");
+  const targetIndex = projectCarouselIndex({
+    scrollLeft: campaignTrack?.scrollLeft || 0,
+    slideWidth: campaignTrack?.clientWidth || 0,
+    scrollVelocity: velocity,
+    slideCount: campaignSlides.length,
+  });
+  campaignVelocitySamples = [];
+  scrollCampaignTo(targetIndex);
   window.setTimeout(() => { suppressCampaignClick = false; }, 0);
 }
 
@@ -437,6 +613,7 @@ if (campaignTrack) {
     campaignDragStartX = event.clientX;
     campaignDragStartScroll = campaignTrack.scrollLeft;
     campaignDidDrag = false;
+    campaignVelocitySamples = [{ time: performance.now(), scrollLeft: campaignTrack.scrollLeft }];
     campaignTrack.setPointerCapture?.(event.pointerId);
   });
 
@@ -450,6 +627,9 @@ if (campaignTrack) {
     if (!campaignDidDrag) return;
     event.preventDefault();
     campaignTrack.scrollLeft = campaignDragStartScroll - deltaX;
+    const now = performance.now();
+    campaignVelocitySamples.push({ time: now, scrollLeft: campaignTrack.scrollLeft });
+    campaignVelocitySamples = campaignVelocitySamples.filter((sample) => now - sample.time <= 120);
   });
 
   campaignTrack.addEventListener("pointerup", (event) => finishCampaignDrag(event));
@@ -468,9 +648,70 @@ campaignLinks.forEach((link) => {
     }
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
-    openCampaignTheme(link.dataset.campaignTheme);
+    openCampaignTheme(link.dataset.campaignTheme, link);
   });
 });
+
+themeExperienceView?.addEventListener("click", () => enterThemeGallery(activeExperienceTheme));
+themeExperienceBooking?.addEventListener("pointerdown", () => themeExperienceBooking.classList.add("is-pressing"));
+const releaseThemeBookingPress = () => themeExperienceBooking?.classList.remove("is-pressing");
+window.addEventListener("pointerup", releaseThemeBookingPress);
+window.addEventListener("pointercancel", releaseThemeBookingPress);
+themeExperienceBooking?.addEventListener("pointerleave", releaseThemeBookingPress);
+themeExperienceClose?.addEventListener("click", () => closeThemeExperience());
+themeExperience?.addEventListener("click", (event) => {
+  if (event.target === themeExperience) closeThemeExperience();
+});
+themeExperience?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeThemeExperience();
+});
+themeExperienceShell?.addEventListener("scroll", () => {
+  themeExperienceShell.style.setProperty("--theme-sheet-scroll", `${themeExperienceShell.scrollTop}px`);
+}, { passive: true });
+
+themeExperienceDrag?.addEventListener("pointerdown", (event) => {
+  if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+  stopThemeSheetAnimation();
+  themeSheetPointerId = event.pointerId;
+  themeSheetDragStartY = event.clientY;
+  themeSheetDragStartPosition = themeSheetPosition;
+  themeSheetVelocitySamples = [{ time: performance.now(), position: themeSheetPosition }];
+  themeExperienceDrag.setPointerCapture?.(event.pointerId);
+  themeExperienceShell.classList.add("is-dragging");
+});
+
+themeExperienceDrag?.addEventListener("pointermove", (event) => {
+  if (themeSheetPointerId !== event.pointerId) return;
+  event.preventDefault();
+  const rawPosition = themeSheetDragStartPosition + event.clientY - themeSheetDragStartY;
+  const position = rawPosition < 0 ? rawPosition * .16 : rawPosition;
+  setThemeSheetPosition(position);
+  const now = performance.now();
+  themeSheetVelocitySamples.push({ time: now, position });
+  themeSheetVelocitySamples = themeSheetVelocitySamples.filter((sample) => now - sample.time <= 110);
+});
+
+function finishThemeSheetDrag(event, cancelled = false) {
+  if (themeSheetPointerId !== event.pointerId) return;
+  themeExperienceDrag?.releasePointerCapture?.(event.pointerId);
+  themeExperienceShell?.classList.remove("is-dragging");
+  themeSheetPointerId = -1;
+  const velocity = releaseVelocity(themeSheetVelocitySamples, performance.now(), "position");
+  themeSheetVelocitySamples = [];
+  if (!cancelled && shouldDismissThemeSheet({
+    offsetY: themeSheetPosition,
+    velocityY: velocity,
+    sheetHeight: themeExperienceShell?.getBoundingClientRect().height || 0,
+  })) {
+    closeThemeExperience({ velocity });
+    return;
+  }
+  animateThemeSheet(0, { velocity });
+}
+
+themeExperienceDrag?.addEventListener("pointerup", (event) => finishThemeSheetDrag(event));
+themeExperienceDrag?.addEventListener("pointercancel", (event) => finishThemeSheetDrag(event, true));
 
 window.addEventListener("popstate", restoreThemeFromLocation);
 
@@ -488,6 +729,8 @@ function updateSelectionUi() {
   navFavoriteCount.textContent = String(count);
   navFavoriteCount.hidden = count === 0;
   selectionBar.hidden = count === 0;
+  if (themeExperienceSelection) themeExperienceSelection.hidden = count === 0;
+  if (themeExperienceSelectionCount) themeExperienceSelectionCount.textContent = String(count);
   document.body.classList.toggle("has-selection", count > 0);
   document.querySelectorAll("[data-favorite-id]").forEach((button) => updateLikeButton(button, Number(button.dataset.favoriteId)));
   updateViewerLike();
@@ -527,8 +770,8 @@ function setPrimaryFavorite(id) {
 }
 
 function setViewer(index) {
-  viewerIndex = (index + filteredItems.length) % filteredItems.length;
-  const item = filteredItems[viewerIndex];
+  viewerIndex = (index + viewerItems.length) % viewerItems.length;
+  const item = viewerItems[viewerIndex];
   viewerImage.dataset.loading = "true";
   viewerLoader.hidden = false;
   viewerLoader.textContent = "高清加载中";
@@ -536,20 +779,21 @@ function setViewer(index) {
   viewerImage.src = item.full;
   viewerCategory.textContent = `${item.title} · NANBO PORTRAIT`;
   viewerCode.textContent = item.code;
-  viewerCount.textContent = `${viewerIndex + 1} / ${filteredItems.length}`;
+  viewerCount.textContent = `${viewerIndex + 1} / ${viewerItems.length}`;
   updateViewerLike();
   trackProductEvent("photo_open", { targetId: item.code, targetLabel: item.title, theme: item.theme, scene: item.scene });
 }
 
 function updateViewerLike() {
-  if (!filteredItems.length || !viewerLike) return;
-  const item = filteredItems[viewerIndex];
+  if (!viewerItems.length || !viewerLike) return;
+  const item = viewerItems[viewerIndex];
   const selected = favoriteIds.has(item.id);
   viewerLike.classList.toggle("is-selected", selected);
   viewerLike.textContent = selected ? "♥ 已加入喜欢" : "♡ 加入喜欢";
 }
 
-function openViewer(index) {
+function openViewer(index, items = filteredItems) {
+  viewerItems = items;
   setViewer(index);
   if (!viewer.open) viewer.showModal();
   document.body.classList.add("viewer-open");
@@ -985,8 +1229,9 @@ viewerStage.addEventListener("pointercancel", (event) => finishDrag(event, true)
 document.querySelector("#viewer-close").addEventListener("click", closeViewer);
 document.querySelector("#viewer-prev").addEventListener("click", () => moveViewer(-1));
 document.querySelector("#viewer-next").addEventListener("click", () => moveViewer(1));
-viewerLike.addEventListener("click", () => toggleFavorite(filteredItems[viewerIndex].id));
+viewerLike.addEventListener("click", () => toggleFavorite(viewerItems[viewerIndex].id));
 selectionBar.addEventListener("click", openSelectionSheet);
+themeExperienceSelection?.addEventListener("click", openSelectionSheet);
 document.querySelector("#favorite-tab").addEventListener("click", openFavoritesOrGuide);
 document.querySelector("#quick-favorites").addEventListener("click", openFavoritesOrGuide);
 document.querySelectorAll("[data-scene-link]").forEach((button) => {
@@ -997,8 +1242,7 @@ document.querySelectorAll("[data-scene-link]").forEach((button) => {
 });
 document.querySelectorAll("[data-theme-link]").forEach((button) => {
   button.addEventListener("click", () => {
-    setTheme(button.dataset.themeLink);
-    document.querySelector("#works").scrollIntoView({ behavior: "smooth", block: "start" });
+    openCampaignTheme(button.dataset.themeLink, button);
   });
 });
 document.querySelector("#selection-close").addEventListener("click", closeSelectionSheet);

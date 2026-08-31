@@ -152,7 +152,7 @@ async function measureMobileFooter() {
       wechatActionLabel: document.querySelector(".wechat-contact-link > span")?.textContent.trim() || "",
       nestedAnchorCount: document.querySelectorAll("a a").length,
     });
-  <\/script>`;
+  </script>`;
   const server = createServer((request, response) => {
     if (request.url === "/wechat-contact-qr.png") {
       response.writeHead(200, { "Content-Type": "image/png" });
@@ -190,7 +190,7 @@ async function measureMobileFooter() {
   }
 }
 
-async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
+async function measureMobileCampaign({ theme = "", slideIndex = 0, clickTheme = "", followThrough = false, previewFlow = false } = {}) {
   const sourceHtml = await read("apps/portfolio-v2/index.html");
   const probe = `<output id="homepage-metrics"></output><script>
     window.addEventListener("load", () => window.setTimeout(() => {
@@ -202,6 +202,30 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
         track.scrollLeft = track.clientWidth * ${slideIndex};
         track.dispatchEvent(new Event("scroll"));
       }
+      if (${JSON.stringify(clickTheme)}) {
+        window.setTimeout(() => {
+          document.querySelector('[data-campaign-theme="${clickTheme}"]')?.click();
+        }, 50);
+      }
+      if (${followThrough}) {
+        window.setTimeout(() => {
+          document.querySelector("#theme-experience-view")?.click();
+        }, 180);
+      }
+      if (${previewFlow}) {
+        window.setTimeout(() => document.querySelector("#theme-experience-previews button")?.click(), 180);
+        window.setTimeout(() => document.querySelector("#viewer-like")?.click(), 300);
+        window.setTimeout(() => document.querySelector("#viewer-close")?.click(), 380);
+        window.setTimeout(() => document.querySelector("#theme-experience-selection")?.click(), 470);
+      }
+      if (${Boolean(clickTheme)}) {
+        window.setTimeout(() => {
+          const booking = document.querySelector("#theme-experience-booking");
+          booking?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 91, pointerType: "touch" }));
+          window.__themeBookingPressFeedback = Boolean(booking?.classList.contains("is-pressing"));
+          booking?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 91, pointerType: "touch" }));
+        }, 240);
+      }
       window.setTimeout(() => {
         const trackStyle = track ? getComputedStyle(track) : null;
         const firstTitle = document.querySelector(".campaign-slide-title");
@@ -209,6 +233,40 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
         const packageCardStyle = packageCard ? getComputedStyle(packageCard) : null;
         const bodyFont = getComputedStyle(document.body).fontFamily;
         const titleFont = firstTitle ? getComputedStyle(firstTitle).fontFamily : "";
+        const promise = document.querySelector(".promise");
+        const promiseKicker = document.querySelector(".promise-kicker");
+        const promiseHeadline = document.querySelector(".promise h2");
+        const promiseGrid = document.querySelector(".promise-grid");
+        const promiseCta = document.querySelector(".promise > a");
+        const promiseRect = promise?.getBoundingClientRect();
+        const promiseKickerRect = promiseKicker?.getBoundingClientRect();
+        const promiseHeadlineRect = promiseHeadline?.getBoundingClientRect();
+        const promiseGridRect = promiseGrid?.getBoundingClientRect();
+        const promiseCtaRect = promiseCta?.getBoundingClientRect();
+        const themePrice = document.querySelector("#theme-experience-price");
+        const themePriceBlock = document.querySelector(".theme-experience-price-block");
+        const themePriceStyle = themePrice ? getComputedStyle(themePrice) : null;
+        const themePackageStyle = document.querySelector(".theme-experience-package")
+          ? getComputedStyle(document.querySelector(".theme-experience-package"))
+          : null;
+        const themeExperiencePackage = document.querySelector(".theme-experience-package");
+        const themeBooking = document.querySelector("#theme-experience-booking");
+        const themeWechat = document.querySelector("#theme-experience-wechat");
+        const themePhone = document.querySelector("#theme-experience-phone");
+        const themeContact = document.querySelector(".theme-experience-contact");
+        const themeExperiencePackageRect = themeExperiencePackage?.getBoundingClientRect();
+        const themeBookingRect = themeBooking?.getBoundingClientRect();
+        const themeBookingStyle = themeBooking ? getComputedStyle(themeBooking) : null;
+        const themeWechatRect = themeWechat?.getBoundingClientRect();
+        const themePhoneRect = themePhone?.getBoundingClientRect();
+        const themeContactStyle = themeContact ? getComputedStyle(themeContact) : null;
+        const themePriceRect = themePrice?.getBoundingClientRect();
+        const themePriceBlockRect = themePriceBlock?.getBoundingClientRect();
+        const themeFingerprint = themeBooking?.querySelector(".theme-experience-fingerprint");
+        const themeFingerprintRect = themeFingerprint?.getBoundingClientRect();
+        const themeWechatLogo = themeWechat?.querySelector(".theme-experience-contact-icon img");
+        const themeWechatIcon = themeWechat?.querySelector(".theme-experience-contact-icon");
+        const themeWechatIconRect = themeWechatIcon?.getBoundingClientRect();
         document.querySelector("#homepage-metrics").textContent = JSON.stringify({
           slideCount: slides.length,
           progressCount: progress.length,
@@ -230,7 +288,7 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
           packageVisible: Boolean(packageCard && !packageCard.hidden && packageCardStyle?.display !== "none"),
           packagePrice: packageCard?.querySelector(".theme-package-price")?.textContent.trim() || "",
           packageFacts: [...(packageCard?.querySelectorAll(".theme-package-facts li") || [])].map((item) => item.textContent.trim()),
-          heroContainsPrice: slides.some((slide) => /(?:¥|￥)\s*268/.test(slide.textContent || "")),
+          heroContainsPrice: slides.some((slide) => /(?:¥|￥)\\s*268/.test(slide.textContent || "")),
           artisticTitleFont: Boolean(titleFont && titleFont !== bodyFont),
           titleOverflowCount: slides.filter((slide) => {
             const title = slide.querySelector(".campaign-slide-title");
@@ -239,10 +297,56 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0 } = {}) {
             const slideRect = slide.getBoundingClientRect();
             return titleRect.left < slideRect.left + 8 || titleRect.right > slideRect.right - 8;
           }).length,
+          themeSheetOpen: Boolean(document.querySelector("#theme-experience")?.open),
+          themeSheetLocked: document.body.classList.contains("theme-experience-open"),
+          themeSheetId: document.querySelector("#theme-experience")?.dataset.theme || "",
+          themeSheetTitle: document.querySelector("#theme-experience-title")?.textContent.trim() || "",
+          themeSheetPrice: document.querySelector("#theme-experience-price")?.textContent.trim() || "",
+          themeSheetFacts: [...(document.querySelectorAll("#theme-experience .theme-experience-facts li") || [])].map((item) => item.textContent.trim()),
+          themeSheetPreviewCount: document.querySelectorAll("#theme-experience-previews button").length,
+          themeSheetWechatHref: document.querySelector("#theme-experience-wechat")?.getAttribute("href") || "",
+          themeSheetPhoneHref: document.querySelector("#theme-experience-phone")?.getAttribute("href") || "",
+          themeSheetBookingHref: document.querySelector("#theme-experience-booking")?.getAttribute("href") || "",
+          themeSheetBookingText: document.querySelector("#theme-experience-booking")?.textContent.replace(/\\s+/g, " ").trim() || "",
+          themeSheetPriceFont: themePriceStyle?.fontFamily || "",
+          themeSheetPriceSize: Number.parseFloat(themePriceStyle?.fontSize || "0"),
+          themeSheetPriceLabel: themePriceBlock?.querySelector("small")?.textContent.trim() || "",
+          themeSheetPriceTopGap: themePriceRect && themePriceBlockRect ? themePriceRect.top - themePriceBlockRect.top : null,
+          themeSheetPackageColumns: themePackageStyle?.gridTemplateColumns.split(" ").filter(Boolean).length || 0,
+          themeSheetBookingHeight: themeBookingRect?.height || 0,
+          themeSheetBookingRightError: themeExperiencePackageRect && themeBookingRect && themePackageStyle
+            ? Math.abs(themeExperiencePackageRect.right - Number.parseFloat(themePackageStyle.borderRightWidth) - themeBookingRect.right)
+            : null,
+          themeSheetBookingGridColumnStart: themeBookingStyle?.gridColumnStart || "",
+          themeSheetBookingGridColumnEnd: themeBookingStyle?.gridColumnEnd || "",
+          themeSheetBookingPressFeedback: Boolean(window.__themeBookingPressFeedback),
+          themeSheetFingerprintSize: themeFingerprintRect ? Math.min(themeFingerprintRect.width, themeFingerprintRect.height) : 0,
+          themeSheetWechatText: themeWechat?.textContent.replace(/\\s+/g, " ").trim() || "",
+          themeSheetPhoneText: themePhone?.textContent.replace(/\\s+/g, " ").trim() || "",
+          themeSheetContactColumns: themeContactStyle?.gridTemplateColumns.split(" ").filter(Boolean).length || 0,
+          themeSheetWechatHeight: themeWechatRect?.height || 0,
+          themeSheetPhoneHeight: themePhoneRect?.height || 0,
+          themeSheetWechatLogoLoaded: Boolean(themeWechatLogo?.complete && themeWechatLogo.naturalWidth > 0),
+          themeSheetWechatLogoSource: themeWechatLogo?.getAttribute("src") || "",
+          themeSheetWechatContentInset: themeWechatRect && themeWechatIconRect ? themeWechatIconRect.left - themeWechatRect.left : 0,
+          promiseTopGap: promiseRect && promiseKickerRect ? promiseKickerRect.top - promiseRect.top : 0,
+          promiseHeadlineToGridGap: promiseHeadlineRect && promiseGridRect ? promiseGridRect.top - promiseHeadlineRect.bottom : 0,
+          promiseGridToCtaGap: promiseGridRect && promiseCtaRect ? promiseCtaRect.top - promiseGridRect.bottom : 0,
+          promiseCtaToBottomGap: promiseRect && promiseCtaRect ? promiseRect.bottom - promiseCtaRect.bottom : 0,
+          promiseCtaHeight: promiseCtaRect?.height || 0,
+          promiseCtaWidth: promiseCtaRect?.width || 0,
+          viewerOpen: Boolean(document.querySelector("#viewer")?.open),
+          viewerCode: document.querySelector("#viewer-code")?.textContent.trim() || "",
+          selectionCount: document.querySelector("#selection-count")?.textContent.trim() || "0",
+          selectionSheetOpen: Boolean(document.querySelector("#selection-sheet")?.open),
+          selectionWechatHref: document.querySelector("#selection-wechat")?.getAttribute("href") || "",
+          selectionPhoneHref: document.querySelector("#selection-phone")?.getAttribute("href") || "",
+          themeSelectionHidden: Boolean(document.querySelector("#theme-experience-selection")?.hidden),
+          themeSelectionInsideModal: Boolean(document.querySelector("#theme-experience")?.contains(document.querySelector("#theme-experience-selection"))),
         });
-      }, 420);
+      }, ${previewFlow ? 850 : 420});
     }, 250));
-  <\/script>`;
+  </script>`;
   const page = sourceHtml
     .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
     .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
@@ -550,7 +654,95 @@ test("首页主视觉不露价，进入主题详情后显示透明套餐", { ski
   assert.equal(homepage.packageVisible, false, "未选择主题时不应显示主题套餐");
   assert.equal(detail.packageVisible, true, "进入主题详情后应显示主题套餐");
   assert.equal(detail.packagePrice, "¥268");
-  assert.deepEqual(detail.packageFacts, ["拍摄2套", "全部原片全送", "不推销加精修"]);
+  assert.deepEqual(detail.packageFacts, ["拍摄2套服装", "全部原片全送", "不推销加精修"]);
+});
+
+test("承诺区使用均衡留白并放大主要行动按钮", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign();
+  assert.ok(Math.abs(metrics.promiseTopGap - metrics.promiseHeadlineToGridGap) <= 10, `承诺区上下节奏不一致：${metrics.promiseTopGap}px / ${metrics.promiseHeadlineToGridGap}px`);
+  assert.ok(Math.abs(metrics.promiseGridToCtaGap - metrics.promiseCtaToBottomGap) <= 2, `主按钮没有在下方留白中垂直居中：${metrics.promiseGridToCtaGap}px / ${metrics.promiseCtaToBottomGap}px`);
+  assert.ok(metrics.promiseCtaHeight >= 60, `主按钮触控高度不足：${metrics.promiseCtaHeight}px`);
+  assert.ok(metrics.promiseCtaWidth >= 340, `主按钮宽度不够舒展：${metrics.promiseCtaWidth}px`);
+});
+
+test("主题套餐恢复价格、权益和预约三栏构图", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine" });
+  assert.equal(metrics.themeSheetBookingHref, "https://work.weixin.qq.com/ca/cawcdefa3262730343");
+  assert.match(metrics.themeSheetBookingText, /活动报名.*立即预约/);
+  assert.deepEqual(metrics.themeSheetFacts, ["拍摄2套服装", "全部原片全送", "不推销加精修"]);
+  assert.ok(metrics.themeSheetPriceSize >= 38, `价格字号不够醒目：${metrics.themeSheetPriceSize}px`);
+  assert.match(metrics.themeSheetPriceFont, /^Didot/, `268 没有使用匹配页面的美业杂志字体：${metrics.themeSheetPriceFont}`);
+  assert.equal(metrics.themeSheetPackageColumns, 3, "套餐应保持价格、权益、预约三栏同排");
+  assert.equal(metrics.themeSheetBookingGridColumnStart, "3");
+  assert.ok(metrics.themeSheetBookingHeight >= 92, `右侧预约卡触控高度不足：${metrics.themeSheetBookingHeight}px`);
+  assert.ok(metrics.themeSheetBookingRightError <= 1, `右侧预约卡没有对齐套餐卡右边：误差 ${metrics.themeSheetBookingRightError}px`);
+});
+
+test("主题详情底部提供可触控的微信和电话双操作卡", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine" });
+  assert.equal(metrics.themeSheetContactColumns, 2);
+  assert.match(metrics.themeSheetWechatText, /微信问档期.*点击添加/);
+  assert.match(metrics.themeSheetPhoneText, /电话咨询.*立即拨打/);
+  assert.ok(metrics.themeSheetWechatHeight >= 52, `微信操作卡太小：${metrics.themeSheetWechatHeight}px`);
+  assert.ok(metrics.themeSheetPhoneHeight >= 52, `电话操作卡太小：${metrics.themeSheetPhoneHeight}px`);
+});
+
+test("主题优惠卡显示限时活动并上移价格", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine" });
+  assert.equal(metrics.themeSheetPriceLabel, "限时优惠活动");
+  assert.ok(metrics.themeSheetPriceTopGap <= 44, `价格仍然偏下：顶部间距 ${metrics.themeSheetPriceTopGap}px`);
+});
+
+test("主题预约按钮在按下时立即呈现指纹反馈", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine" });
+  assert.ok(metrics.themeSheetFingerprintSize >= 28, `指纹触控图标过小：${metrics.themeSheetFingerprintSize}px`);
+  assert.equal(metrics.themeSheetBookingPressFeedback, true, "手指按下时没有立即反馈");
+});
+
+test("微信问档期使用已加载的微信官方图标并保留右侧呼吸感", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine" });
+  assert.equal(metrics.themeSheetWechatLogoSource, "wechat-logo.png");
+  assert.equal(metrics.themeSheetWechatLogoLoaded, true, "微信图标资源没有正常加载");
+  assert.ok(metrics.themeSheetWechatContentInset >= 12, `微信按钮内容仍偏左：${metrics.themeSheetWechatContentInset}px`);
+});
+
+test("点击新品先打开沉浸式主题详情，不提前改变客片筛选", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine" });
+  assert.equal(metrics.themeSheetOpen, true, "点击新品后没有打开主题详情弹层");
+  assert.equal(metrics.themeSheetLocked, true, "主题详情打开时页面仍可在背后滚动");
+  assert.equal(metrics.themeSheetId, "magazine");
+  assert.match(metrics.themeSheetTitle, /镜头主角|杂志肖像/);
+  assert.equal(metrics.themeSheetPrice, "¥268");
+  assert.deepEqual(metrics.themeSheetFacts, ["拍摄2套服装", "全部原片全送", "不推销加精修"]);
+  assert.equal(metrics.themeSheetPreviewCount, 3, "主题详情应先展示 3 张真实客片预览");
+  assert.equal(metrics.themeSheetWechatHref, "https://work.weixin.qq.com/ca/cawcdefa3262730343");
+  assert.equal(metrics.themeSheetPhoneHref, "tel:17306657880");
+  assert.equal(metrics.activeTheme, "all", "打开详情时不应提前改变客片筛选");
+  assert.equal(metrics.locationHash, "", "打开详情时不应把页面突然跳到客片区");
+});
+
+test("主题详情主按钮确认后再进入对应客片", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine", followThrough: true });
+  assert.equal(metrics.themeSheetOpen, false);
+  assert.equal(metrics.activeTheme, "magazine");
+  assert.match(metrics.gallerySummary, /杂志肖像/);
+  assert.equal(metrics.locationHash, "#works");
+  assert.equal(metrics.packageVisible, true);
+});
+
+test("主题预览收藏到需求联系的完整路径不改变后台筛选", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
+  const metrics = await measureMobileCampaign({ clickTheme: "magazine", previewFlow: true });
+  assert.equal(metrics.viewerCode, "NB-137", "没有打开主题的真实客片预览");
+  assert.equal(metrics.activeTheme, "all", "预览客片不应暗中改变客片筛选");
+  assert.equal(metrics.locationHash, "", "预览客片不应突然跳到客片区");
+  assert.equal(metrics.themeSheetOpen, true, "关闭高清客片后应回到原主题详情");
+  assert.equal(metrics.viewerOpen, false);
+  assert.equal(metrics.selectionCount, "1");
+  assert.equal(metrics.themeSelectionHidden, false, "收藏后主题详情内必须出现可点击的需求入口");
+  assert.equal(metrics.themeSelectionInsideModal, true, "需求入口必须在当前模态层内，不能被 inert 阻断");
+  assert.equal(metrics.selectionSheetOpen, true, "收藏后应能打开需求清单");
+  assert.equal(metrics.selectionWechatHref, "https://work.weixin.qq.com/ca/cawcdefa3262730343");
+  assert.equal(metrics.selectionPhoneHref, "tel:17306657880");
 });
 
 test("页脚署名在卡片和底部导航之间垂直居中", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {

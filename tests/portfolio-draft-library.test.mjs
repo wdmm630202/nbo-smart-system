@@ -141,6 +141,7 @@ async function createSyntheticPublishManager(t, {
     "tools/portfolio-draft-photo-lib.mjs",
     "tools/export-github-pages.mjs",
     "apps/portfolio-v2/catalog.js",
+    "apps/portfolio-v2/interaction-model.js",
     "apps/portfolio-v2/portfolio-runtime.js",
   ]) {
     await writeFixture(join(repository, path), await readFile(join(root, path)));

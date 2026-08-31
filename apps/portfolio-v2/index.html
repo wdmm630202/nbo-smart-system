@@ -198,6 +198,7 @@
             <button type="button" data-campaign-target="8" aria-label="查看第 9 项，城市夜景" aria-current="false"></button>
             <button type="button" data-campaign-target="9" aria-label="查看第 10 项，国风外景" aria-current="false"></button>
           </div>
+          <p class="campaign-counter" aria-live="polite"><strong id="campaign-current">01</strong><span>/ 10</span></p>
         </section>
 
         <section class="quick-panel" aria-label="快捷服务">
@@ -263,7 +264,7 @@
               <strong class="theme-package-price">¥268</strong>
             </div>
             <ul class="theme-package-facts" aria-label="套餐包含">
-              <li>拍摄2套</li>
+              <li>拍摄2套服装</li>
               <li>全部原片全送</li>
               <li>不推销加精修</li>
             </ul>
@@ -328,6 +329,60 @@
         <p class="footer-signature"><span>真实客片 · 动作指导 · 明码实价</span><small>© 2021 NANBO STUDIO</small></p>
       </footer>
 
+      <dialog class="theme-experience" id="theme-experience" aria-labelledby="theme-experience-title" tabindex="-1">
+        <article class="theme-experience-shell" id="theme-experience-shell">
+          <div class="theme-experience-drag" id="theme-experience-drag" aria-hidden="true"><span></span></div>
+          <button class="theme-experience-close" id="theme-experience-close" type="button" aria-label="关闭主题详情">×</button>
+          <section class="theme-experience-visual" aria-label="主题主视觉">
+            <img id="theme-experience-image" alt="" draggable="false" />
+            <span class="theme-experience-shade" aria-hidden="true"></span>
+            <div class="theme-experience-hero-copy">
+              <p id="theme-experience-kicker">NEW PORTRAIT</p>
+              <h2 id="theme-experience-title">主题详情</h2>
+              <strong id="theme-experience-subtitle"></strong>
+            </div>
+          </section>
+          <section class="theme-experience-content">
+            <header class="theme-experience-summary">
+              <div><small>THEME NOTE</small><strong id="theme-experience-label"></strong></div>
+              <p id="theme-experience-description"></p>
+              <span id="theme-experience-count"></span>
+            </header>
+            <aside class="theme-experience-package" aria-label="本主题透明套餐">
+              <div class="theme-experience-price-block"><small>限时优惠活动</small><strong id="theme-experience-price"><span>¥</span>268</strong></div>
+              <ul class="theme-experience-facts">
+                <li>拍摄2套服装</li>
+                <li>全部原片全送</li>
+                <li>不推销加精修</li>
+              </ul>
+              <a class="theme-experience-booking" id="theme-experience-booking" href="https://work.weixin.qq.com/ca/cawcdefa3262730343" aria-label="打开南铂摄影企业微信预约本主题">
+                <span class="theme-experience-booking-copy"><small>活动报名</small><strong>立即预约</strong></span>
+                <span class="theme-experience-booking-tail"><span class="theme-experience-fingerprint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5.2 10.6a6.8 6.8 0 0 1 13.6 0"/><path d="M8.1 10.7a3.9 3.9 0 0 1 7.8 0c0 4.2-.7 7.2-2.2 9.2"/><path d="M11 10.8a1 1 0 0 1 2 0c0 4-.7 7.1-2.3 9"/><path d="M5.3 14.2c.5 2.3 1.3 4.1 2.6 5.5"/><path d="M18.7 13.4c-.2 2.8-.8 5-1.8 6.7"/></svg></span></span>
+              </a>
+            </aside>
+            <div class="theme-experience-preview-heading"><strong>先看真实客片</strong><span>轻点可看高清大图</span></div>
+            <div class="theme-experience-previews" id="theme-experience-previews"></div>
+            <button class="theme-experience-selection" id="theme-experience-selection" type="button" hidden>
+              <span><small>MY FAVORITES</small><strong><b id="theme-experience-selection-count">0</b> 张已喜欢</strong></span>
+              <em>生成图文需求 <i aria-hidden="true">↑</i></em>
+            </button>
+            <button class="theme-experience-view" id="theme-experience-view" type="button"><span>看这个主题的全部客片</span><b aria-hidden="true">→</b></button>
+            <div class="theme-experience-contact" aria-label="联系南铂摄影">
+              <a class="theme-experience-contact-card is-wechat" id="theme-experience-wechat" href="https://work.weixin.qq.com/ca/cawcdefa3262730343">
+                <span class="theme-experience-contact-icon" aria-hidden="true"><img src="wechat-logo.png" alt="" draggable="false" /></span>
+                <span class="theme-experience-contact-copy"><strong>微信问档期</strong><small>点击添加</small></span>
+                <b aria-hidden="true">›</b>
+              </a>
+              <a class="theme-experience-contact-card is-phone" id="theme-experience-phone" href="tel:17306657880">
+                <span class="theme-experience-contact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.4 3.2 10 7.8 8.2 9.7c.9 1.9 2.4 3.4 4.3 4.3l1.9-1.8 4.6 2.6c.5.3.7.8.6 1.3l-.5 2.8c-.1.7-.8 1.2-1.5 1.2C9.9 19.7 3.7 13.5 3.3 5.8c0-.7.5-1.3 1.2-1.5l2.8-.5c.1-.7.1-.7.1-.6Z"/></svg></span>
+                <span class="theme-experience-contact-copy"><strong>电话咨询</strong><small>立即拨打</small></span>
+                <b aria-hidden="true">›</b>
+              </a>
+            </div>
+          </section>
+        </article>
+      </dialog>
+
       <dialog class="viewer" id="viewer" aria-label="高清客片浏览器">
         <div class="viewer-shell">
           <div class="viewer-top"><span id="viewer-category">真实客片</span><button class="icon-button" id="viewer-close" type="button" aria-label="关闭高清查看">×</button></div>
@@ -369,6 +424,10 @@
           <div class="selected-list" id="selected-list"></div>
           <details class="selection-text-details"><summary>查看将复制的文字</summary><p class="selection-summary" id="selection-summary"></p></details>
           <div class="selection-actions"><button class="copy-request" id="copy-request" type="button">复制图片＋文字</button></div>
+          <div class="selection-contact-actions" aria-label="带着需求联系南铂摄影">
+            <a id="selection-wechat" href="https://work.weixin.qq.com/ca/cawcdefa3262730343"><span><small>企业微信</small><strong>带着需求去微信聊</strong></span><b aria-hidden="true">↗</b></a>
+            <a id="selection-phone" href="tel:17306657880"><span><small>电话</small><strong>直接确认档期</strong></span><b aria-hidden="true">→</b></a>
+          </div>
           <p class="selection-tip">若企业微信限制图文剪贴板，会自动复制文字；需求图可长按保存后一起发送。</p>
           <button class="clear-selection" id="clear-selection" type="button">清空重新选择</button>
         </div>

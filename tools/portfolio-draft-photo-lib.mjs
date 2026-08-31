@@ -60,16 +60,16 @@ export async function ingestDraftPhoto({ inputPath, originalName, contentType, s
   assertDecodedPhoto(extension, sourceInfo.codec);
   validateIncomingImage(sourceInfo);
 
-  const id = await store.allocateId(publicIds);
+  const reservation = await store.reserveId(publicIds);
+  const { id } = reservation;
   const uuid = randomBytes(12).toString("hex");
   const targets = {
     original: join(rootDir, "assets/originals", `${uuid}${extension}`),
     full: join(rootDir, "assets/full", `${uuid}.jpg`),
     thumb: join(rootDir, "assets/thumbs", `${uuid}.webp`),
   };
-  await Promise.all(Object.values(targets).map((path) => mkdir(dirname(path), { recursive: true })));
-
   try {
+    await Promise.all(Object.values(targets).map((path) => mkdir(dirname(path), { recursive: true })));
     await copyFile(inputPath, targets.original);
     await renderPhotoDerivatives(inputPath, targets);
     const record = await store.addPhoto({
@@ -83,6 +83,8 @@ export async function ingestDraftPhoto({ inputPath, originalName, contentType, s
   } catch (error) {
     await Promise.all(Object.values(targets).map((path) => rm(path, { force: true }).catch(() => {})));
     throw error;
+  } finally {
+    await store.releaseIdReservation(reservation);
   }
 }
 
@@ -182,6 +184,8 @@ async function recoverPublicationTransaction(transactionDir, options) {
     rm(assets.full, { force: true }),
     rm(assets.thumb, { force: true }),
   ]);
+  const stagedAt = meta.stagedAt || meta.createdAt;
+  if (typeof stagedAt === "string" && stagedAt) await options.store.clearStaged(meta.id, stagedAt);
   await rm(transactionDir, { recursive: true, force: true }).catch(() => {});
   return slotCode(meta.id);
 }
@@ -314,6 +318,7 @@ export function stageDraftForPublication(id, options) {
       id: draft.id,
       status: "prepared",
       createdAt: stagedAt,
+      stagedAt,
     };
     let journalReady = false;
     let committed = false;

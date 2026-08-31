@@ -5,7 +5,12 @@ import { readFile, realpath, rm, stat } from "node:fs/promises";
 import { extname, join, normalize, relative, resolve, sep } from "node:path";
 import { URL } from "node:url";
 
-import { buildPortfolioItems, buildPortfolioThemes, portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
+import {
+  buildPortfolioItems,
+  buildPortfolioThemes,
+  normalizePortfolioAdditions,
+  portfolioCatalog,
+} from "../apps/portfolio-v2/catalog.js";
 import {
   ingestDraftPhoto,
   loadPublicAdditions,
@@ -31,6 +36,7 @@ import {
 
 const host = "127.0.0.1";
 const requestedPort = Number(process.env.NANBO_PORTFOLIO_PORT || 4174);
+let activePort = requestedPort;
 const managerRoot = join(root, "tools/portfolio-manager");
 const previewRoot = join(root, "apps/portfolio-v2");
 const sharedPortfolioRoot = join(root, "apps/portfolio");
@@ -76,7 +82,11 @@ const publishExactPaths = new Set([
   "apps/portfolio-v2/catalog-additions.json",
   "docs/i/index.html",
 ]);
-const allowedHosts = new Set([`${host}:${requestedPort}`, `localhost:${requestedPort}`]);
+const publicationMetadata = "apps/portfolio-v2/catalog-additions.json";
+
+function allowedLocalHosts() {
+  return new Set([`${host}:${activePort}`, `localhost:${activePort}`]);
+}
 
 function json(response, status, body) {
   response.writeHead(status, {
@@ -182,11 +192,12 @@ function parseStatusLine(line) {
 }
 
 async function repositoryStatus() {
-  const [{ stdout: porcelain }, { stdout: head }, { stdout: branch }, additions] = await Promise.all([
+  const [{ stdout: porcelain }, { stdout: head }, { stdout: branch }, additions, draftState] = await Promise.all([
     git(["status", "--porcelain=v1", "--untracked-files=all"], { preserveWhitespace: true }),
     git(["rev-parse", "--short", "HEAD"]),
     git(["branch", "--show-current"]),
     readPublicAdditions(),
+    draftStore.read(),
   ]);
   const files = porcelain ? porcelain.split("\n").filter(Boolean).map(parseStatusLine) : [];
   const changedFiles = files.map((item) => item.path);
@@ -203,6 +214,17 @@ async function repositoryStatus() {
     const id = sourcePhotoId(path);
     return id !== null && registeredIds.has(id) ? [id] : [];
   }))].sort((a, b) => a - b);
+  const publishedAdditionIds = new Set(additions.photos
+    .filter(({ visibility }) => visibility === "published")
+    .map(({ id }) => Number(id)));
+  const stagedReadyIds = draftState.photos
+    .filter((photo) => photo.status === "ready" && photo.stagedAt && publishedAdditionIds.has(photo.id))
+    .map(({ id }) => id)
+    .sort((a, b) => a - b);
+  const publishableSourceChanges = changedFiles.filter((path) => path === publicationMetadata
+    || (path.startsWith("apps/portfolio/assets/photos/") && registeredIds.has(sourcePhotoId(path))));
+  const pendingPublicationIds = [...new Set([...dirtySlots, ...stagedReadyIds])].sort((a, b) => a - b);
+  const hasPendingPublication = publishableSourceChanges.length > 0 || stagedReadyIds.length > 0;
   const unrelatedFiles = changedFiles.filter((path) => !(publishExactPaths.has(path)
     || publishPrefixes.some((prefix) => path.startsWith(prefix)))
     || (path.startsWith("apps/portfolio/assets/photos/") && !registeredIds.has(sourcePhotoId(path))));
@@ -210,6 +232,9 @@ async function repositoryStatus() {
     head,
     branch,
     dirtySlots,
+    pendingPublicationIds,
+    pendingPublicationCount: pendingPublicationIds.length || (hasPendingPublication ? 1 : 0),
+    hasPendingPublication,
     changedFiles,
     unrelatedFiles,
     buildVersion: await buildPortfolioVersion(),
@@ -286,7 +311,7 @@ function decodedUploadName(request) {
 function requireSession(request) {
   const origin = String(request.headers.origin || "");
   const fetchSite = String(request.headers["sec-fetch-site"] || "");
-  const allowedOrigins = new Set([`http://${host}:${requestedPort}`, `http://localhost:${requestedPort}`]);
+  const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
   if ((origin && !allowedOrigins.has(origin)) || fetchSite === "cross-site") {
     const error = new Error("为保护本地客片，已拒绝其他网页发起的操作");
     error.status = 403;
@@ -473,13 +498,47 @@ async function publicVisibilityRequest(request, response, url) {
   }
 }
 
-async function markStagedDraftsPublished(commit) {
+async function committedAdditions(commit) {
+  const { code, stdout } = await git(["show", `${commit}:${publicationMetadata}`], {
+    allowFailure: true,
+    preserveWhitespace: true,
+  });
+  if (code !== 0) throw new Error("当前提交不包含公开增量清单，不能完成草稿对账");
+  try {
+    return normalizePortfolioAdditions(JSON.parse(stdout));
+  } catch (error) {
+    throw new Error(`当前提交的公开增量清单无效，不能完成草稿对账：${error.message}`);
+  }
+}
+
+async function assertCommittedAdditionBundle(commit, id) {
+  for (const path of [
+    `apps/portfolio/assets/photos/full/photo-${String(id).padStart(3, "0")}.jpg`,
+    `apps/portfolio/assets/photos/thumbs/photo-${String(id).padStart(3, "0")}.webp`,
+  ]) {
+    const { code } = await git(["cat-file", "-e", `${commit}:${path}`], { allowFailure: true });
+    if (code !== 0) throw new Error(`${slotCode(id)} 的公开图片尚未进入当前提交，不能完成草稿对账`);
+  }
+}
+
+async function reconcileStagedDraftsToCommit(commit) {
   const [state, additions] = await Promise.all([draftStore.read(), readPublicAdditions()]);
   const publishedIds = new Set(additions.photos.filter(({ visibility }) => visibility === "published").map(({ id }) => Number(id)));
   const ids = state.photos.filter((photo) => publishedIds.has(photo.id)
     && ((photo.status === "ready" && photo.stagedAt) || (photo.status === "archived" && photo.publishedCommit)))
     .map(({ id }) => id);
-  if (ids.length) await draftStore.markPublished(ids, commit);
+  if (!ids.length) return ids;
+  const committed = await committedAdditions(commit);
+  const committedPublishedIds = new Set(committed.photos
+    .filter(({ visibility }) => visibility === "published")
+    .map(({ id }) => Number(id)));
+  for (const id of ids) {
+    if (!committedPublishedIds.has(id)) {
+      throw new Error(`${slotCode(id)} 尚未进入当前提交的公开清单，不能完成草稿对账`);
+    }
+    await assertCommittedAdditionBundle(commit, id);
+  }
+  await draftStore.markPublished(ids, commit);
   return ids;
 }
 
@@ -516,13 +575,24 @@ async function publishPhotos(request, response) {
 
     const sourceFiles = await sourcePhotoFilesFromGit();
     if (!sourceFiles.length) {
-      await markStagedDraftsPublished(statusBefore.head);
-      json(response, 200, { ok: true, noChanges: true, message: "本地没有待同步的新照片", status: statusBefore });
+      const reconciledDraftIds = await reconcileStagedDraftsToCommit(statusBefore.head);
+      json(response, 200, {
+        ok: true,
+        noChanges: true,
+        reconciledDraftIds,
+        message: reconciledDraftIds.length
+          ? "网站文件已在当前提交中，已完成本地发布状态对账"
+          : "本地没有待同步的新照片",
+        status: await repositoryStatus(),
+      });
       return;
     }
-    const publicationMetadata = "apps/portfolio-v2/catalog-additions.json";
-    const registeredItems = buildPortfolioItems(portfolioCatalog, await readPublicAdditions());
-    const allowedSourceFiles = new Set(registeredItems.flatMap(({ id }) => [
+    const additions = await readPublicAdditions();
+    const registeredIds = new Set([
+      ...Array.from({ length: portfolioCatalog.photoCount }, (_, index) => index + 1),
+      ...additions.photos.map(({ id }) => Number(id)),
+    ]);
+    const allowedSourceFiles = new Set([...registeredIds].flatMap((id) => [
       `apps/portfolio/assets/photos/full/photo-${String(id).padStart(3, "0")}.jpg`,
       `apps/portfolio/assets/photos/thumbs/photo-${String(id).padStart(3, "0")}.webp`,
     ]));
@@ -578,7 +648,7 @@ async function publishPhotos(request, response) {
     await git(["add", "--", ...stagePaths]);
     const { code: hasNoStagedDiff } = await git(["diff", "--cached", "--quiet"], { allowFailure: true });
     if (hasNoStagedDiff === 0) {
-      await markStagedDraftsPublished(statusBefore.head);
+      await reconcileStagedDraftsToCommit(statusBefore.head);
       json(response, 200, { ok: true, noChanges: true, message: "生成结果与线上完全一致", status: await repositoryStatus() });
       return;
     }
@@ -603,7 +673,7 @@ async function publishPhotos(request, response) {
       throw pushError;
     }
     const { stdout: commit } = await git(["rev-parse", "--short", "HEAD"]);
-    await markStagedDraftsPublished(commit);
+    await reconcileStagedDraftsToCommit(commit);
     json(response, 200, {
       ok: true,
       published: true,
@@ -640,9 +710,9 @@ async function deployStatus(response, url) {
 }
 
 async function route(request, response) {
-  const url = new URL(request.url || "/", `http://${host}:${requestedPort}`);
+  const url = new URL(request.url || "/", `http://${host}:${activePort}`);
   try {
-    if (!allowedHosts.has(String(request.headers.host || ""))) {
+    if (!allowedLocalHosts().has(String(request.headers.host || ""))) {
       const error = new Error("已拒绝非本机地址访问");
       error.status = 403;
       throw error;
@@ -781,7 +851,9 @@ server.on("error", async (error) => {
   throw error;
 });
 server.listen(requestedPort, host, async () => {
-  const url = `http://${host}:${requestedPort}/`;
+  const address = server.address();
+  activePort = address && typeof address !== "string" ? address.port : requestedPort;
+  const url = `http://${host}:${activePort}/`;
   try {
     // 只有成功绑定端口的单一进程才允许检查事务目录。第二次双击会先走
     // EADDRINUSE，不会把第一个进程的正在换图误当成崩溃恢复。

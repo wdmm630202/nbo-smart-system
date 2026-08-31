@@ -12,6 +12,30 @@ export function reconcileSelectedDraftId(selectedId, drafts, status = "all") {
   return filterDrafts(drafts, status).some(({ id }) => id === selectedId) ? selectedId : 0;
 }
 
+export function publicationControlState(status = {}) {
+  const dirtySlots = Array.isArray(status.dirtySlots) ? status.dirtySlots : [];
+  const pendingIds = Array.isArray(status.pendingPublicationIds) ? status.pendingPublicationIds : dirtySlots;
+  const unrelatedFiles = Array.isArray(status.unrelatedFiles) ? status.unrelatedFiles : [];
+  const hasPendingPublication = status.hasPendingPublication === true;
+  const pendingCount = Number.isInteger(status.pendingPublicationCount) && status.pendingPublicationCount > 0
+    ? status.pendingPublicationCount
+    : (pendingIds.length || (hasPendingPublication ? 1 : 0));
+  return {
+    hasPendingPublication,
+    pendingCount,
+    pendingLabel: pendingIds.length
+      ? pendingIds.map(draftCode).join("、")
+      : "公开清单状态变更",
+    buttonDisabled: !hasPendingPublication || unrelatedFiles.length > 0 || status.branch !== "main",
+    title: dirtySlots.length
+      ? `有 ${dirtySlots.length} 张客片等待同步`
+      : (hasPendingPublication ? "有公开状态等待同步" : "本地客片库已就绪"),
+    description: hasPendingPublication
+      ? "新增、隐藏或恢复目前只保存在本机；请检查预览，只有同步成功后网站才会更新。"
+      : "现在可以选一张客片开始替换。",
+  };
+}
+
 export function canPrepareDraft(draft, metadata, busy = false) {
   return Boolean(
     !busy
@@ -91,8 +115,8 @@ export function archiveActionForDraft(draft) {
       path: "/api/public/visibility",
       body: { visibility: "archived" },
       successMessage: draft.status === "ready"
-        ? "已从本地网站预览隐藏，编号和本地资产保留。"
-        : "已从网站清单隐藏，编号和本地资产保留。",
+        ? "已从本地网站预览隐藏；本次隐藏只保存在本机，同步成功后网站才会更新。"
+        : "已从网站清单隐藏；本次隐藏只保存在本机，同步成功后网站才会更新。",
     };
   }
   if (draft.status === "draft" || draft.status === "ready") {

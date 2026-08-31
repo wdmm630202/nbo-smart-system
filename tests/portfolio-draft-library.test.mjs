@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { appendFile, chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
-import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -14,7 +13,7 @@ import {
   portfolioCatalog,
 } from "../apps/portfolio-v2/catalog.js";
 import { createDraftStore } from "../tools/portfolio-draft-store.mjs";
-import { root } from "../tools/portfolio-photo-lib.mjs";
+import { resolveBinary, root } from "../tools/portfolio-photo-lib.mjs";
 import {
   ingestDraftPhoto,
   loadPublicAdditions,
@@ -24,18 +23,6 @@ import {
 } from "../tools/portfolio-draft-photo-lib.mjs";
 
 const execFileAsync = promisify(execFile);
-
-async function reserveAvailablePort() {
-  const server = createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  if (!address || typeof address === "string") throw new Error("无法分配隔离测试端口");
-  await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
-  return address.port;
-}
 
 function waitForOutput(child, pattern, timeout = 10_000) {
   return new Promise((resolve, reject) => {
@@ -60,7 +47,7 @@ async function startIsolatedManager(t, { additions, prepare } = {}) {
   const draftDirectory = join(sandbox, "drafts");
   const additionsPath = join(sandbox, "catalog-additions.json");
   const publicPhotoRoot = join(sandbox, "public");
-  const port = await reserveAvailablePort();
+  const port = 0;
   const initialAdditions = additions || { schemaVersion: 1, themes: [], photos: [] };
   await mkdir(publicPhotoRoot, { recursive: true });
   await writeFile(additionsPath, `${JSON.stringify(initialAdditions, null, 2)}\n`);
@@ -92,8 +79,10 @@ async function startIsolatedManager(t, { additions, prepare } = {}) {
     }
     await rm(sandbox, { recursive: true, force: true });
   });
-  await waitForOutput(child, /南铂客片管理台：/);
-  const url = `http://127.0.0.1:${port}/`;
+  const output = await waitForOutput(child, /南铂客片管理台：/);
+  const selectedPort = output.match(/南铂客片管理台：http:\/\/127\.0\.0\.1:(\d+)\//)?.[1];
+  if (!selectedPort || selectedPort === "0") throw new Error(`管理台没有报告系统分配端口：${output}`);
+  const url = `http://127.0.0.1:${selectedPort}/`;
   const token = (await (await fetch(`${url}api/session`)).json()).token;
   return {
     additionsPath,
@@ -127,13 +116,15 @@ async function createSyntheticPublishManager(t, {
   sourceChange = "metadata",
   unexpectedExportOnce = false,
 } = {}) {
+  const archivedFirstSync = sourceChange === "archived-new";
+  const restoringMetadata = sourceChange === "restore";
   const sandbox = await mkdtemp(join(tmpdir(), "nanbo-publish-api-"));
   const repository = join(sandbox, "repository");
   const remote = join(sandbox, "remote.git");
   const draftDirectory = join(repository, ".local/portfolio-drafts");
   const additionsPath = join(repository, "apps/portfolio-v2/catalog-additions.json");
   const publicPhotoRoot = join(repository, "apps/portfolio/assets/photos");
-  const port = await reserveAvailablePort();
+  const port = 0;
   let child;
   t.after(async () => {
     if (child?.exitCode === null) {
@@ -169,10 +160,16 @@ async function createSyntheticPublishManager(t, {
     'const additionsTarget = join(root, "docs/projects/portfolio-v2/catalog-additions.json");',
     'await mkdir(dirname(additionsTarget), { recursive: true });',
     'await copyFile(join(root, "apps/portfolio-v2/catalog-additions.json"), additionsTarget);',
-    'for (const part of ["full/photo-158.jpg", "thumbs/photo-158.webp"]) {',
-    '  const target = join(root, "docs/projects/portfolio/assets/photos", part);',
-    '  await mkdir(dirname(target), { recursive: true });',
-    '  await copyFile(join(root, "apps/portfolio/assets/photos", part), target);',
+    'const additions = JSON.parse(await readFile(join(root, "apps/portfolio-v2/catalog-additions.json"), "utf8"));',
+    'for (const id of [158, ...additions.photos.map((photo) => Number(photo.id))]) {',
+    '  const base = `photo-${String(id).padStart(3, "0")}`;',
+    '  for (const part of [`full/${base}.jpg`, `thumbs/${base}.webp`]) {',
+    '    const source = join(root, "apps/portfolio/assets/photos", part);',
+    '    try { await access(source); } catch (error) { if (error.code === "ENOENT") continue; throw error; }',
+    '    const target = join(root, "docs/projects/portfolio/assets/photos", part);',
+    '    await mkdir(dirname(target), { recursive: true });',
+    '    await copyFile(source, target);',
+    '  }',
     '}',
     'const unexpectedSentinel = join(root, ".local/emit-unexpected-export");',
     'try {',
@@ -242,24 +239,30 @@ async function createSyntheticPublishManager(t, {
     const filename = `photo-${String(id).padStart(3, "0")}.webp`;
     await writeFixture(join(publicPhotoRoot, "featured", filename), `featured-${id}\n`);
   }
+  const additionPhoto = {
+    id: 159,
+    scene: "indoor",
+    theme: "magazine",
+    category: "mood",
+    title: "杂志肖像",
+    styleTitle: "情绪",
+    featured: false,
+    visibility: "published",
+    publishedAt: "2026-08-31T00:00:00.000Z",
+  };
   const additions = {
     schemaVersion: 1,
     themes: [],
-    photos: [{
-      id: 159,
-      scene: "indoor",
-      theme: "magazine",
-      category: "mood",
-      title: "杂志肖像",
-      styleTitle: "情绪",
-      featured: false,
-      visibility: "published",
-      publishedAt: "2026-08-31T00:00:00.000Z",
+    photos: archivedFirstSync ? [] : [{
+      ...additionPhoto,
+      visibility: restoringMetadata ? "archived" : "published",
     }],
   };
   await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
-  await writeFixture(join(publicPhotoRoot, "full/photo-159.jpg"), "full-159\n");
-  await writeFixture(join(publicPhotoRoot, "thumbs/photo-159.webp"), "thumb-159\n");
+  if (!archivedFirstSync) {
+    await writeFixture(join(publicPhotoRoot, "full/photo-159.jpg"), "full-159\n");
+    await writeFixture(join(publicPhotoRoot, "thumbs/photo-159.webp"), "thumb-159\n");
+  }
   await execFileAsync(process.execPath, [join(repository, "tools/export-github-pages.mjs")], { cwd: repository });
 
   await gitAt(repository, ["init", "-b", "main"]);
@@ -288,9 +291,25 @@ async function createSyntheticPublishManager(t, {
   if (sourceChange === "metadata") {
     additions.photos[0].publishedAt = "2026-08-31T02:00:00.000Z";
     await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
-  } else {
+  } else if (sourceChange === "hide") {
+    additions.photos[0].visibility = "archived";
+    await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+    await store.transitionPhoto(159, "archived");
+  } else if (restoringMetadata) {
+    const { stdout: baselineCommit } = await gitAt(repository, ["rev-parse", "--short", "HEAD"]);
+    await store.markPublished([159], baselineCommit.trim());
+    await store.transitionPhoto(159, "archived");
+    additions.photos[0].visibility = "published";
+    await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+  } else if (sourceChange === "photos") {
     await writeFixture(join(publicPhotoRoot, "full/photo-158.jpg"), "changed-full-158\n");
     await writeFixture(join(publicPhotoRoot, "thumbs/photo-158.webp"), "changed-thumb-158\n");
+  } else if (archivedFirstSync) {
+    additions.photos.push({ ...additionPhoto, visibility: "archived" });
+    await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
+    await writeFixture(join(publicPhotoRoot, "full/photo-159.jpg"), "full-159\n");
+    await writeFixture(join(publicPhotoRoot, "thumbs/photo-159.webp"), "thumb-159\n");
+    await store.transitionPhoto(159, "archived");
   }
 
   if (failFirstPush) {
@@ -316,8 +335,10 @@ async function createSyntheticPublishManager(t, {
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
-  await waitForOutput(child, /南铂客片管理台：/);
-  const url = `http://127.0.0.1:${port}/`;
+  const output = await waitForOutput(child, /南铂客片管理台：/);
+  const selectedPort = output.match(/南铂客片管理台：http:\/\/127\.0\.0\.1:(\d+)\//)?.[1];
+  if (!selectedPort || selectedPort === "0") throw new Error(`管理台没有报告系统分配端口：${output}`);
+  const url = `http://127.0.0.1:${selectedPort}/`;
   const token = (await (await fetch(`${url}api/session`)).json()).token;
   return {
     additionsPath,
@@ -332,12 +353,15 @@ async function createSyntheticPublishManager(t, {
     publish() {
       return fetch(new URL("api/publish", url), { method: "POST", headers: { "x-nanbo-token": token } });
     },
+    async status() {
+      return (await fetch(new URL("api/status", url))).json();
+    },
   };
 }
 
 async function createTestPhoto(directory, name = "source.jpg") {
   const path = join(directory, name);
-  await execFileAsync("/Users/nanbosheyingimacpro/.local/bin/ffmpeg", [
+  await execFileAsync(await resolveBinary("ffmpeg"), [
     "-hide_banner", "-loglevel", "error", "-y",
     "-f", "lavfi", "-i", "color=c=#334455:s=900x1200",
     "-frames:v", "1", path,
@@ -498,7 +522,7 @@ test("已加入本地预览的草稿不提供普通恢复或重复暂存", async
   assert.deepEqual(archiveActionForDraft(staged), {
     path: "/api/public/visibility",
     body: { visibility: "archived" },
-    successMessage: "已从本地网站预览隐藏，编号和本地资产保留。",
+    successMessage: "已从本地网站预览隐藏；本次隐藏只保存在本机，同步成功后网站才会更新。",
   });
 });
 
@@ -538,6 +562,22 @@ test("关闭新主题表单后焦点回到触发按钮", async () => {
   assert.equal(attributes["aria-expanded"], "false");
   assert.equal(feedback.textContent, "");
   assert.equal(triggerFocusCount, 1);
+});
+
+test("同步控件使用服务端待发布状态而不是仅看换图编号", async () => {
+  const { publicationControlState } = await loadDraftUiState();
+  assert.equal(typeof publicationControlState, "function");
+  const view = publicationControlState({
+    branch: "main",
+    dirtySlots: [],
+    pendingPublicationIds: [],
+    hasPendingPublication: true,
+    unrelatedFiles: [],
+  });
+  assert.equal(view.buttonDisabled, false);
+  assert.equal(view.hasPendingPublication, true);
+  assert.match(view.title, /公开状态.*同步/);
+  assert.match(view.description, /隐藏或恢复.*本机.*同步成功/);
 });
 
 test("草稿修改接口拒绝缺少令牌和跨站请求", { timeout: 30_000 }, async (t) => {
@@ -844,6 +884,82 @@ test("发布增量元数据同时暂存源清单和 Pages 副本", { timeout: 60
   assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
 });
 
+test("仅隐藏或恢复元数据时服务端仍开启同步", { timeout: 120_000 }, async (t) => {
+  const { publicationControlState } = await loadDraftUiState();
+  for (const sourceChange of ["hide", "restore"]) {
+    await t.test(sourceChange, { timeout: 60_000 }, async (scenario) => {
+      const server = await createSyntheticPublishManager(scenario, { sourceChange });
+      const before = await server.status();
+      assert.deepEqual(before.dirtySlots, []);
+      assert.equal(before.hasPendingPublication, true);
+      assert.equal(publicationControlState(before).buttonDisabled, false);
+
+      const response = await server.publish();
+      const payload = await response.json();
+      assert.equal(response.status, 200, payload.error);
+      assert.equal(payload.published, true);
+      assert.equal((await server.status()).hasPendingPublication, false);
+      assert.equal((await server.store.read()).photos[0].status, sourceChange === "hide" ? "archived" : "published");
+    });
+  }
+});
+
+test("推送后进程退出可在干净仓库把 staged ready 安全对账到当前 HEAD", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { sourceChange: "none" });
+  const [{ stdout: localBefore }, { stdout: remoteBefore }] = await Promise.all([
+    gitAt(server.repository, ["rev-parse", "HEAD"]),
+    gitAt(server.sandbox, [`--git-dir=${server.remote}`, "rev-parse", "main"]),
+  ]);
+  const status = await server.status();
+  assert.deepEqual(status.dirtySlots, []);
+  assert.equal(status.hasPendingPublication, true);
+
+  const response = await server.publish();
+  const payload = await response.json();
+  assert.equal(response.status, 200, payload.error);
+  assert.equal(payload.noChanges, true);
+  assert.deepEqual(payload.reconciledDraftIds, [159]);
+  assert.equal(payload.status.hasPendingPublication, false);
+  const [draft] = (await server.store.read()).photos;
+  assert.equal(draft.status, "published");
+  assert.equal(draft.publishedCommit, localBefore.slice(0, 7));
+  const [{ stdout: localAfter }, { stdout: remoteAfter }] = await Promise.all([
+    gitAt(server.repository, ["rev-parse", "HEAD"]),
+    gitAt(server.sandbox, [`--git-dir=${server.remote}`, "rev-parse", "main"]),
+  ]);
+  assert.equal(localAfter, localBefore);
+  assert.equal(remoteAfter, remoteBefore);
+});
+
+test("首次同步前已隐藏的成套客片可推送失败后原样重试", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { failFirstPush: true, sourceChange: "archived-new" });
+  assert.equal((await server.status()).hasPendingPublication, true);
+
+  const failed = await server.publish();
+  assert.equal(failed.status, 400);
+  assert.match((await failed.json()).error, /simulated push failure/);
+  assert.equal((await server.store.read()).photos[0].status, "archived");
+  const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
+  assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)).sort(), [
+    "apps/portfolio-v2/catalog-additions.json",
+    "apps/portfolio/assets/photos/full/photo-159.jpg",
+    "apps/portfolio/assets/photos/thumbs/photo-159.webp",
+  ]);
+
+  const retried = await server.publish();
+  const payload = await retried.json();
+  assert.equal(retried.status, 200, payload.error);
+  assert.equal(payload.published, true);
+  assert.equal((await server.store.read()).photos[0].status, "archived");
+  const { stdout: remoteManifest } = await gitAt(server.sandbox, [
+    `--git-dir=${server.remote}`,
+    "show",
+    "main:apps/portfolio-v2/catalog-additions.json",
+  ]);
+  assert.equal(JSON.parse(remoteManifest).photos[0].visibility, "archived");
+  assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
+});
+
 test("增量元数据推送失败恢复 Pages 副本且可安全重试", { timeout: 60_000 }, async (t) => {
   const server = await createSyntheticPublishManager(t, { failFirstPush: true, sourceChange: "metadata" });
 
@@ -988,8 +1104,8 @@ test("已公开新增照片被追加，隐藏照片和无封面主题不显示",
       { id: "empty-theme", scene: "outdoor", label: "空主题", description: "不显示", coverPhotoId: 160 },
     ],
     photos: [
-      { id: 159, scene: "indoor", theme: "new-light", category: "mood", title: "新光影", styleTitle: "情绪", visibility: "published", publishedAt: "2026-08-31T00:00:00.000Z" },
-      { id: 160, scene: "outdoor", theme: "empty-theme", category: "relaxed", title: "空主题", styleTitle: "松弛", visibility: "archived", publishedAt: "2026-08-31T00:00:00.000Z" },
+      { id: 159, scene: "indoor", theme: "new-light", category: "mood", title: "新光影", styleTitle: "情绪", featured: false, visibility: "published", publishedAt: "2026-08-31T00:00:00.000Z" },
+      { id: 160, scene: "outdoor", theme: "empty-theme", category: "relaxed", title: "空主题", styleTitle: "松弛", featured: false, visibility: "archived", publishedAt: "2026-08-31T00:00:00.000Z" },
     ],
   };
   assert.equal(buildPortfolioItems(portfolioCatalog, additions).at(-1).id, 159);
@@ -1011,22 +1127,143 @@ test("新增主题的封面必须是本主题的已公开照片", () => {
     schemaVersion: 1,
     themes: [{ id: "new-light", scene: "indoor", label: "新光影", description: "新主题", coverPhotoId: 159 }],
     photos: [
-      { id: 159, scene: "indoor", theme: "other-light", category: "mood", visibility: "published" },
-      { id: 160, scene: "indoor", theme: "new-light", category: "mood", visibility: "published" },
+      { id: 159, scene: "indoor", theme: "other-light", category: "mood", title: "其他光影", styleTitle: "情绪", featured: false, visibility: "published", publishedAt: "2026-08-31T00:00:00.000Z" },
+      { id: 160, scene: "indoor", theme: "new-light", category: "mood", title: "新光影", styleTitle: "情绪", featured: false, visibility: "published", publishedAt: "2026-08-31T00:01:00.000Z" },
     ],
   };
   assert.equal(buildPortfolioThemes(portfolioCatalog, additions).some(({ id }) => id === "new-light"), false);
 });
 
 test("公开增量拒绝空、非 slug 和重复主题编号", () => {
+  const theme = { scene: "indoor", label: "新光影", description: "新主题", coverPhotoId: 159 };
   for (const themes of [
-    [{ id: "", coverPhotoId: 159 }],
-    [{ id: "New Light", coverPhotoId: 159 }],
-    [{ id: "magazine", coverPhotoId: 159 }],
-    [{ id: "new-light", coverPhotoId: 159 }, { id: "new-light", coverPhotoId: 160 }],
+    [{ ...theme, id: "" }],
+    [{ ...theme, id: "New Light" }],
+    [{ ...theme, id: "magazine" }],
+    [{ ...theme, id: "new-light" }, { ...theme, id: "new-light", coverPhotoId: 160 }],
   ]) {
     assert.throws(() => normalizePortfolioAdditions({ schemaVersion: 1, themes, photos: [] }), /主题编号/);
   }
+});
+
+test("公开增量严格拒绝顶层、主题和照片的未知字段", () => {
+  const validTheme = {
+    id: "new-light",
+    scene: "indoor",
+    label: "新光影",
+    description: "新主题",
+    coverPhotoId: 159,
+  };
+  const validPhoto = {
+    id: 159,
+    scene: "indoor",
+    theme: "new-light",
+    category: "mood",
+    title: "新光影",
+    styleTitle: "情绪",
+    featured: false,
+    visibility: "published",
+    publishedAt: "2026-08-31T00:00:00.000Z",
+  };
+
+  assert.throws(() => normalizePortfolioAdditions({
+    schemaVersion: 1,
+    themes: [validTheme],
+    photos: [validPhoto],
+    unknown: "not-public",
+  }), /顶层.*unknown/);
+
+  for (const key of ["originalName", "path", "phone", "unknown"]) {
+    assert.throws(() => normalizePortfolioAdditions({
+      schemaVersion: 1,
+      themes: [{ ...validTheme, [key]: "not-public" }],
+      photos: [validPhoto],
+    }), new RegExp(`主题.*${key}`));
+    assert.throws(() => normalizePortfolioAdditions({
+      schemaVersion: 1,
+      themes: [validTheme],
+      photos: [{ ...validPhoto, [key]: "not-public" }],
+    }), new RegExp(`客片.*${key}`));
+  }
+});
+
+test("公开增量严格校验字段类型且只返回公开字段", () => {
+  const theme = {
+    id: "new-light",
+    scene: "indoor",
+    label: "新光影",
+    description: "新主题",
+    coverPhotoId: 159,
+  };
+  const published = {
+    id: 159,
+    scene: "indoor",
+    theme: "new-light",
+    category: "mood",
+    title: "新光影",
+    styleTitle: "情绪",
+    featured: true,
+    visibility: "published",
+    publishedAt: "2026-08-31T00:00:00.000Z",
+  };
+  const archived = {
+    ...published,
+    id: 160,
+    featured: false,
+    visibility: "archived",
+  };
+
+  assert.deepEqual(normalizePortfolioAdditions({ schemaVersion: 1, themes: [], photos: [] }), {
+    schemaVersion: 1,
+    themes: [],
+    photos: [],
+  });
+  const normalized = normalizePortfolioAdditions({ schemaVersion: 1, themes: [theme], photos: [published, archived] });
+  assert.deepEqual(Object.keys(normalized.themes[0]).sort(), ["coverPhotoId", "description", "id", "label", "scene"]);
+  assert.deepEqual(Object.keys(normalized.photos[0]).sort(), [
+    "category", "featured", "id", "publishedAt", "scene", "styleTitle", "theme", "title", "visibility",
+  ]);
+  assert.deepEqual(normalized.photos.map(({ visibility }) => visibility), ["published", "archived"]);
+
+  for (const invalid of [
+    { ...published, id: "159" },
+    { ...published, featured: "true" },
+    { ...published, title: 123 },
+    { ...published, publishedAt: null },
+  ]) {
+    assert.throws(() => normalizePortfolioAdditions({ schemaVersion: 1, themes: [theme], photos: [invalid] }), /字段|格式/);
+  }
+  assert.throws(() => normalizePortfolioAdditions({
+    schemaVersion: 1,
+    themes: [{ ...theme, coverPhotoId: "159" }],
+    photos: [published],
+  }), /封面|字段|格式/);
+});
+
+test("首页推荐新增客片排在历史图库前且归档推荐不显示", () => {
+  const additions = {
+    schemaVersion: 1,
+    themes: [],
+    photos: [
+      { id: 162, scene: "indoor", theme: "magazine", category: "mood", title: "杂志肖像", styleTitle: "情绪", featured: false, visibility: "published", publishedAt: "2026-08-31T00:00:00.000Z" },
+      { id: 160, scene: "indoor", theme: "magazine", category: "mood", title: "杂志肖像", styleTitle: "情绪", featured: true, visibility: "published", publishedAt: "2026-08-31T00:00:00.000Z" },
+      { id: 161, scene: "indoor", theme: "magazine", category: "mood", title: "杂志肖像", styleTitle: "情绪", featured: true, visibility: "archived", publishedAt: "2026-08-31T00:00:00.000Z" },
+      { id: 159, scene: "indoor", theme: "magazine", category: "mood", title: "杂志肖像", styleTitle: "情绪", featured: false, visibility: "published", publishedAt: "2026-08-31T00:00:00.000Z" },
+      { id: 163, scene: "indoor", theme: "magazine", category: "mood", title: "杂志肖像", styleTitle: "情绪", featured: true, visibility: "published", publishedAt: "2026-08-31T00:00:00.000Z" },
+    ],
+  };
+  const expectedLegacyOrder = [
+    ...portfolioCatalog.featuredIds,
+    ...Array.from({ length: portfolioCatalog.pairCount }, (_, index) => index * 2 + 1)
+      .filter((id) => !portfolioCatalog.featuredIds.includes(id)),
+    ...Array.from({ length: portfolioCatalog.pairCount }, (_, index) => index * 2 + 2),
+  ];
+
+  const ids = buildPortfolioItems(portfolioCatalog, additions).map(({ id }) => id);
+  assert.deepEqual(ids.slice(0, 2), [160, 163]);
+  assert.deepEqual(ids.slice(2, 160), expectedLegacyOrder);
+  assert.deepEqual(ids.slice(160), [159, 162]);
+  assert.equal(ids.includes(161), false);
 });
 
 test("上传合格图片只生成本地草稿，不创建 photo-159 公开文件", { timeout: 60_000 }, async (t) => {
@@ -1197,9 +1434,11 @@ test("待公开记账失败时回滚公开图片和增量清单", { timeout: 60_
   await assert.rejects(() => stat(sandbox.publicAssetPaths(159).thumb), /ENOENT/);
 });
 
-test("中断的公开事务可恢复原清单和资产，且下次待公开可继续", { timeout: 60_000 }, async (t) => {
+test("markStaged 后中断的公开事务清除同一暂存值并恢复可操作界面", { timeout: 60_000 }, async (t) => {
   const sandbox = await createPublicationSandbox(t);
   const draft = await sandbox.ingestAndReady();
+  const stagedAt = "2026-08-31T03:00:00.000Z";
+  await sandbox.store.markStaged(draft.id, stagedAt);
   const originalAdditions = await readFile(sandbox.additionsPath, "utf8");
   const transactionDir = join(sandbox.publicationTransactionRoot, "photo-159-interrupted");
   await mkdir(transactionDir, { recursive: true });
@@ -1208,7 +1447,9 @@ test("中断的公开事务可恢复原清单和资产，且下次待公开可�
     schemaVersion: 1,
     operation: "stage",
     id: 159,
-    status: "committing",
+    status: "manifest-installed",
+    createdAt: stagedAt,
+    stagedAt,
   }, null, 2)}\n`);
   await mkdir(join(sandbox.publicPhotoRoot, "full"), { recursive: true });
   await copyFile(
@@ -1237,6 +1478,11 @@ test("中断的公开事务可恢复原清单和资产，且下次待公开可�
   assert.equal(await readFile(sandbox.additionsPath, "utf8"), originalAdditions);
   await assert.rejects(() => stat(sandbox.publicAssetPaths(159).full), /ENOENT/);
   await assert.rejects(() => stat(sandbox.publicAssetPaths(159).thumb), /ENOENT/);
+  const recoveredDraft = (await sandbox.store.read()).photos[0];
+  assert.equal("stagedAt" in recoveredDraft, false);
+  const { draftEditorState } = await loadDraftUiState();
+  assert.equal(draftEditorState(recoveredDraft).showStage, true);
+  assert.equal(draftEditorState(recoveredDraft).showRestore, true);
 
   await stageDraftForPublication(159, sandbox.options);
   assert.equal((await loadPublicAdditions(sandbox.additionsPath)).photos[0].id, 159);
@@ -1349,6 +1595,54 @@ test("并发分配两张草稿时保留 NB-159 和 NB-160", async (t) => {
   assert.deepEqual((await store.read()).photos.map(({ id }) => id), [159, 160]);
 });
 
+test("编号租约只能由持有者释放且持久化后不能释放", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: directory, legacyMaxId: 158 });
+
+  const first = await store.reserveId([]);
+  assert.equal(first.id, 159);
+  assert.equal(await store.releaseIdReservation(first), true);
+  const second = await store.reserveId([]);
+  assert.equal(second.id, 159);
+  assert.notEqual(second.token, first.token);
+  assert.equal(await store.releaseIdReservation(first), false);
+  assert.equal((await store.reserveId([])).id, 160);
+
+  await store.addPhoto({ id: second.id, uuid: "photo-a", originalName: "a.jpg" });
+  assert.equal(await store.releaseIdReservation(second), false);
+  assert.deepEqual((await store.read()).photos.map(({ id }) => id), [159]);
+});
+
+test("草稿生成失败释放编号租约且下一次成功仍使用 NB-159", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-draft-reservation-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const source = await createTestPhoto(directory);
+  const store = createDraftStore({ rootDir: join(directory, "manifest"), legacyMaxId: 158 });
+  const blockedRoot = join(directory, "not-a-directory");
+  await writeFile(blockedRoot, "blocks derivative directory creation\n");
+
+  await assert.rejects(() => ingestDraftPhoto({
+    inputPath: source,
+    originalName: "first.jpg",
+    contentType: "image/jpeg",
+    store,
+    rootDir: blockedRoot,
+    publicIds: [],
+  }), /ENOTDIR|not a directory/i);
+
+  const record = await ingestDraftPhoto({
+    inputPath: source,
+    originalName: "second.jpg",
+    contentType: "image/jpeg",
+    store,
+    rootDir: join(directory, "drafts"),
+    publicIds: [],
+  });
+  assert.equal(record.id, 159);
+  assert.deepEqual((await store.read()).photos.map(({ id }) => id), [159]);
+});
+
 test("元数据更新允许首页推荐但不允许借通用补丁写入发布内部字段", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
@@ -1396,6 +1690,29 @@ test("专用发布标记保留待公开状态并在推送后记录提交", async
   assert.equal(photo.status, "published");
   assert.equal(photo.stagedAt, "2026-08-31T00:00:00.000Z");
   assert.equal(photo.publishedCommit, "abc123");
+});
+
+test("清除暂存只接受完全相同的时间戳且不能清除更新值", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: directory, legacyMaxId: 158 });
+  await store.addPhoto({
+    id: 159,
+    uuid: "photo-a",
+    originalName: "a.jpg",
+    scene: "indoor",
+    theme: "magazine",
+    category: "business",
+    approvedForPublicUse: true,
+  });
+  await store.transitionPhoto(159, "ready");
+  await store.markStaged(159, "2026-08-31T00:00:00.000Z");
+
+  await store.clearStaged(159, "2026-08-31T00:00:00.000Z");
+  assert.equal("stagedAt" in (await store.read()).photos[0], false);
+  await store.markStaged(159, "2026-08-31T00:01:00.000Z");
+  await store.clearStaged(159, "2026-08-31T00:00:00.000Z");
+  assert.equal((await store.read()).photos[0].stagedAt, "2026-08-31T00:01:00.000Z");
 });
 
 test("待公开草稿不能通过更新取消公开授权", async (t) => {
@@ -1452,6 +1769,25 @@ test("归档草稿不能通过通用状态转换直接发布", async (t) => {
   await assert.rejects(() => store.transitionPhoto(159, "published"), /archived.*published/);
 
   assert.equal((await store.read()).photos[0].status, "archived");
+});
+
+test("ready 草稿也不能通过通用状态转换直接发布", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-drafts-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createDraftStore({ rootDir: directory, legacyMaxId: 158 });
+  await store.addPhoto({
+    id: 159,
+    uuid: "photo-a",
+    originalName: "a.jpg",
+    scene: "indoor",
+    theme: "magazine",
+    category: "business",
+    approvedForPublicUse: true,
+  });
+  await store.transitionPhoto(159, "ready");
+
+  await assert.rejects(() => store.transitionPhoto(159, "published"), /ready.*published/);
+  assert.equal((await store.read()).photos[0].status, "ready");
 });
 
 test("已发布后归档的客片可通过专用发布标记按原编号恢复", async (t) => {

@@ -19,7 +19,7 @@ const allowedPatchKeys = new Set([
 
 const transitions = {
   draft: new Set(["ready", "archived"]),
-  ready: new Set(["draft", "published", "archived"]),
+  ready: new Set(["draft", "archived"]),
   published: new Set(["archived"]),
   archived: new Set(["draft"]),
 };
@@ -61,7 +61,7 @@ function findPhoto(state, id) {
 
 export function createDraftStore({ rootDir = draftRoot, legacyMaxId = 158 } = {}) {
   const manifestPath = join(rootDir, "manifest.json");
-  const reservedIds = new Set();
+  const reservations = new Map();
   let mutationQueue = Promise.resolve();
 
   async function readState() {
@@ -94,18 +94,35 @@ export function createDraftStore({ rootDir = draftRoot, legacyMaxId = 158 } = {}
     return clone(await readState());
   }
 
-  function allocateId(publicIds = []) {
+  function reserveId(publicIds = []) {
     return enqueueMutation(async () => {
       const state = await readState();
       const used = new Set([
         ...state.photos.map(({ id }) => normalizeId(id)),
         ...publicIds.map((id) => normalizeId(id)),
-        ...reservedIds,
+        ...reservations.keys(),
       ]);
       let nextId = normalizeId(legacyMaxId) + 1;
       while (used.has(nextId)) nextId += 1;
-      reservedIds.add(nextId);
-      return nextId;
+      const token = randomBytes(16).toString("hex");
+      reservations.set(nextId, token);
+      return { id: nextId, token };
+    });
+  }
+
+  function allocateId(publicIds = []) {
+    return reserveId(publicIds).then(({ id }) => id);
+  }
+
+  function releaseIdReservation(reservation = {}) {
+    return enqueueMutation(async () => {
+      const id = Number(reservation.id);
+      if (!Number.isInteger(id) || typeof reservation.token !== "string" || !reservation.token) return false;
+      const state = await readState();
+      if (state.photos.some((photo) => photo.id === id)) return false;
+      if (reservations.get(id) !== reservation.token) return false;
+      reservations.delete(id);
+      return true;
     });
   }
 
@@ -134,6 +151,7 @@ export function createDraftStore({ rootDir = draftRoot, legacyMaxId = 158 } = {}
       }
       state.photos.push(photo);
       await write(state);
+      reservations.delete(id);
       return clone(photo);
     });
   }
@@ -208,6 +226,21 @@ export function createDraftStore({ rootDir = draftRoot, legacyMaxId = 158 } = {}
     });
   }
 
+  function clearStaged(id, expectedTimestamp) {
+    return enqueueMutation(async () => {
+      if (typeof expectedTimestamp !== "string" || !expectedTimestamp) {
+        throw new Error("清除暂存需要原暂存时间");
+      }
+      const state = await readState();
+      const photo = findPhoto(state, id);
+      if (photo.status !== "ready" || photo.stagedAt !== expectedTimestamp) return clone(photo);
+      delete photo.stagedAt;
+      photo.updatedAt = new Date().toISOString();
+      await write(state);
+      return clone(photo);
+    });
+  }
+
   function markPublished(ids, commit) {
     return enqueueMutation(async () => {
       if (!Array.isArray(ids) || !ids.length || typeof commit !== "string" || !commit) {
@@ -236,12 +269,15 @@ export function createDraftStore({ rootDir = draftRoot, legacyMaxId = 158 } = {}
 
   return {
     read,
+    reserveId,
     allocateId,
+    releaseIdReservation,
     addPhoto,
     updatePhoto,
     transitionPhoto,
     addTheme,
     markStaged,
+    clearStaged,
     markPublished,
   };
 }

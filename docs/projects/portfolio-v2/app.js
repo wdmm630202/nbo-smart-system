@@ -3,10 +3,10 @@ import {
   buildPortfolioThemes,
   emptyPortfolioAdditions,
   portfolioCatalog,
-} from "./catalog.js?v=pv2-fb4a53754e94";
-import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=pv2-fb4a53754e94";
+} from "./catalog.js?v=pv2-aff0a3a8b888";
+import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=pv2-aff0a3a8b888";
 
-const embeddedBuildVersion = "pv2-fb4a53754e94";
+const embeddedBuildVersion = "pv2-aff0a3a8b888";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;
@@ -21,6 +21,8 @@ const portfolioAdditions = await loadPortfolioAdditions({
 const customerPortfolio = buildCustomerPortfolio({
   catalog: portfolioCatalog,
   additions: portfolioAdditions,
+  fallback: emptyPortfolioAdditions,
+  warn: (...args) => console.warn(...args),
   buildItems: (catalog, additions) => buildPortfolioItems(catalog, additions),
   buildThemes: (catalog, additions) => buildPortfolioThemes(catalog, additions),
 });

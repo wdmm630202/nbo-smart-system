@@ -80,6 +80,7 @@ function registeredAdditions() {
         category: "mood",
         title: "新光影",
         styleTitle: "情绪",
+        featured: false,
         visibility: "published",
         publishedAt: "2026-08-31T00:00:00.000Z",
       },
@@ -90,6 +91,7 @@ function registeredAdditions() {
         category: "business",
         title: "杂志肖像",
         styleTitle: "商务",
+        featured: false,
         visibility: "archived",
         publishedAt: "2026-08-31T00:01:00.000Z",
       },
@@ -185,7 +187,7 @@ test("完全归档的新主题可保留归档封面且不展示", async (t) => {
   assert.equal(result.themeCount, 23);
 });
 
-test("客户运行时只对请求失败降级并从公开增量计数", async () => {
+test("客户运行时对网络、HTTP、畸形 JSON 和合并错误都降级到历史图库", async () => {
   const { buildCustomerPortfolio, loadPortfolioAdditions } = await import("../apps/portfolio-v2/portfolio-runtime.js");
   const warnings = [];
   const networkFallback = await loadPortfolioAdditions({
@@ -202,14 +204,26 @@ test("客户运行时只对请求失败降级并从公开增量计数", async ()
   });
   assert.equal(networkFallback, emptyPortfolioAdditions);
   assert.equal(httpFallback, emptyPortfolioAdditions);
-  assert.equal(warnings.length, 2);
-
-  await assert.rejects(loadPortfolioAdditions({
+  const malformedFallback = await loadPortfolioAdditions({
     fetchImpl: async () => ({ ok: true, json: async () => { throw new SyntaxError("broken JSON"); } }),
     url: "./catalog-additions.json?v=test",
     fallback: emptyPortfolioAdditions,
-    warn: () => {},
-  }), /broken JSON/);
+    warn: (...args) => warnings.push(args),
+  });
+  assert.equal(malformedFallback, emptyPortfolioAdditions);
+  assert.equal(warnings.length, 3);
+
+  const malformedModel = buildCustomerPortfolio({
+    catalog: portfolioCatalog,
+    additions: { schemaVersion: 1, themes: [], photos: [{ id: 159, phone: "13800138000" }] },
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => warnings.push(args),
+    buildItems: buildPortfolioItems,
+    buildThemes: buildPortfolioThemes,
+  });
+  assert.equal(malformedModel.items.length, 158);
+  assert.equal(malformedModel.themes.length, 23);
+  assert.equal(warnings.length, 4);
 
   const model = buildCustomerPortfolio({
     catalog: portfolioCatalog,

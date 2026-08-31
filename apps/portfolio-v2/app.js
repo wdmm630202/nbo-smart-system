@@ -21,6 +21,8 @@ const portfolioAdditions = await loadPortfolioAdditions({
 const customerPortfolio = buildCustomerPortfolio({
   catalog: portfolioCatalog,
   additions: portfolioAdditions,
+  fallback: emptyPortfolioAdditions,
+  warn: (...args) => console.warn(...args),
   buildItems: (catalog, additions) => buildPortfolioItems(catalog, additions),
   buildThemes: (catalog, additions) => buildPortfolioThemes(catalog, additions),
 });

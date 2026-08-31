@@ -4,6 +4,7 @@ import {
   draftCode,
   draftEditorState,
   filterDrafts,
+  publicationControlState,
   reconcileSelectedDraftId,
   restoreActionForDraft,
   setExpandedPanel,
@@ -117,19 +118,19 @@ function showSkeletons() {
 
 function updateStatusCard() {
   if (!state.status || !state.catalog) return;
-  const pending = state.status.dirtySlots.length;
+  const publication = publicationControlState(state.status);
   const unrelated = state.status.unrelatedFiles || [];
-  elements.statusIndicator.className = `status-indicator${pending ? " is-dirty" : ""}`;
-  elements.statusTitle.textContent = pending ? `有 ${pending} 张客片等待同步` : "本地客片库已就绪";
-  elements.statusDescription.textContent = pending ? "请先打开本地预览，确认无误后再同步。" : "现在可以选一张客片开始替换。";
-  elements.dirtyCount.textContent = String(pending);
+  elements.statusIndicator.className = `status-indicator${publication.hasPendingPublication ? " is-dirty" : ""}`;
+  elements.statusTitle.textContent = publication.title;
+  elements.statusDescription.textContent = publication.description;
+  elements.dirtyCount.textContent = String(publication.pendingCount);
   elements.catalogCount.textContent = String(state.catalog.items.length);
   elements.headVersion.textContent = state.status.head;
   elements.branchName.textContent = `${state.status.branch} 分支 · ${state.status.buildVersion}`;
   elements.onlineLink.href = state.catalog.onlineUrl;
   elements.onlineLink.hidden = false;
   elements.previewButton.disabled = false;
-  elements.publishButton.disabled = pending === 0 || unrelated.length > 0 || state.status.branch !== "main";
+  elements.publishButton.disabled = publication.buttonDisabled;
   elements.unrelatedWarning.hidden = unrelated.length === 0;
   elements.unrelatedFiles.replaceChildren(...unrelated.slice(0, 8).map((path) => {
     const item = document.createElement("li"); item.textContent = path; return item;
@@ -514,7 +515,7 @@ async function restoreSelectedDraft() {
     return;
   }
   const successMessage = action.path === "/api/public/visibility"
-    ? "已恢复到本地网站清单，同步仍需最终确认。"
+    ? "已恢复到本地网站清单；本次恢复只保存在本机，同步成功后网站才会更新。"
     : "已恢复为可编辑草稿。";
   await mutateSelectedDraft(action.path, action.body, successMessage);
 }
@@ -619,8 +620,8 @@ async function undoSelectedPhoto() {
 
 function openPreview() { if (state.catalog) window.open(`/preview/?v=${encodeURIComponent(state.catalog.version)}`, "_blank", "noopener,noreferrer"); }
 function openPublishDialog() {
-  const slots = state.status?.dirtySlots || []; if (!slots.length) return;
-  elements.publishCount.textContent = String(slots.length); elements.publishSlots.textContent = slots.map((id) => `NB-${String(id).padStart(3, "0")}`).join("、");
+  const publication = publicationControlState(state.status); if (!publication.hasPendingPublication) return;
+  elements.publishCount.textContent = String(publication.pendingCount); elements.publishSlots.textContent = publication.pendingLabel;
   elements.publishApproval.checked = false; elements.publishConfirm.disabled = true; elements.publishError.hidden = true; elements.publishDialog.showModal();
 }
 function setDeploySteps(states) {

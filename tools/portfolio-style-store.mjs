@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
 import {
   copyFile,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rename,
   rm,
@@ -37,7 +39,7 @@ const mutableStyleVisibilities = new Set(["published", "hidden"]);
 const validMaturities = new Set(["reference", "updating", "complete"]);
 const lockHeartbeatMs = 1_000;
 const lockStaleMs = 15_000;
-const lockWaitTimeoutMs = 30_000;
+const defaultLockWaitTimeoutMs = 30_000;
 
 function delay(milliseconds) {
   return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
@@ -132,12 +134,23 @@ function requireText(value, label) {
   return value.trim();
 }
 
-export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath }) {
+export function createPortfolioStyleStore({
+  rootDir,
+  photoRoot,
+  additionsPath,
+  catalogPath,
+  assignmentsPath,
+  lockWaitTimeoutMs = defaultLockWaitTimeoutMs,
+}) {
   for (const [label, value] of Object.entries({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath })) {
     if (typeof value !== "string" || !value) throw new Error(`${label}路径无效`);
   }
+  if (!Number.isInteger(lockWaitTimeoutMs) || lockWaitTimeoutMs < 1) {
+    throw new Error("风格存储锁等待时间无效");
+  }
   const resolvedRootDir = resolve(rootDir);
-  for (const [label, path] of Object.entries({ photoRoot, additionsPath, catalogPath, assignmentsPath })) {
+  const configuredPaths = { photoRoot, additionsPath, catalogPath, assignmentsPath };
+  for (const [label, path] of Object.entries(configuredPaths)) {
     const target = resolve(path);
     if (target !== resolvedRootDir && !target.startsWith(`${resolvedRootDir}${sep}`)) {
       throw new Error(`${label}路径越界 rootDir`);
@@ -155,6 +168,54 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   let operationTail = Promise.resolve();
   let activeLockOwner = null;
 
+  async function canonicalPathThroughExistingAncestor(path, label) {
+    let cursor = resolve(path);
+    const missingParts = [];
+    while (true) {
+      let exists = false;
+      try {
+        await lstat(cursor);
+        exists = true;
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          throw new Error(`${label}无法安全解析：${error.message}`);
+        }
+      }
+      if (exists) {
+        try {
+          return resolve(await realpath(cursor), ...missingParts);
+        } catch (error) {
+          throw new Error(`${label}存在断开或无法解析的符号链接：${error.message}`);
+        }
+      }
+      const parent = dirname(cursor);
+      if (parent === cursor) throw new Error(`${label}没有可验证的现存父目录`);
+      missingParts.unshift(basename(cursor));
+      cursor = parent;
+    }
+  }
+
+  async function assertInsideRealRoot(path, label) {
+    const [canonicalRoot, canonicalTarget] = await Promise.all([
+      canonicalPathThroughExistingAncestor(resolvedRootDir, "rootDir"),
+      canonicalPathThroughExistingAncestor(path, label),
+    ]);
+    if (canonicalTarget !== canonicalRoot && !canonicalTarget.startsWith(`${canonicalRoot}${sep}`)) {
+      throw new Error(`${label}通过符号链接越界 rootDir`);
+    }
+    return canonicalTarget;
+  }
+
+  async function assertConfiguredPathsSafe() {
+    await Promise.all([
+      ...Object.entries(configuredPaths)
+        .map(([label, path]) => assertInsideRealRoot(path, label)),
+      assertInsideRealRoot(localStateRoot, "本地状态目录"),
+      assertInsideRealRoot(transactionRoot, "事务目录"),
+      assertInsideRealRoot(storeLockPath, "风格存储锁"),
+    ]);
+  }
+
   async function ownerProcessIsAlive(pid) {
     if (!Number.isInteger(pid) || pid < 1) return false;
     try {
@@ -166,6 +227,10 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   }
 
   async function lockSnapshot() {
+    await Promise.all([
+      assertInsideRealRoot(storeLockPath, "风格存储锁"),
+      assertInsideRealRoot(lockOwnerPath, "风格存储锁 owner"),
+    ]);
     let directoryInfo;
     try {
       directoryInfo = await stat(storeLockPath);
@@ -181,23 +246,32 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     } catch {
       // A creator may have made the lock directory but not owner.json yet.
     }
-    const heartbeatTime = Date.parse(owner?.heartbeatAt || owner?.createdAt || "");
+    const heartbeatTime = Date.parse(owner?.heartbeatAt || "");
+    const createdTime = Date.parse(owner?.createdAt || "");
     const age = Number.isFinite(heartbeatTime)
       ? Date.now() - heartbeatTime
       : Date.now() - directoryInfo.mtimeMs;
     const validOwner = owner?.schemaVersion === 1
       && Number.isInteger(owner.pid)
+      && owner.pid > 0
       && typeof owner.token === "string"
       && /^[a-f0-9]{24}$/.test(owner.token)
-      && typeof owner.host === "string";
-    const alive = validOwner && owner.host === hostname()
+      && typeof owner.host === "string"
+      && owner.host.length > 0
+      && Number.isFinite(createdTime)
+      && Number.isFinite(heartbeatTime)
+      && heartbeatTime >= createdTime;
+    const localOwner = validOwner && owner.host === hostname();
+    const alive = localOwner
       ? await ownerProcessIsAlive(owner.pid)
       : false;
     return {
       age,
       owner,
       raw,
-      stale: validOwner ? (!alive || age > lockStaleMs) : age > lockStaleMs,
+      stale: validOwner
+        ? (localOwner ? (!alive || age > lockStaleMs) : age > lockStaleMs)
+        : age > lockStaleMs,
     };
   }
 
@@ -205,6 +279,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     const snapshot = await lockSnapshot();
     if (!snapshot || !snapshot.stale) return !snapshot;
     const quarantine = `${storeLockPath}.stale-${process.pid}-${randomBytes(5).toString("hex")}`;
+    await assertInsideRealRoot(quarantine, "陈旧锁隔离目录");
     try {
       await rename(storeLockPath, quarantine);
     } catch (error) {
@@ -213,28 +288,38 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     }
     let movedRaw = "";
     try {
-      movedRaw = await readFile(join(quarantine, "owner.json"), "utf8");
+      const movedOwnerPath = join(quarantine, "owner.json");
+      await assertInsideRealRoot(movedOwnerPath, "陈旧锁 owner");
+      movedRaw = await readFile(movedOwnerPath, "utf8");
     } catch {
       // Invalid owner data remains stale when the directory itself is old.
     }
     if (movedRaw !== snapshot.raw) {
       try {
+        await Promise.all([
+          assertInsideRealRoot(quarantine, "陈旧锁隔离目录"),
+          assertInsideRealRoot(storeLockPath, "风格存储锁"),
+        ]);
         await rename(quarantine, storeLockPath);
       } catch (error) {
         throw new Error(`风格存储锁所有权变化，无法安全恢复：${error.message}`);
       }
       return false;
     }
+    await assertInsideRealRoot(quarantine, "陈旧锁隔离目录");
     await rm(quarantine, { recursive: true, force: true });
     return true;
   }
 
   async function acquireStoreLock() {
+    await assertConfiguredPathsSafe();
     await mkdir(localStateRoot, { recursive: true });
+    await assertInsideRealRoot(localStateRoot, "本地状态目录");
     const deadline = Date.now() + lockWaitTimeoutMs;
     const token = randomBytes(12).toString("hex");
     while (true) {
       try {
+        await assertInsideRealRoot(storeLockPath, "风格存储锁");
         await mkdir(storeLockPath);
       } catch (error) {
         if (error.code !== "EEXIST") throw error;
@@ -253,15 +338,19 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
         heartbeatAt: new Date().toISOString(),
       };
       try {
+        await assertInsideRealRoot(lockOwnerPath, "风格存储锁 owner");
         await writeJsonAtomic(lockOwnerPath, owner);
       } catch (error) {
-        await rm(storeLockPath, { recursive: true, force: true }).catch(() => {});
+        await assertInsideRealRoot(storeLockPath, "风格存储锁")
+          .then(() => rm(storeLockPath, { recursive: true, force: true }))
+          .catch(() => {});
         throw error;
       }
       activeLockOwner = owner;
       let heartbeatWriting = Promise.resolve();
       const heartbeat = setInterval(() => {
         heartbeatWriting = heartbeatWriting.then(async () => {
+          await assertInsideRealRoot(lockOwnerPath, "风格存储锁 owner");
           const current = await readJson(lockOwnerPath);
           if (current.token !== token || current.pid !== process.pid) {
             throw new Error("风格存储锁所有权已变化");
@@ -277,6 +366,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
         await heartbeatWriting;
         let current;
         try {
+          await assertInsideRealRoot(lockOwnerPath, "风格存储锁 owner");
           current = await readJson(lockOwnerPath);
         } catch (error) {
           activeLockOwner = null;
@@ -286,6 +376,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
           activeLockOwner = null;
           throw new Error("风格存储锁所有权不匹配，未删除他人锁");
         }
+        await assertInsideRealRoot(storeLockPath, "风格存储锁");
         await rm(storeLockPath, { recursive: true, force: true });
         activeLockOwner = null;
       };
@@ -296,6 +387,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     const execute = async () => {
       const release = await acquireStoreLock();
       try {
+        await assertConfiguredPathsSafe();
         return await work();
       } finally {
         await release();
@@ -338,9 +430,25 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     }
   }
 
+  async function assertJournalOutputPaths(transactionDir, output) {
+    assertJournalOutput(output);
+    const paths = [
+      [transactionDir, "事务记录目录"],
+      [join(transactionDir, "before", output.key), `事务备份 ${output.key}`],
+      [output.target, `事务目标 ${output.key}`],
+    ];
+    if (output.temporaryPath) paths.push([output.temporaryPath, `事务临时文件 ${output.key}`]);
+    await Promise.all(paths.map(([path, label]) => assertInsideRealRoot(path, label)));
+  }
+
   async function snapshotOutput(transactionDir, output, token) {
     assertAllowedTarget(output.target);
     const beforePath = join(transactionDir, "before", output.key);
+    await Promise.all([
+      assertInsideRealRoot(transactionDir, "事务记录目录"),
+      assertInsideRealRoot(beforePath, `事务备份 ${output.key}`),
+      assertInsideRealRoot(output.target, `事务目标 ${output.key}`),
+    ]);
     let beforeKind = "missing";
     try {
       const info = await stat(output.target);
@@ -351,8 +459,13 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     }
     let temporaryPath = "";
     if (output.action === "write") {
+      await assertInsideRealRoot(dirname(output.target), `事务目标父目录 ${output.key}`);
       await mkdir(dirname(output.target), { recursive: true });
       temporaryPath = `${output.target}.tmp-style-${token}`;
+      await Promise.all([
+        assertInsideRealRoot(output.target, `事务目标 ${output.key}`),
+        assertInsideRealRoot(temporaryPath, `事务临时文件 ${output.key}`),
+      ]);
       if (output.sourcePath) await copyFile(output.sourcePath, temporaryPath);
       else await writeFile(temporaryPath, output.content);
     }
@@ -366,18 +479,28 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   }
 
   async function restoreOutputs(transactionDir, outputs) {
+    for (const output of outputs) await assertJournalOutputPaths(transactionDir, output);
     const errors = [];
     for (const output of [...outputs].reverse()) {
       try {
-        assertJournalOutput(output);
+        await assertJournalOutputPaths(transactionDir, output);
         if (output.beforeKind === "file") {
           const restorePath = `${output.target}.tmp-style-restore-${randomBytes(5).toString("hex")}`;
+          await assertInsideRealRoot(restorePath, `事务恢复临时文件 ${output.key}`);
           await copyFile(join(transactionDir, "before", output.key), restorePath);
+          await Promise.all([
+            assertInsideRealRoot(restorePath, `事务恢复临时文件 ${output.key}`),
+            assertInsideRealRoot(output.target, `事务目标 ${output.key}`),
+          ]);
           await rename(restorePath, output.target);
         } else if (output.beforeKind === "missing") {
+          await assertInsideRealRoot(output.target, `事务目标 ${output.key}`);
           await rm(output.target, { force: true });
         }
-        if (output.temporaryPath) await rm(output.temporaryPath, { force: true });
+        if (output.temporaryPath) {
+          await assertInsideRealRoot(output.temporaryPath, `事务临时文件 ${output.key}`);
+          await rm(output.temporaryPath, { force: true });
+        }
       } catch (error) {
         errors.push(`${output.key}: ${error.message}`);
       }
@@ -386,14 +509,19 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   }
 
   async function cleanupPreparedOutputs(outputs) {
-    for (const output of outputs) assertJournalOutput(output);
-    await Promise.all(outputs
-      .filter((output) => output.temporaryPath)
+    for (const output of outputs) {
+      assertJournalOutput(output);
+      if (output.temporaryPath) {
+        await assertInsideRealRoot(output.temporaryPath, `事务临时文件 ${output.key}`);
+      }
+    }
+    await Promise.all(outputs.filter((output) => output.temporaryPath)
       .map((output) => rm(output.temporaryPath, { force: true }).catch(() => {})));
   }
 
   async function recoverTransactions() {
     if (!activeLockOwner) throw new Error("风格事务恢复必须先持有存储锁");
+    await assertInsideRealRoot(transactionRoot, "事务目录");
     let entries = [];
     try {
       entries = (await readdir(transactionRoot, { withFileTypes: true }))
@@ -407,6 +535,10 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     for (const entry of entries) {
       const transactionDir = join(transactionRoot, entry);
       const metaPath = join(transactionDir, "meta.json");
+      await Promise.all([
+        assertInsideRealRoot(transactionDir, "事务记录目录"),
+        assertInsideRealRoot(metaPath, "事务记录"),
+      ]);
       let meta;
       try {
         meta = await readJson(metaPath);
@@ -420,6 +552,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
         try {
           if (meta.status === "prepared") await cleanupPreparedOutputs(meta.outputs);
           else await restoreOutputs(transactionDir, meta.outputs);
+          await assertInsideRealRoot(metaPath, "事务记录");
           await writeJsonAtomic(metaPath, {
             ...meta,
             status: "rolled-back",
@@ -437,7 +570,16 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     const token = `${timestampName()}-${randomBytes(5).toString("hex")}`;
     const transactionDir = join(transactionRoot, token);
     const metaPath = join(transactionDir, "meta.json");
+    await Promise.all([
+      assertInsideRealRoot(transactionRoot, "事务目录"),
+      assertInsideRealRoot(transactionDir, "事务记录目录"),
+      assertInsideRealRoot(metaPath, "事务记录"),
+    ]);
     await mkdir(join(transactionDir, "before"), { recursive: true });
+    await Promise.all([
+      assertInsideRealRoot(transactionDir, "事务记录目录"),
+      assertInsideRealRoot(join(transactionDir, "before"), "事务备份目录"),
+    ]);
     const prepared = [];
     let meta = {
       schemaVersion: 1,
@@ -452,22 +594,28 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     try {
       for (const output of outputs) prepared.push(await snapshotOutput(transactionDir, output, token));
       meta = { ...meta, status: "prepared", outputs: prepared };
+      await assertInsideRealRoot(metaPath, "事务记录");
       await writeJsonAtomic(metaPath, meta);
       meta = { ...meta, status: "committing" };
+      await assertInsideRealRoot(metaPath, "事务记录");
       await writeJsonAtomic(metaPath, meta);
       for (const output of prepared) {
+        await assertJournalOutputPaths(transactionDir, output);
         if (output.action === "write") await rename(output.temporaryPath, output.target);
         else if (output.action === "delete") await rm(output.target, { force: true });
       }
       meta = { ...meta, status: "committed", committedAt: new Date().toISOString() };
+      await assertInsideRealRoot(metaPath, "事务记录");
       await writeJsonAtomic(metaPath, meta);
       return meta;
     } catch (error) {
       try {
         if (prepared.length) {
+          await assertInsideRealRoot(metaPath, "事务记录");
           await writeJsonAtomic(metaPath, { ...meta, status: "rolling-back", error: error.message }).catch(() => {});
           await restoreOutputs(transactionDir, prepared);
         }
+        await assertInsideRealRoot(metaPath, "事务记录");
         await writeJsonAtomic(metaPath, {
           ...meta,
           outputs: prepared,
@@ -736,6 +884,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   }
 
   async function availableReplacementHistory(slotId, currentAssetId, state, slot) {
+    await assertInsideRealRoot(transactionRoot, "事务目录");
     let entries = [];
     try {
       entries = (await readdir(transactionRoot, { withFileTypes: true }))
@@ -749,8 +898,14 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     }
     const history = [];
     for (const entry of entries) {
+      const transactionDir = join(transactionRoot, entry);
+      const metaPath = join(transactionDir, "meta.json");
+      await Promise.all([
+        assertInsideRealRoot(transactionDir, "事务记录目录"),
+        assertInsideRealRoot(metaPath, "事务记录"),
+      ]);
       try {
-        const meta = await readJson(join(transactionRoot, entry, "meta.json"));
+        const meta = await readJson(metaPath);
         if (meta.status !== "committed") continue;
         history.push({ entry, meta });
       } catch {
@@ -772,6 +927,10 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
         || !hasCompletePreviousAssignment(meta, state, slot)) continue;
       const fullPath = join(photoRoot, "full", `${slotFilename(meta.assetId)}.jpg`);
       const thumbPath = join(photoRoot, "thumbs", `${slotFilename(meta.assetId)}.webp`);
+      await Promise.all([
+        assertInsideRealRoot(fullPath, "撤销高清图"),
+        assertInsideRealRoot(thumbPath, "撤销缩略图"),
+      ]);
       try {
         const [fullInfo, thumbInfo] = await Promise.all([stat(fullPath), stat(thumbPath)]);
         if (!fullInfo.isFile() || !thumbInfo.isFile()) continue;

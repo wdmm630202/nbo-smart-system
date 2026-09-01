@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -79,7 +88,14 @@ async function createStyleStoreFixture(t, options = {}) {
     directory,
     photoRoot,
     rootDir,
-    createStore: () => createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath }),
+    createStore: (storeOptions = {}) => createPortfolioStyleStore({
+      rootDir,
+      photoRoot,
+      additionsPath,
+      catalogPath,
+      assignmentsPath,
+      ...storeOptions,
+    }),
     store: createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath }),
     validPhoto,
     wrongRatioPhoto,
@@ -349,6 +365,87 @@ test("store lock rejects configured path traversal and recovers a dead owner's s
   const state = await fixture.store.read();
   assert.equal(state.counts.styles, 132);
   await assert.rejects(() => stat(lockPath), { code: "ENOENT" });
+});
+
+test("a fresh foreign-host lock times out without being deleted", { timeout: 2_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const lockPath = join(fixture.rootDir, ".local/portfolio-style-store.lock");
+  const ownerPath = join(lockPath, "owner.json");
+  const now = new Date().toISOString();
+  const ownerBytes = `${JSON.stringify({
+    schemaVersion: 1,
+    pid: 42,
+    host: "foreign-host.example",
+    token: "1234567890abcdef12345678",
+    createdAt: now,
+    heartbeatAt: now,
+  }, null, 2)}\n`;
+  await mkdir(lockPath, { recursive: true });
+  await writeFile(ownerPath, ownerBytes);
+
+  const store = fixture.createStore({ lockWaitTimeoutMs: 75 });
+  await assert.rejects(() => store.read(), /等待风格存储锁超时/);
+  assert.equal(await readFile(ownerPath, "utf8"), ownerBytes);
+});
+
+test("an expired foreign-host heartbeat can be recovered", async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const lockPath = join(fixture.rootDir, ".local/portfolio-style-store.lock");
+  await mkdir(lockPath, { recursive: true });
+  await writeFile(join(lockPath, "owner.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    pid: 42,
+    host: "foreign-host.example",
+    token: "1234567890abcdef12345678",
+    createdAt: "2000-01-01T00:00:00.000Z",
+    heartbeatAt: "2000-01-01T00:00:00.000Z",
+  }, null, 2)}\n`);
+
+  assert.equal((await fixture.store.read()).counts.styles, 132);
+  await assert.rejects(() => stat(lockPath), { code: "ENOENT" });
+});
+
+test("recovery rejects a photo parent symlink outside root without deleting its target", async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const externalDirectory = join(fixture.directory, "outside-root");
+  const externalSentinel = join(externalDirectory, "photo-159.jpg");
+  const fullDirectory = join(fixture.photoRoot, "full");
+  await mkdir(externalDirectory);
+  await writeFile(externalSentinel, "outside sentinel stays\n");
+  await rm(fullDirectory, { recursive: true });
+  await symlink(externalDirectory, fullDirectory, "dir");
+
+  const transactionName = "2099-01-01T00-00-00-000Z-symlink-recovery";
+  const transactionDirectory = join(
+    fixture.rootDir,
+    ".local/portfolio-style-transactions",
+    transactionName,
+  );
+  const logicalTarget = join(fullDirectory, "photo-159.jpg");
+  await mkdir(join(transactionDirectory, "before"), { recursive: true });
+  await writeFile(join(transactionDirectory, "meta.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    operation: "replace-slot",
+    status: "committing",
+    outputs: [{
+      action: "write",
+      beforeKind: "missing",
+      key: "full",
+      target: logicalTarget,
+      temporaryPath: `${logicalTarget}.tmp-style-${transactionName}`,
+    }],
+  }, null, 2)}\n`);
+
+  const rejection = await fixture.store.read().then(() => null, (error) => error);
+  const externalBytes = await readFile(externalSentinel, "utf8").catch((error) => `ERROR:${error.code}`);
+  assert.deepEqual({
+    rejected: rejection instanceof Error,
+    externalBytes,
+  }, {
+    rejected: true,
+    externalBytes: "outside sentinel stays\n",
+  });
+  assert.match(rejection.message, /越界|symlink|符号链接|根目录/i);
 });
 
 test("undo skips corrupt newest history and removes an unreferenced copy-on-write asset", { timeout: 30_000 }, async (t) => {

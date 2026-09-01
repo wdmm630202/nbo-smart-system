@@ -203,35 +203,26 @@
           <p>先选内景或外景，再选拳击荷尔蒙、商务总裁、城市夜景等主题，到店沟通更准确。</p>
         </section>
 
-        <section class="style-section" id="styles" aria-labelledby="styles-title">
-          <header class="section-title">
-            <div><p>SCENE → THEME → STYLE</p><h2 id="styles-title">先选场景，<br />再选主题。</h2></div>
-            <a href="#works">全部客片 ↘</a>
-          </header>
-          <div class="style-rail">
-            <button class="style-card" type="button" data-scene-link="indoor">
-              <img src="../portfolio/assets/photos/thumbs/photo-137.webp?v=__NBO_BUILD_VERSION__" alt="商务质感男士写真" loading="lazy" />
-              <span><small>01 / INDOOR · <span id="indoor-photo-count">0</span> PHOTOS</small><strong>内景主题</strong><em>灯光可控 · 造型完整 · <span id="indoor-theme-count">0</span> 个主题</em></span>
-            </button>
-            <button class="style-card" type="button" data-scene-link="outdoor">
-              <img src="../portfolio/assets/photos/thumbs/photo-111.webp?v=__NBO_BUILD_VERSION__" alt="城市机车外景男士写真" loading="lazy" />
-              <span><small>02 / OUTDOOR · <span id="outdoor-photo-count">0</span> PHOTOS</small><strong>外景主题</strong><em>环境真实 · 行走自然 · <span id="outdoor-theme-count">0</span> 个主题</em></span>
-            </button>
-          </div>
-          <div class="theme-directory" aria-label="内景与外景主题快速选择">
-            <article class="theme-group">
-              <header><span>01</span><div><strong>内景主题</strong><small>INDOOR COLLECTION</small></div></header>
-              <div class="theme-shortcuts">
-                <button type="button" data-theme-link="business-boss">商务总裁</button><button type="button" data-theme-link="magazine">杂志肖像</button><button type="button" data-theme-link="light-mood">光影情绪</button><button type="button" data-theme-link="retro-hk">复古港风</button><button type="button" data-theme-link="home-korean">居家韩系</button><button type="button" data-theme-link="floral-boy">花艺少年</button><button type="button" data-theme-link="boxing">拳击荷尔蒙</button><button type="button" data-theme-link="sport-style">运动型格</button><button type="button" data-theme-link="cyberpunk">赛博朋克</button><button type="button" data-theme-link="wuxia">国风武侠</button><button type="button" data-theme-link="celebration">生日节日</button><button type="button" data-theme-link="concept">创意概念</button><button type="button" data-theme-link="pet">宠物合拍</button>
-              </div>
-            </article>
-            <article class="theme-group">
-              <header><span>02</span><div><strong>外景主题</strong><small>OUTDOOR COLLECTION</small></div></header>
-              <div class="theme-shortcuts">
-                <button type="button" data-theme-link="city-street">都市街拍</button><button type="button" data-theme-link="daily-walk">日常漫游</button><button type="button" data-theme-link="moto">机车型格</button><button type="button" data-theme-link="city-night">城市夜景</button><button type="button" data-theme-link="forest">森系文艺</button><button type="button" data-theme-link="campus">校园少年</button><button type="button" data-theme-link="formal-outdoor">正装外景</button><button type="button" data-theme-link="wuxia-outdoor">国风外景</button><button type="button" data-theme-link="travel">旅行叙事</button><button type="button" data-theme-link="sport-documentary">运动纪实</button>
-              </div>
-            </article>
-          </div>
+        <section class="style-section" id="styles">
+          <section class="style-explorer" id="style-explorer" data-style-explorer aria-labelledby="style-explorer-title" hidden>
+            <header class="style-explorer-heading">
+              <div><p>132 PORTRAIT STYLES</p><h2 id="style-explorer-title">先选感觉，<br />再看 9 个拍摄参考。</h2></div>
+              <span>132 种风格 · 内景 66 · 外景 66</span>
+            </header>
+            <div class="style-featured-heading"><strong>南铂精选</strong><span>人工挑选的 8 个方向</span></div>
+            <nav class="style-featured" id="style-featured" aria-label="南铂精选"></nav>
+            <div class="style-selector-level">
+              <span>拍摄场景</span>
+              <div class="style-scene-tabs" id="style-scene-tabs" role="tablist" aria-label="选择内景或外景"></div>
+            </div>
+            <div class="style-selector-level">
+              <span>感觉方向</span>
+              <div class="style-family-tabs" id="style-family-tabs" role="tablist" aria-label="选择风格方向"></div>
+            </div>
+            <div class="style-card-grid" id="style-card-grid" aria-live="polite"></div>
+            <section class="style-album" id="style-album" aria-label="9 个拍摄参考" hidden></section>
+            <a class="style-explorer-legacy-link" href="#works">浏览全部真实客片 <span aria-hidden="true">↘</span></a>
+          </section>
         </section>
 
         <section class="fit-guide" aria-label="风格选择建议">
@@ -243,29 +234,48 @@
           <div class="fit-photo"><img src="../portfolio/assets/photos/thumbs/photo-139.webp?v=__NBO_BUILD_VERSION__" alt="南铂男士写真示例" loading="lazy" /></div>
         </section>
 
-        <section class="works" id="works" aria-labelledby="works-title">
-          <header class="section-title works-title">
-            <div><p>REAL CLIENT GALLERY</p><h2 id="works-title">真实男士客片</h2></div>
-            <span>轻点看大图<br />爱心加入喜欢</span>
-          </header>
-          <aside class="theme-package" id="theme-package" aria-labelledby="theme-package-title" hidden>
-            <div class="theme-package-heading">
-              <small id="theme-package-title">本主题套餐</small>
-              <strong class="theme-package-price">¥268</strong>
+        <section class="works" id="works">
+          <details class="legacy-gallery-disclosure" id="legacy-gallery-disclosure">
+            <summary><span><small>158-PHOTO LIBRARY</small><strong>浏览全部真实客片</strong></span><b aria-hidden="true">＋</b></summary>
+            <div class="legacy-gallery-content">
+              <header class="section-title works-title">
+                <div><p>REAL CLIENT GALLERY</p><h2 id="works-title">真实男士客片</h2></div>
+                <span>轻点看大图<br />爱心加入喜欢</span>
+              </header>
+              <div class="theme-directory" aria-label="历史内景与外景主题快速选择">
+                <article class="theme-group">
+                  <header><span>01</span><div><strong>内景主题</strong><small>INDOOR COLLECTION</small></div></header>
+                  <div class="theme-shortcuts">
+                    <button type="button" data-theme-link="business-boss">商务总裁</button><button type="button" data-theme-link="magazine">杂志肖像</button><button type="button" data-theme-link="light-mood">光影情绪</button><button type="button" data-theme-link="retro-hk">复古港风</button><button type="button" data-theme-link="home-korean">居家韩系</button><button type="button" data-theme-link="floral-boy">花艺少年</button><button type="button" data-theme-link="boxing">拳击荷尔蒙</button><button type="button" data-theme-link="sport-style">运动型格</button><button type="button" data-theme-link="cyberpunk">赛博朋克</button><button type="button" data-theme-link="wuxia">国风武侠</button><button type="button" data-theme-link="celebration">生日节日</button><button type="button" data-theme-link="concept">创意概念</button><button type="button" data-theme-link="pet">宠物合拍</button>
+                  </div>
+                </article>
+                <article class="theme-group">
+                  <header><span>02</span><div><strong>外景主题</strong><small>OUTDOOR COLLECTION</small></div></header>
+                  <div class="theme-shortcuts">
+                    <button type="button" data-theme-link="city-street">都市街拍</button><button type="button" data-theme-link="daily-walk">日常漫游</button><button type="button" data-theme-link="moto">机车型格</button><button type="button" data-theme-link="city-night">城市夜景</button><button type="button" data-theme-link="forest">森系文艺</button><button type="button" data-theme-link="campus">校园少年</button><button type="button" data-theme-link="formal-outdoor">正装外景</button><button type="button" data-theme-link="wuxia-outdoor">国风外景</button><button type="button" data-theme-link="travel">旅行叙事</button><button type="button" data-theme-link="sport-documentary">运动纪实</button>
+                  </div>
+                </article>
+              </div>
+              <aside class="theme-package" id="theme-package" aria-labelledby="theme-package-title" hidden>
+                <div class="theme-package-heading">
+                  <small id="theme-package-title">本主题套餐</small>
+                  <strong class="theme-package-price">¥268</strong>
+                </div>
+                <ul class="theme-package-facts" aria-label="套餐包含">
+                  <li>拍摄2套服装</li>
+                  <li>全部原片全送</li>
+                  <li>不推销加精修</li>
+                </ul>
+              </aside>
+              <nav class="filter-bar" aria-label="按场景和主题筛选">
+                <div class="filter-level"><span>场景</span><div class="filters" id="filters"></div></div>
+                <div class="filter-level"><span>主题</span><div class="filters theme-filters" id="theme-filters"></div></div>
+              </nav>
+              <div class="gallery-status"><span id="gallery-summary">全部作品</span><span id="gallery-progress">显示 0 / 0</span></div>
+              <div class="gallery-grid" id="gallery-grid" aria-live="polite"></div>
+              <div class="load-area"><button class="load-more" id="load-more" type="button"><span>继续浏览更多真实客片</span><small id="load-remaining"></small></button></div>
             </div>
-            <ul class="theme-package-facts" aria-label="套餐包含">
-              <li>拍摄2套服装</li>
-              <li>全部原片全送</li>
-              <li>不推销加精修</li>
-            </ul>
-          </aside>
-          <nav class="filter-bar" aria-label="按场景和主题筛选">
-            <div class="filter-level"><span>场景</span><div class="filters" id="filters"></div></div>
-            <div class="filter-level"><span>主题</span><div class="filters theme-filters" id="theme-filters"></div></div>
-          </nav>
-          <div class="gallery-status"><span id="gallery-summary">全部作品</span><span id="gallery-progress">显示 0 / 0</span></div>
-          <div class="gallery-grid" id="gallery-grid" aria-live="polite"></div>
-          <div class="load-area"><button class="load-more" id="load-more" type="button"><span>继续浏览更多真实客片</span><small id="load-remaining"></small></button></div>
+          </details>
         </section>
 
         <section class="prep" id="prep" aria-labelledby="prep-title">

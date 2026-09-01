@@ -11,12 +11,15 @@ import {
   loadPortfolioDocument,
 } from "./portfolio-runtime.js?v=__NBO_BUILD_VERSION__";
 import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=__NBO_BUILD_VERSION__";
+import { createStyleExplorer } from "./style-explorer.js?v=__NBO_BUILD_VERSION__";
 
 const embeddedBuildVersion = "__NBO_BUILD_VERSION__";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;
-const versionPhoto = (path) => `${path}?v=${encodeURIComponent(buildVersion)}`;
+const versionPhoto = (path) => path.includes("?v=")
+  ? path
+  : `${path}${path.includes("?") ? "&" : "?"}v=${encodeURIComponent(buildVersion)}`;
 
 const [portfolioAdditions, styleCatalog, styleAssignments] = await Promise.all([
   loadPortfolioAdditions({
@@ -63,8 +66,18 @@ const customerStyleLibrary = buildCustomerStyleLibrary({
   fallback: null,
   warn: (...args) => console.warn(...args),
 });
-const styleExplorer = document.querySelector("[data-style-explorer]");
-if (styleExplorer) styleExplorer.hidden = !customerStyleLibrary;
+const styleExplorerRoot = document.querySelector("[data-style-explorer]");
+if (styleExplorerRoot && customerStyleLibrary) {
+  createStyleExplorer({
+    root: styleExplorerRoot,
+    library: customerStyleLibrary,
+    versionPhoto,
+    onTrack: trackProductEvent,
+    onOpenViewer: (index, items) => openViewer(index, items),
+  });
+} else if (styleExplorerRoot) {
+  styleExplorerRoot.hidden = true;
+}
 const sceneConfig = portfolioCatalog.scenes.map((scene) => scene.id === "all"
   ? { ...scene, description: `${galleryItems.length} 张真实客片` }
   : scene);
@@ -79,6 +92,7 @@ const gallerySummary = document.querySelector("#gallery-summary");
 const galleryProgress = document.querySelector("#gallery-progress");
 const themePackage = document.querySelector("#theme-package");
 const themePackageTitle = document.querySelector("#theme-package-title");
+const legacyGalleryDisclosure = document.querySelector("#legacy-gallery-disclosure");
 const loadMoreButton = document.querySelector("#load-more");
 const loadRemaining = document.querySelector("#load-remaining");
 const viewer = document.querySelector("#viewer");
@@ -144,6 +158,12 @@ function renderCatalogCounts() {
 
 const PAGE_SIZE = 30;
 const initialThemeId = new URLSearchParams(window.location.search).get("theme") || "";
+if (initialThemeId && themeById[initialThemeId] && legacyGalleryDisclosure) legacyGalleryDisclosure.open = true;
+document.querySelectorAll('a[href="#works"]').forEach((link) => {
+  link.addEventListener("click", () => {
+    if (legacyGalleryDisclosure) legacyGalleryDisclosure.open = true;
+  });
+});
 let activeTheme = themeById[initialThemeId] ? initialThemeId : "all";
 let activeScene = activeTheme === "all" ? "all" : themeById[activeTheme].scene;
 let filteredItems = [...galleryItems];
@@ -391,6 +411,7 @@ function renderGallery() {
 }
 
 function setScene(sceneId) {
+  if (legacyGalleryDisclosure) legacyGalleryDisclosure.open = true;
   activeScene = sceneById[sceneId] ? sceneId : "all";
   activeTheme = "all";
   visibleCount = PAGE_SIZE;
@@ -401,6 +422,7 @@ function setScene(sceneId) {
 }
 
 function setTheme(themeId) {
+  if (legacyGalleryDisclosure) legacyGalleryDisclosure.open = true;
   if (themeId !== "all" && themeById[themeId]) {
     activeTheme = themeId;
     activeScene = themeById[themeId].scene;
@@ -443,6 +465,7 @@ function scrollCampaignTo(index, behavior = "smooth") {
 function restoreThemeFromLocation() {
   const themeId = new URLSearchParams(window.location.search).get("theme") || "";
   if (themeById[themeId]) {
+    if (legacyGalleryDisclosure) legacyGalleryDisclosure.open = true;
     activeTheme = themeId;
     activeScene = themeById[themeId].scene;
   } else {

@@ -81,7 +81,6 @@ export function createStyleExplorer({
   const albumTitle = requiredElement(root, "#style-album-title");
   const albumDescription = requiredElement(root, "#style-album-description");
   const albumGrid = requiredElement(root, "#style-album-grid");
-  const stylesChrome = [...root.children].filter((element) => element !== album);
   let state = createExplorerState(library, new URLSearchParams(windowObject?.location?.search || ""));
   let destroyed = false;
   let lastOpenedStyleId = state.styleId;
@@ -338,27 +337,30 @@ export function createStyleExplorer({
     album.querySelector(".style-album-panel")?.scrollTo({ top: 0, behavior: "auto" });
   }
 
-  function setStylesChromeActive(active) {
-    stylesChrome.forEach((element) => {
-      element.inert = !active;
-      if (active) element.removeAttribute("aria-hidden");
-      else element.setAttribute("aria-hidden", "true");
-    });
+  function focusAlbumEntry() {
+    windowObject?.requestAnimationFrame?.(() => albumClose.focus({ preventScroll: true }));
   }
 
   function presentView() {
     const style = styleById.get(state.styleId);
     const showsAlbum = state.view === "album" || state.view === "viewer";
+    const openedAlbum = showsAlbum && !album.open;
     root.dataset.view = state.view;
     root.dataset.scene = state.scene;
     root.dataset.familyId = state.familyId;
     root.dataset.styleId = state.styleId;
     root.dataset.poseIndex = String(state.poseIndex);
     if (showsAlbum && style) renderAlbum(style);
-    album.hidden = !showsAlbum;
+    if (showsAlbum) {
+      album.hidden = false;
+      if (!album.open) album.showModal();
+    } else {
+      if (album.open) album.close();
+      album.hidden = true;
+    }
     album.dataset.styleId = showsAlbum ? state.styleId : "";
-    setStylesChromeActive(!showsAlbum);
     documentObject.body.classList.toggle("style-album-open", showsAlbum);
+    if (openedAlbum && state.view === "album") focusAlbumEntry();
   }
 
   function openCurrentViewer() {
@@ -469,7 +471,6 @@ export function createStyleExplorer({
     renderAlbum(style);
     presentView();
     updateLocation(windowObject, state, "pushState");
-    windowObject?.requestAnimationFrame?.(() => albumClose.focus({ preventScroll: true }));
     onTrack("style_open", {
       scene: style.scene,
       targetId: style.id,
@@ -581,6 +582,8 @@ export function createStyleExplorer({
     cardGrid.replaceChildren();
     clearImageSources(albumGrid);
     albumGrid.replaceChildren();
+    if (album.open) album.close();
+    album.hidden = true;
     documentObject.body.classList.remove("style-album-open");
     if (windowObject?.history && previousScrollRestoration) {
       windowObject.history.scrollRestoration = previousScrollRestoration;
@@ -589,6 +592,10 @@ export function createStyleExplorer({
 
   bindPressFeedback(albumClose);
   albumClose.addEventListener("click", requestCloseAlbum);
+  album.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    requestCloseAlbum();
+  });
   renderFeatured();
   render();
   root.hidden = false;

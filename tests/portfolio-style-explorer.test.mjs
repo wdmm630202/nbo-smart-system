@@ -188,6 +188,18 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         const nextImageCount = nextImages.filter((image) => image.getAttribute("src")).length;
         const oldSourcesCleared = oldImages.every((image) => !image.getAttribute("src"));
         const openedStyleId = nextCards[0]?.dataset.styleId || "";
+        const preservedBackground = document.querySelector(".page-footer");
+        const untouchedBackground = document.querySelector(".mini-header");
+        preservedBackground?.setAttribute("inert", "");
+        preservedBackground?.setAttribute("aria-hidden", "false");
+        const preservedBackgroundBefore = {
+          inert: preservedBackground?.getAttribute("inert"),
+          ariaHidden: preservedBackground?.getAttribute("aria-hidden"),
+        };
+        const untouchedBackgroundBefore = {
+          inert: untouchedBackground?.getAttribute("inert"),
+          ariaHidden: untouchedBackground?.getAttribute("aria-hidden"),
+        };
         const returnScrollTarget = Math.min(420, Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
         const originalScrollBehavior = document.documentElement.style.scrollBehavior;
         document.documentElement.style.scrollBehavior = "auto";
@@ -195,6 +207,7 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         document.documentElement.style.scrollBehavior = originalScrollBehavior;
         const openedReturnScroll = window.scrollY;
         nextCards[0]?.querySelector(".portrait-style-card-open")?.click();
+        await wait(40);
         const openedStyleParam = new URL(location.href).searchParams.get("style") || "";
         const openedView = root?.dataset.view || "";
 
@@ -228,6 +241,21 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
           && albumPanelRect.left >= 0 && albumPanelRect.right <= window.innerWidth + .5);
         const albumAnimationDurations = (albumElement ? getComputedStyle(albumElement).animationDuration : "")
           .split(",").filter(Boolean).map((value) => Number.parseFloat(value) * (value.includes("ms") ? .001 : 1));
+        const albumClose = albumElement?.querySelector("#style-album-close");
+        const albumIsModal = albumElement?.matches(":modal") || false;
+        const normalAlbumInitialFocus = document.activeElement?.id || "";
+        const countReachableOutsideAlbum = () => {
+          let count = 0;
+          const candidates = [...document.querySelectorAll('a[href],button,input,textarea,select,[tabindex]')]
+            .filter((element) => !albumElement?.contains(element) && !element.hidden && element.tabIndex >= 0);
+          for (const candidate of candidates) {
+            candidate.focus({ preventScroll: true });
+            if (document.activeElement === candidate) count += 1;
+          }
+          albumClose?.focus({ preventScroll: true });
+          return count;
+        };
+        const normalAlbumOutsideFocusableCount = countReachableOutsideAlbum();
 
         poseCards[2]?.querySelector(".pose-open")?.click();
         await wait(60);
@@ -326,12 +354,33 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         const escapeReturnedAlbum = root?.dataset.view === "album" && !viewerElement?.open && !albumElement?.hidden;
 
         window.scrollTo(0, 0);
-        albumElement?.querySelector("#style-album-close")?.click();
+        albumClose?.click();
         await wait(120);
         const albumCloseReturnedStyles = root?.dataset.view === "styles" && albumElement?.hidden;
         const restoredScrollY = window.scrollY;
         const returnedCardFocused = document.activeElement
           === document.querySelector('[data-style-id="' + openedStyleId + '"] .portrait-style-card-open');
+        const backgroundStateRestoredAfterClose = preservedBackground?.getAttribute("inert") === preservedBackgroundBefore.inert
+          && preservedBackground?.getAttribute("aria-hidden") === preservedBackgroundBefore.ariaHidden
+          && untouchedBackground?.getAttribute("inert") === untouchedBackgroundBefore.inert
+          && untouchedBackground?.getAttribute("aria-hidden") === untouchedBackgroundBefore.ariaHidden;
+
+        history.forward();
+        await wait(140);
+        const forwardReturnedAlbum = root?.dataset.view === "album" && !albumElement?.hidden;
+        const forwardAlbumIsModal = albumElement?.matches(":modal") || false;
+        const forwardAlbumFocus = document.activeElement?.id || "";
+        const forwardAlbumOutsideFocusableCount = countReachableOutsideAlbum();
+        albumClose?.click();
+        await wait(120);
+        const forwardCloseReturnedStyles = root?.dataset.view === "styles" && albumElement?.hidden;
+        const forwardRestoredScrollY = window.scrollY;
+        const forwardReturnedCardFocused = document.activeElement
+          === document.querySelector('[data-style-id="' + openedStyleId + '"] .portrait-style-card-open');
+        const backgroundStateRestoredAfterForwardClose = preservedBackground?.getAttribute("inert") === preservedBackgroundBefore.inert
+          && preservedBackground?.getAttribute("aria-hidden") === preservedBackgroundBefore.ariaHidden
+          && untouchedBackground?.getAttribute("inert") === untouchedBackgroundBefore.inert
+          && untouchedBackground?.getAttribute("aria-hidden") === untouchedBackgroundBefore.ariaHidden;
 
         document.querySelector("#gallery-grid .photo-button")?.click();
         await wait(30);
@@ -421,6 +470,9 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
           albumGridColumns,
           albumPanelInsideViewport,
           albumAnimationDurations,
+          albumIsModal,
+          normalAlbumInitialFocus,
+          normalAlbumOutsideFocusableCount,
           sharedViewerCount,
           styleViewerOpened,
           styleViewerCount,
@@ -451,6 +503,15 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
           openedReturnScroll,
           restoredScrollY,
           returnedCardFocused,
+          backgroundStateRestoredAfterClose,
+          forwardReturnedAlbum,
+          forwardAlbumIsModal,
+          forwardAlbumFocus,
+          forwardAlbumOutsideFocusableCount,
+          forwardCloseReturnedStyles,
+          forwardRestoredScrollY,
+          forwardReturnedCardFocused,
+          backgroundStateRestoredAfterForwardClose,
           legacyViewerPoseChoiceHidden,
           gridColumns: gridStyle?.gridTemplateColumns.split(" ").filter(Boolean).length || 0,
           cardRatio: cardRect ? cardRect.width / cardRect.height : 0,
@@ -530,6 +591,90 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
 
   browserMeasurements.set(cacheKey, measurement);
   return measurement;
+}
+
+async function measureDirectAlbumEntry(width = 390) {
+  const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
+  const prelude = `<script>
+    document.querySelector(".page-footer")?.setAttribute("inert", "");
+    document.querySelector(".page-footer")?.setAttribute("aria-hidden", "false");
+  </script>`;
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    window.addEventListener("load", () => window.setTimeout(async () => {
+      const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      const root = document.querySelector("#style-explorer");
+      const album = document.querySelector("#style-album");
+      const albumClose = document.querySelector("#style-album-close");
+      const initialView = root?.dataset.view || "";
+      const initialModal = album?.matches(":modal") || false;
+      const initialFocus = document.activeElement?.id || "";
+      let reachableOutsideAlbum = 0;
+      const candidates = [...document.querySelectorAll('a[href],button,input,textarea,select,[tabindex]')]
+        .filter((element) => !album?.contains(element) && !element.hidden && element.tabIndex >= 0);
+      for (const candidate of candidates) {
+        candidate.focus({ preventScroll: true });
+        if (document.activeElement === candidate) reachableOutsideAlbum += 1;
+      }
+      albumClose?.focus({ preventScroll: true });
+      albumClose?.click();
+      await wait(140);
+      const footer = document.querySelector(".page-footer");
+      const header = document.querySelector(".mini-header");
+      const bottomNavigation = document.querySelector(".tab-bar a");
+      const returnedStyleCardFocused = document.activeElement
+        === document.querySelector('[data-style-id="ST-IN-01-01"] .portrait-style-card-open');
+      const restoredScrollY = window.scrollY;
+      bottomNavigation?.focus({ preventScroll: true });
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
+        initialView,
+        initialModal,
+        initialFocus,
+        reachableOutsideAlbum,
+        closeReturnedStyles: root?.dataset.view === "styles" && album?.hidden,
+        preservedBackgroundState: footer?.getAttribute("inert") === ""
+          && footer?.getAttribute("aria-hidden") === "false"
+          && header?.getAttribute("inert") === null
+          && header?.getAttribute("aria-hidden") === null,
+        returnedStyleCardFocused,
+        restoredScrollY,
+        bottomNavigationRestored: document.activeElement === bottomNavigation,
+      });
+    }, 220));
+  </script>`;
+  const appScript = '<script type="module" src="app.js?v=__NBO_BUILD_VERSION__"></script>';
+  const page = sourceHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace(appScript, `${prelude}${appScript}`)
+    .replace("</body>", `${probe}</body>`);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      const asset = await readFile(new URL(`../apps${url.pathname}`, import.meta.url));
+      response.writeHead(200, { "Content-Type": contentType(url.pathname) });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(
+      `http://127.0.0.1:${port}/portfolio-v2/index.html?v=direct&scene=indoor&family=IN-01&style=ST-IN-01-01`,
+      width,
+    );
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 }
 
 async function loadExplorerModel(loadModule = () => import(explorerModelUrl)) {
@@ -756,6 +901,37 @@ test("an opened style exposes exactly nine ordered DOM slots and loads only thei
   assert.equal(metrics.albumLazyImageCount, 9, "相册缩略图必须延迟、异步解码");
   assert.equal(metrics.albumFullSourceBeforeViewer, "", "未打开查看器就请求了高清图");
   assert.equal(metrics.albumPoseChoiceCount, 9, "每个稳定照片位都应保留 Task 8 姿势选择挂点");
+});
+
+test("album isolates the whole page and restores focus across direct entry, close, and Forward", { skip: !hasChrome }, async () => {
+  const [normal, direct] = await Promise.all([
+    measureCustomerStyleExplorer(390),
+    measureDirectAlbumEntry(390),
+  ]);
+
+  assert.equal(normal.normalAlbumInitialFocus, "style-album-close", "正常打开相册后焦点没有进入安全关闭控件");
+  assert.equal(normal.albumIsModal, true, "相册没有进入浏览器 modal top layer，读屏背景无法可靠隔离");
+  assert.equal(normal.normalAlbumOutsideFocusableCount, 0, "正常相册打开时页面背景仍有可聚焦元素");
+  assert.equal(normal.backgroundStateRestoredAfterClose, true, "关闭相册没有准确恢复背景原有 inert/aria 状态");
+  assert.equal(normal.forwardReturnedAlbum, true, "浏览器 Forward 没有从 styles 恢复相册");
+  assert.equal(normal.forwardAlbumIsModal, true, "Forward 恢复的相册不是 modal");
+  assert.equal(normal.forwardAlbumFocus, "style-album-close", "Forward 恢复相册后焦点没有进入安全关闭控件");
+  assert.equal(normal.forwardAlbumOutsideFocusableCount, 0, "Forward 恢复相册后页面背景仍可聚焦");
+  assert.equal(normal.forwardCloseReturnedStyles, true, "Forward 恢复的相册无法自然返回 styles");
+  assert.equal(normal.forwardReturnedCardFocused, true, "Forward 相册关闭后没有恢复原风格卡焦点");
+  assert.ok(Math.abs(normal.forwardRestoredScrollY - normal.openedReturnScroll) <= 2,
+    `Forward 相册关闭后没有恢复原滚动：${normal.openedReturnScroll} -> ${normal.forwardRestoredScrollY}`);
+  assert.equal(normal.backgroundStateRestoredAfterForwardClose, true, "Forward 相册关闭后没有恢复背景原状态");
+
+  assert.equal(direct.initialView, "album", "直接 style 深链没有初始恢复相册");
+  assert.equal(direct.initialModal, true, "直接深链相册没有进入 modal top layer");
+  assert.equal(direct.initialFocus, "style-album-close", "直接深链初始焦点没有进入相册关闭控件");
+  assert.equal(direct.reachableOutsideAlbum, 0, "直接深链相册未隔离整个页面背景");
+  assert.equal(direct.closeReturnedStyles, true, "直接深链相册关闭后没有回到 styles");
+  assert.equal(direct.preservedBackgroundState, true, "直接深链相册关闭破坏了背景原有 inert/aria 状态");
+  assert.equal(direct.returnedStyleCardFocused, true, "直接深链相册关闭后没有恢复对应风格卡焦点");
+  assert.ok(Math.abs(direct.restoredScrollY) <= 2, `直接深链关闭后滚动位置错误：${direct.restoredScrollY}`);
+  assert.equal(direct.bottomNavigationRestored, true, "相册关闭后底部导航仍不可聚焦");
 });
 
 test("the reused viewer preserves photo favorites and naturally returns through close, back, and Escape", { skip: !hasChrome }, async () => {

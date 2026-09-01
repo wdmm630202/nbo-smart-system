@@ -264,7 +264,10 @@ async function startManagerBrowser(t, url, { width = 1280, reducedMotion = false
     const selected = await command("DOM.querySelector", { nodeId: documentTree.root.nodeId, selector }, sessionId);
     assert.ok(selected.nodeId, `找不到文件选择器 ${selector}`);
     await command("DOM.setFileInputFiles", { files: Array.isArray(path) ? path : [path], nodeId: selected.nodeId }, sessionId);
-    await evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new Event("change", { bubbles: true }))`);
+    await evaluate(`(() => {
+      const input = document.querySelector(${JSON.stringify(selector)});
+      if (input) input.dispatchEvent(new Event("change", { bubbles: true }));
+    })()`);
   };
 
   t.after(async () => {
@@ -634,6 +637,42 @@ test("batch commit installs eighteen assets and two manifests with consecutive u
     orderedPositions: [1, 2, 3, 4, 5, 6, 7, 8, 9],
   }), /不存在|已处理/);
   assert.equal((await fixture.store.read()).additions.photos.length, 9);
+});
+
+test("each slot in a committed nine-photo batch has independent persisted undo history", { timeout: 180_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const styleId = "ST-IN-01-01";
+  const originalAssetIds = [137, 81, 129, 11, 93, 139, 147, 157, 73];
+  const batchId = await stageFullBatch(fixture.store);
+  await fixture.store.commitBatch({
+    batchId,
+    styleId,
+    orderedPositions: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  });
+  const batchTransaction = (await transactionMetas(fixture.rootDir))
+    .find(({ operation }) => operation === "replace-style-batch");
+  assert.equal(batchTransaction.previousAssignments.length, 9);
+  assert.deepEqual(batchTransaction.previousAssignments.map(({ slotId, assetId, previousAssignment }) => ({
+    slotId,
+    assetId,
+    previousAssetId: previousAssignment.assetId,
+  })), originalAssetIds.map((previousAssetId, index) => ({
+    slotId: `${styleId}-P${String(index + 1).padStart(2, "0")}`,
+    assetId: 159 + index,
+    previousAssetId,
+  })));
+
+  for (let index = 0; index < 9; index += 1) {
+    const slotId = `${styleId}-P${String(index + 1).padStart(2, "0")}`;
+    const undone = await fixture.createStore().undoSlot(slotId);
+    assert.equal(undone.restoredAssetId, originalAssetIds[index], slotId);
+    assert.equal((await fixture.createStore().read()).slotById[slotId].assetId, originalAssetIds[index], slotId);
+  }
+  const restored = await fixture.createStore().read();
+  assert.deepEqual(restored.styles.find(({ id }) => id === styleId).slots.map(({ assetId }) => assetId), originalAssetIds);
+  assert.deepEqual(restored.additions.photos, []);
+  assert.deepEqual(await readdir(join(fixture.photoRoot, "full")), []);
+  assert.deepEqual(await readdir(join(fixture.photoRoot, "thumbs")), []);
 });
 
 test("batch positions are single-assignment, discard is idempotent, and expired staging is removed", { timeout: 60_000 }, async (t) => {
@@ -1107,6 +1146,52 @@ test("layout reorders only one style and keeps source-derived reference maturity
   assert.deepEqual(after.assignments.assignments["ST-IN-01-02"], otherBefore);
   assert.deepEqual(await fileBytes(fixture.catalogPath), catalogBefore);
   assert.ok((await transactionMetas(fixture.rootDir)).some((meta) => meta.operation === "update-layout" && meta.status === "committed"));
+});
+
+test("persisted reorder keeps slot identity, cover, pose, and replacement history attached", { timeout: 60_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const styleId = "ST-IN-01-01";
+  const firstSlotId = `${styleId}-P01`;
+  const secondSlotId = `${styleId}-P02`;
+  await fixture.store.replaceSlot({
+    slotId: firstSlotId,
+    inputPath: fixture.validPhoto,
+    originalName: "stable-identity.jpg",
+  });
+  await fixture.store.updateSlotMeta({ slotId: firstSlotId, poseLabel: "P01 审核姿势" });
+  const before = await fixture.store.read();
+  const target = before.styles.find(({ id }) => id === styleId);
+  await fixture.store.updateLayout({
+    styleId,
+    orderedSlotIds: [secondSlotId, firstSlotId, ...target.slots.slice(2).map(({ id }) => id)],
+    coverSlotId: firstSlotId,
+    maturity: "updating",
+  });
+
+  const restarted = await fixture.createStore().read();
+  assert.deepEqual({
+    first: {
+      assetId: restarted.slotById[firstSlotId].assetId,
+      isCover: restarted.slotById[firstSlotId].isCover,
+      poseLabel: restarted.slotById[firstSlotId].poseLabel,
+      position: restarted.slotById[firstSlotId].position,
+    },
+    second: {
+      assetId: restarted.slotById[secondSlotId].assetId,
+      isCover: restarted.slotById[secondSlotId].isCover,
+      position: restarted.slotById[secondSlotId].position,
+    },
+  }, {
+    first: { assetId: 159, isCover: true, poseLabel: "P01 审核姿势", position: 2 },
+    second: { assetId: 81, isCover: false, position: 1 },
+  });
+
+  const undone = await fixture.createStore().undoSlot(firstSlotId);
+  assert.deepEqual(undone, { slotId: firstSlotId, restoredAssetId: 137, removedAssetId: 159 });
+  const afterUndo = await fixture.createStore().read();
+  assert.equal(afterUndo.slotById[firstSlotId].assetId, 137);
+  assert.equal(afterUndo.slotById[firstSlotId].position, 2);
+  assert.equal(afterUndo.slotById[firstSlotId].isCover, true);
 });
 
 test("maturity is derived from upload sources and complete requires same-style origin plus explicit public confirmation", { timeout: 240_000 }, async (t) => {
@@ -1599,7 +1684,10 @@ test("style mutation endpoints update only the isolated manifests and preserve c
   });
   const undo = await server.postJson("api/style-slots/undo?slot=ST-IN-01-01-P01", null);
   assert.equal(undo.status, 200);
-  assert.equal((await undo.json()).result.restoredAssetId, initialStyle.slots.at(-1).assetId);
+  assert.equal(
+    (await undo.json()).result.restoredAssetId,
+    initialStyle.slots.find(({ id }) => id === "ST-IN-01-01-P01").assetId,
+  );
 
   const after = await (await fetch(new URL("api/style-library", server.url))).json();
   const updatedStyle = after.styles.find(({ id }) => id === initialStyle.id);
@@ -2050,6 +2138,108 @@ test("nine-photo manager reports the invalid position without committing partial
   await browser.waitFor('document.querySelector("#style-batch-dialog")?.open === false');
   const batchRoot = join(server.sandbox, ".local/portfolio-style-batches");
   assert.deepEqual(await readdir(batchRoot), []);
+});
+
+test("manager can undo a slot after committing a nine-photo batch", { skip: !hasChrome, timeout: 180_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const copies = [];
+  const bytes = await readFile(validPhoto);
+  for (let position = 1; position <= 9; position += 1) {
+    const path = join(server.sandbox, `batch-undo-${position}.jpg`);
+    await writeFile(path, bytes);
+    copies.push(path);
+  }
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const mode = document.querySelector('input[name="library-mode"][value="styles"]');
+    mode.checked = true;
+    mode.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.evaluate('document.querySelector("#style-batch-open").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open');
+  await browser.setFileInput("#style-batch-files", copies);
+  await browser.waitFor('document.querySelector("#style-batch-commit")?.disabled === false', 30_000);
+  await browser.evaluate('document.querySelector("#style-batch-commit").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open === false', 30_000);
+  await browser.waitFor('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] [data-asset-code=\\"NB-159\\"]")');
+  assert.equal(await browser.evaluate('document.querySelectorAll("#style-slot-grid .style-slot-undo:not([hidden])").length'), 9);
+
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] .style-slot-undo").click()');
+  await browser.waitFor('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] [data-asset-code=\\"NB-137\\"]")', 30_000);
+  assert.equal((await fetch(new URL("api/assets/references?id=159", server.url))).status, 404);
+});
+
+test("mixed-MIME reselection invalidates a ready batch, renders nine retryable rows, and commits only the new batch", { skip: !hasChrome, timeout: 180_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const validBytes = await readFile(validPhoto);
+  const oldFiles = [];
+  const newFiles = [];
+  for (let position = 1; position <= 9; position += 1) {
+    const oldPath = join(server.sandbox, `old-ready-${position}.jpg`);
+    const newPath = join(server.sandbox, `new-selection-${position}.jpg`);
+    await Promise.all([writeFile(oldPath, validBytes), writeFile(newPath, validBytes)]);
+    oldFiles.push(oldPath);
+    newFiles.push(newPath);
+  }
+  const invalidGif = join(server.sandbox, "new-selection-9.gif");
+  await writeFile(invalidGif, Buffer.from("GIF89a-invalid-style-batch", "ascii"));
+
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    window.__batchNetwork = [];
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      window.__batchNetwork.push({ method: init.method || "GET", url: String(url) });
+      return originalFetch(input, init);
+    };
+    const mode = document.querySelector('input[name="library-mode"][value="styles"]');
+    mode.checked = true;
+    mode.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.evaluate('document.querySelector("#style-batch-open").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open');
+  await browser.setFileInput("#style-batch-files", oldFiles);
+  await browser.waitFor('document.querySelector("#style-batch-commit")?.disabled === false', 30_000);
+
+  await browser.setFileInput("#style-batch-files", [...newFiles.slice(0, 8), invalidGif]);
+  await browser.waitFor(`document.querySelectorAll("#style-batch-list [data-batch-position]").length === 9
+    && [...document.querySelectorAll("#style-batch-list [data-batch-position]")].slice(0, 8).every((row) => row.dataset.batchStatus === "ready")
+    && document.querySelector('[data-batch-position="9"]')?.dataset.batchStatus === "error"`, 30_000);
+  const invalidState = await browser.evaluate(`(() => ({
+    commitDisabled: document.querySelector("#style-batch-commit")?.disabled,
+    retryCount: document.querySelectorAll("#style-batch-list .style-batch-retry").length,
+    rowCount: document.querySelectorAll("#style-batch-list [data-batch-position]").length,
+    ninthText: document.querySelector('[data-batch-position="9"]')?.textContent.replace(/\\s+/g, " ").trim(),
+    network: [...window.__batchNetwork],
+  }))()`);
+  assert.deepEqual({
+    commitDisabled: invalidState.commitDisabled,
+    retryCount: invalidState.retryCount,
+    rowCount: invalidState.rowCount,
+  }, { commitDisabled: true, retryCount: 1, rowCount: 9 });
+  assert.match(invalidState.ninthText, /JPG|PNG|WebP|支持/);
+  const stagedBatchIds = [...new Set(invalidState.network
+    .filter(({ method, url }) => method === "PUT" && url.includes("/api/style-batches/"))
+    .map(({ url }) => url.match(/style-batches\/([0-9a-f-]{36})\/files/)?.[1])
+    .filter(Boolean))];
+  assert.equal(stagedBatchIds.length, 2);
+  assert.notEqual(stagedBatchIds[0], stagedBatchIds[1]);
+  assert.equal(invalidState.network.some(({ method, url }) => method === "DELETE" && url.includes(stagedBatchIds[0])), true);
+
+  await browser.setFileInput('[data-batch-position="9"] .style-batch-retry input', newFiles[8]);
+  await browser.waitFor('document.querySelector("#style-batch-commit")?.disabled === false', 30_000);
+  await browser.evaluate('document.querySelector("#style-batch-commit").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open === false', 30_000);
+  await browser.waitFor('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] [data-asset-code=\\"NB-159\\"]")');
+  const commitBatchIds = await browser.evaluate(`window.__batchNetwork
+    .filter(({ method, url }) => method === "POST" && url.includes("/commit"))
+    .map(({ url }) => url.match(/style-batches\\/([0-9a-f-]{36})\\/commit/)?.[1])`);
+  assert.deepEqual(commitBatchIds, [stagedBatchIds[1]]);
 });
 
 test("stale single-slot load cannot cross into a newly opened slot", { skip: !hasChrome, timeout: 60_000 }, async (t) => {

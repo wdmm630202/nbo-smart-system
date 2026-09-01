@@ -136,6 +136,31 @@ function requireText(value, label) {
   return value.trim();
 }
 
+function defaultSlotIds(styleId) {
+  return Array.from({ length: 9 }, (_, index) => styleSlotId(styleId, index + 1));
+}
+
+function normalizeSlotIdentities(value, catalog) {
+  requireExactKeys(value, ["schemaVersion", "styles"], "照片位身份记录");
+  if (value.schemaVersion !== 1 || !value.styles || Array.isArray(value.styles) || typeof value.styles !== "object") {
+    throw new Error("照片位身份记录格式无效");
+  }
+  const knownStyles = new Set(catalog.styles.map(({ id }) => id));
+  const styles = {};
+  for (const [styleId, slotIds] of Object.entries(value.styles)) {
+    const expected = defaultSlotIds(styleId);
+    if (!knownStyles.has(styleId)
+      || !Array.isArray(slotIds)
+      || slotIds.length !== 9
+      || new Set(slotIds).size !== 9
+      || slotIds.some((slotId) => typeof slotId !== "string" || !expected.includes(slotId))) {
+      throw new Error(`风格 ${styleId} 照片位身份记录无效`);
+    }
+    styles[styleId] = [...slotIds];
+  }
+  return { schemaVersion: 1, styles };
+}
+
 function sourceDerivedMaturity(slots) {
   const uploaded = slots.filter(({ source }) => source === "upload").length;
   return uploaded === 0 ? "reference" : "updating";
@@ -168,12 +193,14 @@ export function createPortfolioStyleStore({
   const localStateRoot = join(resolvedRootDir, ".local");
   const transactionRoot = join(localStateRoot, "portfolio-style-transactions");
   const batchRoot = join(localStateRoot, "portfolio-style-batches");
+  const slotIdentitiesPath = join(localStateRoot, "portfolio-style-slot-identities.json");
   const storeLockPath = join(localStateRoot, "portfolio-style-store.lock");
   const lockOwnerPath = join(storeLockPath, "owner.json");
   const allowedManifestPaths = new Set([
     resolve(additionsPath),
     resolve(catalogPath),
     resolve(assignmentsPath),
+    resolve(slotIdentitiesPath),
   ]);
   let operationTail = Promise.resolve();
   let activeLockOwner = null;
@@ -223,6 +250,7 @@ export function createPortfolioStyleStore({
       assertInsideRealRoot(localStateRoot, "本地状态目录"),
       assertInsideRealRoot(transactionRoot, "事务目录"),
       assertInsideRealRoot(batchRoot, "整组暂存目录"),
+      assertInsideRealRoot(slotIdentitiesPath, "照片位身份记录"),
       assertInsideRealRoot(storeLockPath, "风格存储锁"),
     ]);
   }
@@ -780,12 +808,17 @@ export function createPortfolioStyleStore({
 
   async function readStateUnlocked() {
     await recoverTransactions();
-    const [rawCatalog, rawAssignments, rawAdditions] = await Promise.all([
+    const [rawCatalog, rawAssignments, rawAdditions, rawSlotIdentities] = await Promise.all([
       readJson(catalogPath),
       readJson(assignmentsPath),
       readJson(additionsPath),
+      readJson(slotIdentitiesPath).catch((error) => {
+        if (error.code === "ENOENT") return { schemaVersion: 1, styles: {} };
+        throw error;
+      }),
     ]);
     const catalog = normalizeStoreCatalog(rawCatalog);
+    const slotIdentities = normalizeSlotIdentities(rawSlotIdentities, catalog);
     const additions = normalizePortfolioAdditions(rawAdditions);
     const { assets, assetById, assetIds } = buildAssets(additions);
     const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
@@ -794,10 +827,11 @@ export function createPortfolioStyleStore({
     const slots = [];
     const styles = catalog.styles.map((style) => {
       const layout = assignments.assignments[style.id];
+      const identityOrder = slotIdentities.styles[style.id] || defaultSlotIds(style.id);
       const styleSlots = layout.slots.map((slot, index) => {
         const value = {
           ...slot,
-          id: styleSlotId(style.id, index + 1),
+          id: identityOrder[index],
           styleId: style.id,
           position: index + 1,
           isCover: layout.coverPosition === index + 1,
@@ -832,6 +866,7 @@ export function createPortfolioStyleStore({
       styles,
       slots,
       slotById,
+      slotIdentities,
       counts: {
         styles: styles.length,
         slots: slots.length,
@@ -1135,6 +1170,13 @@ export function createPortfolioStyleStore({
       const normalizedAdditions = normalizePortfolioAdditions(additions);
       const assignments = clone(state.assignments);
       const layout = assignments.assignments[styleId];
+      const previousLayoutUpdatedAt = layout.updatedAt;
+      const previousAssignments = style.slots.map((slot, index) => ({
+        slotId: slot.id,
+        assetId: assetIds[orderedPositions[index] - 1],
+        previousAssetId: layout.slots[index].assetId,
+        previousAssignment: clone(layout.slots[index]),
+      }));
       layout.slots = orderedPositions.map((position, index) => ({
         ...layout.slots[index],
         assetId: assetIds[position - 1],
@@ -1162,7 +1204,14 @@ export function createPortfolioStyleStore({
       );
       await commitTransaction({
         operation: "replace-style-batch",
-        context: { batchId, styleId, assetIds, orderedPositions },
+        context: {
+          batchId,
+          styleId,
+          assetIds,
+          orderedPositions,
+          previousAssignments,
+          previousLayoutUpdatedAt,
+        },
         outputs,
       });
       await removeBatchDirectory(batchId);
@@ -1351,6 +1400,50 @@ export function createPortfolioStyleStore({
     return hasExpectedCommittedOutputs(entry, meta.outputs, expected);
   }
 
+  function batchReplacementForSlot(entry, meta, slotId) {
+    if (!hasCompleteBatchRecord(entry, meta)
+      || !Array.isArray(meta.previousAssignments)
+      || meta.previousAssignments.length !== 9
+      || new Set(meta.previousAssignments.map((item) => item?.slotId)).size !== 9
+      || !(meta.previousLayoutUpdatedAt === null
+        || (typeof meta.previousLayoutUpdatedAt === "string" && !Number.isNaN(Date.parse(meta.previousLayoutUpdatedAt))))) return null;
+    const expectedSlotIds = new Set(defaultSlotIds(meta.styleId));
+    for (let index = 0; index < meta.previousAssignments.length; index += 1) {
+      const item = meta.previousAssignments[index];
+      if (!item || Array.isArray(item) || typeof item !== "object"
+        || Object.keys(item).sort().join(",") !== "assetId,previousAssetId,previousAssignment,slotId"
+        || !expectedSlotIds.has(item.slotId)
+        || item.assetId !== meta.assetIds[meta.orderedPositions[index] - 1]
+        || !hasStructuredPreviousAssignment({
+          previousAssetId: item.previousAssetId,
+          previousAssignment: item.previousAssignment,
+          previousLayoutUpdatedAt: meta.previousLayoutUpdatedAt,
+        })) return null;
+    }
+    const item = meta.previousAssignments.find((candidate) => candidate.slotId === slotId);
+    if (!item) return null;
+    return {
+      assetId: item.assetId,
+      previousAssetId: item.previousAssetId,
+      previousAssignment: item.previousAssignment,
+      previousLayoutUpdatedAt: meta.previousLayoutUpdatedAt,
+      slotId: item.slotId,
+    };
+  }
+
+  function replacementForSlot(entry, meta, slotId) {
+    if (hasCompleteReplacementRecord(entry, meta) && meta.slotId === slotId) {
+      return {
+        assetId: meta.assetId,
+        previousAssetId: meta.previousAssetId,
+        previousAssignment: meta.previousAssignment,
+        previousLayoutUpdatedAt: meta.previousLayoutUpdatedAt,
+        slotId: meta.slotId,
+      };
+    }
+    return batchReplacementForSlot(entry, meta, slotId);
+  }
+
   async function assetOriginStyleIds() {
     await assertInsideRealRoot(transactionRoot, "事务目录");
     let entries = [];
@@ -1403,14 +1496,15 @@ export function createPortfolioStyleStore({
   }
 
   function hasCompleteUndoRecord(entry, meta, source) {
+    const sourceReplacement = source
+      ? replacementForSlot(source.entry, source.meta, meta?.slotId)
+      : null;
     if (!hasCommittedEnvelope(meta, "undo-slot")
       || typeof meta.sourceTransaction !== "string"
-      || !source
-      || !hasCompleteReplacementRecord(meta.sourceTransaction, source.meta)
+      || !sourceReplacement
       || Date.parse(meta.createdAt) < Date.parse(source.meta.committedAt)
-      || meta.slotId !== source.meta.slotId
-      || meta.assetId !== source.meta.assetId
-      || meta.restoredAssetId !== source.meta.previousAssetId
+      || meta.assetId !== sourceReplacement.assetId
+      || meta.restoredAssetId !== sourceReplacement.previousAssetId
       || ![null, meta.assetId].includes(meta.removedAssetId)) return false;
     const expected = [];
     if (meta.removedAssetId === meta.assetId) {
@@ -1461,16 +1555,17 @@ export function createPortfolioStyleStore({
     const consumed = new Set(history
       .filter(({ entry, meta }) => meta.operation === "undo-slot"
         && hasCompleteUndoRecord(entry, meta, byEntry.get(meta.sourceTransaction)))
-      .map(({ meta }) => meta.sourceTransaction));
+      .map(({ meta }) => `${meta.sourceTransaction}\0${meta.slotId}`));
     for (const item of history) {
       const { entry, meta } = item;
-      if (!hasCompleteReplacementRecord(entry, meta) || meta.slotId !== slotId || consumed.has(entry)) continue;
-      const addition = state.additions.photos.find((photo) => photo.id === meta.assetId);
-      if (!Number.isInteger(meta.assetId) || meta.assetId <= portfolioCatalog.photoCount
-        || !addition || addition.visibility !== "published" || meta.assetId !== currentAssetId
-        || !hasCompletePreviousAssignment(meta, state, slot)) continue;
-      const fullPath = join(photoRoot, "full", `${slotFilename(meta.assetId)}.jpg`);
-      const thumbPath = join(photoRoot, "thumbs", `${slotFilename(meta.assetId)}.webp`);
+      const replacement = replacementForSlot(entry, meta, slotId);
+      if (!replacement || consumed.has(`${entry}\0${slotId}`)) continue;
+      const addition = state.additions.photos.find((photo) => photo.id === replacement.assetId);
+      if (!Number.isInteger(replacement.assetId) || replacement.assetId <= portfolioCatalog.photoCount
+        || !addition || addition.visibility !== "published" || replacement.assetId !== currentAssetId
+        || !hasCompletePreviousAssignment(replacement, state, slot)) continue;
+      const fullPath = join(photoRoot, "full", `${slotFilename(replacement.assetId)}.jpg`);
+      const thumbPath = join(photoRoot, "thumbs", `${slotFilename(replacement.assetId)}.webp`);
       await Promise.all([
         assertInsideRealRoot(fullPath, "撤销高清图"),
         assertInsideRealRoot(thumbPath, "撤销缩略图"),
@@ -1481,7 +1576,7 @@ export function createPortfolioStyleStore({
       } catch {
         continue;
       }
-      return { entry, meta, fullPath, thumbPath };
+      return { entry, meta, replacement, fullPath, thumbPath };
     }
     return null;
   }
@@ -1494,20 +1589,21 @@ export function createPortfolioStyleStore({
       if (!slot) throw new Error("照片位不存在");
       const history = await availableReplacementHistory(slotId, slot.assetId, state, slot);
       if (!history) throw new Error(`${slotId} 没有更早的可用备份`);
+      const replacement = history.replacement;
 
       const assignments = clone(state.assignments);
       const targetLayout = assignments.assignments[slot.styleId];
-      targetLayout.slots[slot.position - 1] = clone(history.meta.previousAssignment);
+      targetLayout.slots[slot.position - 1] = clone(replacement.previousAssignment);
       targetLayout.maturity = sourceDerivedMaturity(targetLayout.slots);
-      targetLayout.updatedAt = history.meta.previousLayoutUpdatedAt ?? null;
+      targetLayout.updatedAt = replacement.previousLayoutUpdatedAt ?? null;
       const remainingSlotReference = Object.values(assignments.assignments)
-        .some((layout) => layout.slots.some((assignment) => assignment.assetId === history.meta.assetId));
+        .some((layout) => layout.slots.some((assignment) => assignment.assetId === replacement.assetId));
       const otherCatalogReference = state.additions.themes
-        .some((theme) => Number(theme.coverPhotoId) === history.meta.assetId);
+        .some((theme) => Number(theme.coverPhotoId) === replacement.assetId);
       const removeAsset = !remainingSlotReference && !otherCatalogReference;
       const additions = clone(state.additions);
       if (removeAsset) {
-        additions.photos = additions.photos.filter((photo) => photo.id !== history.meta.assetId);
+        additions.photos = additions.photos.filter((photo) => photo.id !== replacement.assetId);
       }
       const normalizedAdditions = normalizePortfolioAdditions(additions);
       const outputs = [];
@@ -1526,16 +1622,16 @@ export function createPortfolioStyleStore({
         context: {
           sourceTransaction: history.entry,
           slotId,
-          assetId: history.meta.assetId,
-          restoredAssetId: history.meta.previousAssetId,
-          removedAssetId: removeAsset ? history.meta.assetId : null,
+          assetId: replacement.assetId,
+          restoredAssetId: replacement.previousAssetId,
+          removedAssetId: removeAsset ? replacement.assetId : null,
         },
         outputs,
       });
       return {
         slotId,
-        restoredAssetId: history.meta.previousAssetId,
-        removedAssetId: removeAsset ? history.meta.assetId : null,
+        restoredAssetId: replacement.previousAssetId,
+        removedAssetId: removeAsset ? replacement.assetId : null,
       };
     });
   }
@@ -1567,6 +1663,7 @@ export function createPortfolioStyleStore({
       }
       await assertRequestedMaturity(state, style, input.maturity);
       const assignments = clone(state.assignments);
+      const slotIdentities = clone(state.slotIdentities);
       const layout = assignments.assignments[styleId];
       const currentById = new Map(style.slots.map((slot) => [
         slot.id,
@@ -1576,11 +1673,20 @@ export function createPortfolioStyleStore({
       layout.coverPosition = input.orderedSlotIds.indexOf(coverSlotId) + 1;
       layout.maturity = input.maturity;
       layout.updatedAt = new Date().toISOString();
+      slotIdentities.styles[styleId] = [...input.orderedSlotIds];
       normalizeStyleAssignments(assignments, validationCatalog(state.catalog), new Map(state.assets.map((asset) => [asset.id, asset])));
       await commitTransaction({
         operation: "update-layout",
-        context: { styleId },
-        outputs: manifestOutputs(state.catalog, assignments),
+        context: { styleId, orderedSlotIds: [...input.orderedSlotIds], coverSlotId },
+        outputs: [
+          ...manifestOutputs(state.catalog, assignments),
+          {
+            key: "slot-identities",
+            action: "write",
+            target: slotIdentitiesPath,
+            content: `${JSON.stringify(slotIdentities, null, 2)}\n`,
+          },
+        ],
       });
       return { styleId, coverPosition: layout.coverPosition, maturity: layout.maturity };
     });

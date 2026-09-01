@@ -556,7 +556,8 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   }
 
   function updateBatchControls() {
-    const ready = state.batchOrder.length === 9
+    const ready = Boolean(state.batchId)
+      && state.batchOrder.length === 9
       && state.batchOrder.every((position) => state.batchEntries.get(position)?.status === "ready");
     elements.batchCommit.disabled = state.busy || !ready;
     elements.batchCancel.disabled = state.busy;
@@ -651,8 +652,10 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   }
 
   async function retryBatchPosition(position, file) {
-    if (state.busy || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      if (!state.busy) showToast("只支持 JPG、PNG 或 WebP 图片", "error");
+    if (state.busy) return;
+    const validationError = batchFileValidationError(file);
+    if (validationError) {
+      showToast(validationError, "error");
       return;
     }
     const entry = state.batchEntries.get(position);
@@ -674,41 +677,52 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function discardOpenBatch() {
     if (!state.batchId) return;
     const batchId = state.batchId;
+    state.batchId = "";
     await requestJson(`/api/style-batches/${encodeURIComponent(batchId)}`, { method: "DELETE" });
-    if (state.batchId === batchId) state.batchId = "";
+  }
+
+  function batchFileValidationError(file) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      return "只支持 JPG、PNG 或 WebP 图片";
+    }
+    if (file.size > 50 * 1024 * 1024) return "图片超过 50 MB，请先导出精修 JPG";
+    return "";
   }
 
   async function acceptBatchFiles(fileList) {
     const files = [...fileList];
-    if (files.length !== 9) {
-      elements.batchStatus.textContent = "请一次选择恰好 9 张照片。";
-      showToast("整组换图必须恰好选择 9 张", "error");
-      return;
-    }
-    if (files.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 50 * 1024 * 1024)) {
-      elements.batchStatus.textContent = "只支持每张不超过 50 MB 的 JPG、PNG 或 WebP。";
-      return;
-    }
     setBusy(true);
+    const previousBatchId = state.batchId;
+    state.batchId = "";
+    clearBatchEntries();
+    elements.batchStatus.textContent = "正在建立新的 9 张暂存…";
     try {
-      await discardOpenBatch();
-      clearBatchEntries();
-      const created = await requestJson("/api/style-batches", { method: "POST" });
-      state.batchId = created.result.batchId;
-      state.batchStyleId = selectedStyle()?.id || "";
+      if (previousBatchId) {
+        await requestJson(`/api/style-batches/${encodeURIComponent(previousBatchId)}`, { method: "DELETE" });
+      }
+      if (files.length !== 9) {
+        elements.batchStatus.textContent = "请一次选择恰好 9 张照片。旧组已失效。";
+        showToast("整组换图必须恰好选择 9 张", "error");
+        return;
+      }
       files.forEach((file, index) => {
         const position = index + 1;
+        const error = batchFileValidationError(file);
         state.batchEntries.set(position, {
           file,
           objectUrl: URL.createObjectURL(file),
-          status: "checking",
-          error: "",
+          status: error ? "error" : "checking",
+          error,
         });
         state.batchOrder.push(position);
       });
       renderBatchEntries();
+      const created = await requestJson("/api/style-batches", { method: "POST" });
+      state.batchId = created.result.batchId;
+      state.batchStyleId = selectedStyle()?.id || "";
       for (let position = 1; position <= 9; position += 1) {
-        await stageBatchPosition(position, state.batchEntries.get(position).file);
+        const entry = state.batchEntries.get(position);
+        if (entry.status === "checking") await stageBatchPosition(position, entry.file);
       }
       const readyCount = [...state.batchEntries.values()].filter(({ status }) => status === "ready").length;
       elements.batchStatus.textContent = readyCount === 9

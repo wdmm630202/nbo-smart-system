@@ -291,7 +291,10 @@
               <h3 id="style-library-title">风格相册管理</h3>
               <p>按内外景、感觉大类、风格和 9 个稳定照片位逐层管理。保存只改本机资料，不会自动发布。</p>
             </div>
-            <button class="button button-secondary" id="style-refresh-button" type="button">刷新风格库</button>
+            <div class="style-workspace-actions">
+              <button class="button button-primary" id="style-batch-open" type="button">整组换 9 张</button>
+              <button class="button button-secondary" id="style-refresh-button" type="button">刷新风格库</button>
+            </div>
           </header>
 
           <div class="style-scene-switch" id="style-scene-list" role="tablist" aria-label="风格场景"></div>
@@ -331,12 +334,19 @@
                     <select id="style-maturity">
                       <option value="reference">风格参考</option>
                       <option value="updating">正在完善</option>
-                      <option value="complete">完整客片组</option>
+                      <option value="complete" disabled>完整客片组</option>
                     </select>
                   </label>
+                  <label class="style-public-confirm" for="style-public-confirm">
+                    <input id="style-public-confirm" type="checkbox" />
+                    <span>已逐张确认均属于本风格且可公开</span>
+                  </label>
+                  <button class="button button-primary" id="style-layout-save" type="button" disabled>保存顺序</button>
                   <button class="button button-secondary" id="style-preview-button" type="button">本地预览当前风格</button>
                 </div>
               </header>
+
+              <p class="style-layout-note" id="style-layout-note">拖动或用方向键调整照片位；封面会跟随同一张照片移动。只有点击“保存顺序”才会写入本机清单。</p>
 
               <form class="style-copy-editor" id="style-copy-editor">
                 <div class="style-copy-heading">
@@ -385,6 +395,28 @@
                   <button class="button button-secondary" id="style-slot-cancel" type="button">取消</button>
                   <span class="action-spacer"></span>
                   <button class="button button-primary" id="style-slot-confirm" type="button" disabled>只替换当前照片位</button>
+                </div>
+              </div>
+            </div>
+          </dialog>
+
+          <dialog class="sheet style-batch-dialog" id="style-batch-dialog" aria-labelledby="style-batch-title">
+            <div class="sheet-surface">
+              <header class="sheet-header">
+                <button class="icon-button" id="style-batch-close" type="button" aria-label="关闭整组换图">&times;</button>
+                <div><span>ATOMIC 9-PHOTO SET</span><h2 id="style-batch-title">整组换 9 张</h2></div>
+              </header>
+              <div class="sheet-content">
+                <label class="drop-zone style-batch-picker" for="style-batch-files">
+                  <input id="style-batch-files" type="file" multiple accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+                  <span class="drop-prompt"><b aria-hidden="true">9</b><strong>一次选择 9 张 3:4 精修图</strong><small>每张至少 900×1200；有一张不合格也不会改动公开清单</small></span>
+                </label>
+                <p class="style-batch-status" id="style-batch-status" role="status" aria-live="polite">还未选择照片。</p>
+                <ol class="style-batch-list" id="style-batch-list" aria-label="整组 9 张照片顺序"></ol>
+                <div class="sheet-actions">
+                  <button class="button button-secondary" id="style-batch-cancel" type="button">放弃本组</button>
+                  <span class="action-spacer"></span>
+                  <button class="button button-primary" id="style-batch-commit" type="button" disabled>原子提交 9 张</button>
                 </div>
               </div>
             </div>

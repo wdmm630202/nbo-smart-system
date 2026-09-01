@@ -2860,6 +2860,72 @@ main {
   justify-content: flex-end;
 }
 
+.style-workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.style-public-confirm {
+  position: relative;
+  grid-template-columns: 44px minmax(8rem, 13rem);
+  min-height: 44px;
+  padding: 0.2rem 0.55rem 0.2rem 0.15rem;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 0.72rem;
+  background: var(--surface-solid);
+  cursor: pointer;
+}
+
+.style-public-confirm::before {
+  grid-column: 1;
+  grid-row: 1;
+  width: 20px;
+  height: 20px;
+  place-self: center;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 0.38rem;
+  background: var(--surface-solid);
+  content: "";
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.style-public-confirm input {
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  width: 44px;
+  height: 44px;
+  margin: auto;
+  opacity: 0;
+  transform: translateY(-50%);
+  cursor: inherit;
+}
+
+.style-public-confirm:has(input:checked)::before {
+  border-color: var(--blue);
+  background: var(--blue);
+  box-shadow: inset 0 0 0 4px var(--surface-solid);
+}
+
+.style-public-confirm:has(input:focus-visible)::before {
+  outline: 3px solid rgba(23, 105, 224, 0.34);
+  outline-offset: 3px;
+}
+
+.style-public-confirm > span {
+  grid-column: 2;
+  grid-row: 1;
+  line-height: 1.35;
+}
+
+.style-public-confirm:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.54;
+}
+
 .style-heading-actions label,
 .style-copy-editor label,
 .style-slot-pose-label {
@@ -2898,6 +2964,13 @@ main {
   border: 1px solid var(--line);
   border-radius: 1rem;
   background: var(--surface-solid);
+}
+
+.style-layout-note {
+  margin: 0.8rem 1rem 0;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  line-height: 1.55;
 }
 
 .style-copy-heading {
@@ -2950,6 +3023,14 @@ main {
   border-radius: 1rem;
   background: var(--surface-solid);
   box-shadow: 0 5px 18px rgba(25, 23, 20, 0.05);
+  transition: transform 180ms ease-out, border-color 180ms ease-out, box-shadow 180ms ease-out;
+}
+
+.style-slot-card.is-dragging {
+  z-index: 2;
+  border-color: rgba(23, 105, 224, 0.42);
+  box-shadow: 0 12px 28px rgba(23, 34, 52, 0.15);
+  transform: scale(0.985);
 }
 
 .style-slot-card.is-cover {
@@ -3050,6 +3131,17 @@ main {
   font-size: 0.65rem;
 }
 
+.style-slot-drag {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.style-slot-drag:active,
+.style-slot-grid.is-pointer-sorting .style-slot-drag {
+  cursor: grabbing;
+}
+
 .style-slot-actions .style-slot-replace,
 .style-slot-actions .style-slot-undo {
   grid-column: 1 / -1;
@@ -3057,6 +3149,123 @@ main {
 
 .style-slot-replace-dialog .sheet-surface {
   max-width: 760px;
+}
+
+.style-batch-dialog .sheet-surface {
+  max-width: 780px;
+}
+
+.style-batch-picker {
+  min-height: 132px;
+}
+
+.style-batch-status {
+  min-height: 1.4rem;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.style-batch-list {
+  display: grid;
+  max-height: min(50vh, 34rem);
+  margin: 0;
+  padding: 0.3rem;
+  gap: 0.45rem;
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--surface-muted);
+}
+
+.style-batch-list:empty {
+  display: none;
+}
+
+.style-batch-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  min-height: 76px;
+  padding: 0.4rem;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background: var(--surface-solid);
+  transition: border-color 160ms ease, transform 120ms ease-out;
+}
+
+.style-batch-row[data-batch-status="error"] {
+  border-color: rgba(180, 49, 49, 0.34);
+  background: var(--red-soft);
+}
+
+.style-batch-row img {
+  width: 54px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 0.52rem;
+  background: var(--surface-muted);
+}
+
+.style-batch-row > div:not(.style-batch-row-actions) {
+  display: grid;
+  min-width: 0;
+  gap: 0.22rem;
+}
+
+.style-batch-row strong,
+.style-batch-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.style-batch-row strong {
+  font-size: 0.7rem;
+}
+
+.style-batch-row small {
+  color: var(--ink-soft);
+  font-size: 0.62rem;
+}
+
+.style-batch-row[data-batch-status="error"] small {
+  color: var(--red);
+}
+
+.style-batch-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.style-batch-row-actions .button {
+  min-height: 44px;
+  padding-inline: 0.7rem;
+}
+
+.style-batch-retry {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.style-batch-retry input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.style-batch-retry:focus-within {
+  outline: 3px solid rgba(23, 105, 224, 0.34);
+  outline-offset: 2px;
 }
 
 .style-slot-drop:has(#style-slot-new-preview:not([hidden])) .drop-prompt {
@@ -3208,6 +3417,7 @@ main {
   }
 
   .style-workspace-heading .button,
+  .style-workspace-actions,
   .style-heading-actions,
   .style-heading-actions label,
   .style-heading-actions .button {
@@ -3248,6 +3458,20 @@ main {
 
   .global-reference-actions .button {
     width: 100%;
+  }
+
+  .style-batch-row {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .style-batch-row-actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .style-batch-row-actions .button,
+  .style-batch-retry {
+    flex: 1 1 8rem;
   }
 }
 

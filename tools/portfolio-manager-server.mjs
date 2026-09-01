@@ -423,6 +423,7 @@ function safeManagedStyle(style) {
     order: style.order,
     visibility: style.visibility,
     maturity: style.maturity,
+    completeEligible: style.completeEligible === true,
     coverSlotId: style.slots.find(({ isCover }) => isCover)?.id || "",
     slots: style.slots.map((slot) => ({
       id: slot.id,
@@ -465,6 +466,18 @@ function exactQueryValue(url, name, code, message) {
 
 function assertNoQuery(url, code, message) {
   if ([...url.searchParams.keys()].length) throw apiError(code, message);
+}
+
+function exactJsonObject(input, requiredKeys, label) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw apiError("INVALID_JSON_BODY", `${label}数据必须是对象`);
+  }
+  const allowed = new Set(requiredKeys);
+  const extraKey = Object.keys(input).find((key) => !allowed.has(key));
+  if (extraKey) throw apiError("INVALID_JSON_BODY", `${label}不允许字段 ${extraKey}`);
+  const missingKey = requiredKeys.find((key) => !Object.hasOwn(input, key));
+  if (missingKey) throw apiError("INVALID_JSON_BODY", `${label}缺少字段 ${missingKey}`);
+  return input;
 }
 
 function strictAssetId(url) {
@@ -514,7 +527,7 @@ function styleOperationError(error) {
   if (/ffprobe failed|Invalid data found|moov atom/i.test(message)) {
     return apiError("INVALID_IMAGE", "上传的文件不是可读取的 JPG、PNG 或 WebP 图片");
   }
-  if (/不存在|没有更早|必须|格式无效|不允许字段|缺少字段|只支持|图片只有|图片比例|可见性|成熟度/.test(message)) {
+  if (/不存在|已处理|已经暂存|过期|重复|没有更早|必须|格式无效|不允许字段|缺少|只支持|图片只有|图片比例|可见性|成熟度/.test(message)) {
     return apiError("STYLE_VALIDATION_FAILED", message);
   }
   return apiError("STYLE_OPERATION_FAILED", "风格操作未完成，请稍后重试", 500);
@@ -598,6 +611,70 @@ async function updateStyleMetaRequest(request, response, url) {
     const input = await readJsonBody(request);
     requireStyleId(input?.styleId);
     return requireStyleStore().updateStyleMeta(input);
+  });
+}
+
+function requireBatchId(value) {
+  if (typeof value !== "string"
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value)) {
+    throw apiError("INVALID_BATCH_ID", "整组暂存编号无效");
+  }
+  return value;
+}
+
+function styleBatchPath(pathname) {
+  const file = pathname.match(/^\/api\/style-batches\/([^/]+)\/files\/([^/]+)$/);
+  if (file) {
+    const batchId = requireBatchId(file[1]);
+    if (!/^[1-9]$/.test(file[2])) throw apiError("INVALID_BATCH_POSITION", "整组照片位置必须在 1–9 之间");
+    return { kind: "file", batchId, position: Number(file[2]) };
+  }
+  const commit = pathname.match(/^\/api\/style-batches\/([^/]+)\/commit$/);
+  if (commit) return { kind: "commit", batchId: requireBatchId(commit[1]) };
+  const batch = pathname.match(/^\/api\/style-batches\/([^/]+)$/);
+  if (batch) return { kind: "batch", batchId: requireBatchId(batch[1]) };
+  return null;
+}
+
+async function createStyleBatchRequest(response, url) {
+  await runStyleMutation(response, "新建整组换图", async () => {
+    assertNoQuery(url, "INVALID_BATCH_ID", "整组暂存接口不接受查询参数");
+    return { batchId: await requireStyleStore().createBatch() };
+  });
+}
+
+async function stageStyleBatchFileRequest(request, response, url, routeMatch) {
+  await runStyleMutation(response, `暂存整组第 ${routeMatch.position} 张`, async () => {
+    assertNoQuery(url, "INVALID_BATCH_POSITION", "整组照片接口不接受查询参数");
+    const originalName = decodedStyleUploadName(request);
+    const extension = extname(originalName).toLowerCase();
+    const contentType = String(request.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+    if (!allowedPhotoTypes.has(contentType) && !allowedPhotoExtensions.has(extension)) {
+      throw apiError("UNSUPPORTED_MEDIA_TYPE", "只支持 JPG、PNG 或 WebP 图片", 415);
+    }
+    const buffer = await readBody(request);
+    const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".upload");
+    try {
+      return await requireStyleStore().stageBatchFile(routeMatch.batchId, routeMatch.position, temporary.path);
+    } finally {
+      await rm(temporary.directory, { recursive: true, force: true });
+    }
+  });
+}
+
+async function commitStyleBatchRequest(request, response, url, routeMatch) {
+  await runStyleMutation(response, "提交整组换图", async () => {
+    assertNoQuery(url, "INVALID_BATCH_ID", "整组提交接口不接受查询参数");
+    const input = exactJsonObject(await readJsonBody(request), ["styleId", "orderedPositions"], "整组提交");
+    requireStyleId(input?.styleId);
+    return requireStyleStore().commitBatch({ ...input, batchId: routeMatch.batchId });
+  });
+}
+
+async function discardStyleBatchRequest(response, url, routeMatch) {
+  await runStyleMutation(response, "放弃整组换图", async () => {
+    assertNoQuery(url, "INVALID_BATCH_ID", "整组放弃接口不接受查询参数");
+    return requireStyleStore().discardBatch(routeMatch.batchId);
   });
 }
 
@@ -1013,7 +1090,7 @@ async function route(request, response) {
       error.status = 503;
       throw error;
     }
-    if (request.method === "POST") requireSession(request);
+    if (new Set(["POST", "PUT", "DELETE"]).has(request.method)) requireSession(request);
     if (request.method === "GET" && url.pathname === "/api/session") {
       json(response, 200, { ok: true, token: sessionToken });
       return;
@@ -1060,6 +1137,23 @@ async function route(request, response) {
     }
     if (request.method === "POST" && url.pathname === "/api/styles/meta") {
       await updateStyleMetaRequest(request, response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/style-batches") {
+      await createStyleBatchRequest(response, url);
+      return;
+    }
+    const styleBatchRoute = styleBatchPath(url.pathname);
+    if (request.method === "PUT" && styleBatchRoute?.kind === "file") {
+      await stageStyleBatchFileRequest(request, response, url, styleBatchRoute);
+      return;
+    }
+    if (request.method === "POST" && styleBatchRoute?.kind === "commit") {
+      await commitStyleBatchRequest(request, response, url, styleBatchRoute);
+      return;
+    }
+    if (request.method === "DELETE" && styleBatchRoute?.kind === "batch") {
+      await discardStyleBatchRequest(response, url, styleBatchRoute);
       return;
     }
     if (request.method === "POST" && url.pathname === "/api/drafts/upload") {

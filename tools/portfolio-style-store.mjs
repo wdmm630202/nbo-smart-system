@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   copyFile,
   lstat,
@@ -40,6 +40,8 @@ const validMaturities = new Set(["reference", "updating", "complete"]);
 const lockHeartbeatMs = 1_000;
 const lockStaleMs = 15_000;
 const defaultLockWaitTimeoutMs = 30_000;
+const defaultBatchTtlMs = 24 * 60 * 60 * 1_000;
+const batchIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function delay(milliseconds) {
   return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
@@ -134,6 +136,11 @@ function requireText(value, label) {
   return value.trim();
 }
 
+function sourceDerivedMaturity(slots) {
+  const uploaded = slots.filter(({ source }) => source === "upload").length;
+  return uploaded === 0 ? "reference" : "updating";
+}
+
 export function createPortfolioStyleStore({
   rootDir,
   photoRoot,
@@ -141,6 +148,7 @@ export function createPortfolioStyleStore({
   catalogPath,
   assignmentsPath,
   lockWaitTimeoutMs = defaultLockWaitTimeoutMs,
+  batchTtlMs = defaultBatchTtlMs,
 }) {
   for (const [label, value] of Object.entries({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath })) {
     if (typeof value !== "string" || !value) throw new Error(`${label}路径无效`);
@@ -148,6 +156,7 @@ export function createPortfolioStyleStore({
   if (!Number.isInteger(lockWaitTimeoutMs) || lockWaitTimeoutMs < 1) {
     throw new Error("风格存储锁等待时间无效");
   }
+  if (!Number.isInteger(batchTtlMs) || batchTtlMs < 1) throw new Error("整组暂存有效期无效");
   const resolvedRootDir = resolve(rootDir);
   const configuredPaths = { photoRoot, additionsPath, catalogPath, assignmentsPath };
   for (const [label, path] of Object.entries(configuredPaths)) {
@@ -158,6 +167,7 @@ export function createPortfolioStyleStore({
   }
   const localStateRoot = join(resolvedRootDir, ".local");
   const transactionRoot = join(localStateRoot, "portfolio-style-transactions");
+  const batchRoot = join(localStateRoot, "portfolio-style-batches");
   const storeLockPath = join(localStateRoot, "portfolio-style-store.lock");
   const lockOwnerPath = join(storeLockPath, "owner.json");
   const allowedManifestPaths = new Set([
@@ -212,6 +222,7 @@ export function createPortfolioStyleStore({
         .map(([label, path]) => assertInsideRealRoot(path, label)),
       assertInsideRealRoot(localStateRoot, "本地状态目录"),
       assertInsideRealRoot(transactionRoot, "事务目录"),
+      assertInsideRealRoot(batchRoot, "整组暂存目录"),
       assertInsideRealRoot(storeLockPath, "风格存储锁"),
     ]);
   }
@@ -799,6 +810,16 @@ export function createPortfolioStyleStore({
       });
       return { ...style, ...layout, slots: styleSlots };
     });
+    const origins = await assetOriginStyleIds();
+    const publicAdditionIds = new Set(additions.photos
+      .filter(({ visibility }) => visibility === "published")
+      .map(({ id }) => id));
+    for (const style of styles) {
+      const assetIdsForStyle = style.slots.map(({ assetId }) => assetId);
+      style.completeEligible = style.slots.every(({ source }) => source === "upload")
+        && new Set(assetIdsForStyle).size === 9
+        && assetIdsForStyle.every((assetId) => publicAdditionIds.has(assetId) && origins.get(assetId) === style.id);
+    }
     return {
       additions,
       assignments,
@@ -851,6 +872,309 @@ export function createPortfolioStyleStore({
     }
   }
 
+  function requireBatchId(value) {
+    const batchId = requireText(value, "整组暂存编号");
+    if (!batchIdPattern.test(batchId)) throw new Error("整组暂存编号无效");
+    return batchId;
+  }
+
+  function requireBatchPosition(value) {
+    if (!Number.isInteger(value) || value < 1 || value > 9) throw new Error("整组照片位置必须在 1–9 之间");
+    return value;
+  }
+
+  async function ensureBatchRoot() {
+    await mkdir(batchRoot, { recursive: true });
+    const info = await lstat(batchRoot);
+    if (info.isSymbolicLink() || !info.isDirectory()) throw new Error("整组暂存目录不能是符号链接");
+    await assertInsideRealRoot(batchRoot, "整组暂存目录");
+    return realpath(batchRoot);
+  }
+
+  function batchPaths(batchId) {
+    const directory = join(batchRoot, batchId);
+    return { directory, metaPath: join(directory, "meta.json") };
+  }
+
+  function batchAssetPaths(directory, position) {
+    const suffix = String(position).padStart(2, "0");
+    return {
+      full: join(directory, `position-${suffix}.jpg`),
+      thumb: join(directory, `position-${suffix}.webp`),
+    };
+  }
+
+  async function assertBatchDirectory(batchId, { allowMissing = false } = {}) {
+    const canonicalBatchRoot = await ensureBatchRoot();
+    const paths = batchPaths(batchId);
+    await Promise.all([
+      assertInsideRealRoot(paths.directory, "整组暂存批次"),
+      assertInsideRealRoot(paths.metaPath, "整组暂存记录"),
+    ]);
+    let info;
+    try {
+      info = await lstat(paths.directory);
+    } catch (error) {
+      if (allowMissing && error.code === "ENOENT") return null;
+      if (error.code === "ENOENT") throw new Error(`整组暂存 ${batchId} 不存在或已处理`);
+      throw error;
+    }
+    if (info.isSymbolicLink() || !info.isDirectory()) throw new Error("整组暂存批次不能是符号链接");
+    const canonicalDirectory = await realpath(paths.directory);
+    if (dirname(canonicalDirectory) !== canonicalBatchRoot) throw new Error("整组暂存批次 realpath 越界");
+    return paths;
+  }
+
+  function normalizeBatchMeta(value, batchId) {
+    requireExactKeys(value, ["schemaVersion", "batchId", "createdAt", "expiresAt", "positions"], "整组暂存记录");
+    if (value.schemaVersion !== 1 || value.batchId !== batchId) throw new Error("整组暂存记录无效");
+    const createdAt = Date.parse(value.createdAt);
+    const expiresAt = Date.parse(value.expiresAt);
+    if (!Number.isFinite(createdAt) || !Number.isFinite(expiresAt) || expiresAt <= createdAt) {
+      throw new Error("整组暂存时间记录无效");
+    }
+    if (!value.positions || Array.isArray(value.positions) || typeof value.positions !== "object") {
+      throw new Error("整组暂存照片记录无效");
+    }
+    const positions = {};
+    for (const [key, entry] of Object.entries(value.positions)) {
+      const position = Number(key);
+      requireBatchPosition(position);
+      requireExactKeys(entry, ["width", "height", "codec", "stagedAt"], `整组第 ${position} 张记录`);
+      if (!Number.isInteger(entry.width) || !Number.isInteger(entry.height)
+        || !allowedImageCodecs.has(entry.codec) || Number.isNaN(Date.parse(entry.stagedAt))) {
+        throw new Error(`整组第 ${position} 张记录无效`);
+      }
+      positions[position] = { ...entry };
+    }
+    return { ...value, positions, createdAt: value.createdAt, expiresAt: value.expiresAt };
+  }
+
+  async function removeBatchDirectory(batchId) {
+    const paths = await assertBatchDirectory(batchId, { allowMissing: true });
+    if (!paths) return false;
+    await rm(paths.directory, { recursive: true, force: true });
+    return true;
+  }
+
+  async function purgeExpiredBatches(now = Date.now()) {
+    await ensureBatchRoot();
+    const entries = await readdir(batchRoot, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!batchIdPattern.test(entry.name)) continue;
+      if (entry.isSymbolicLink() || !entry.isDirectory()) throw new Error("整组暂存批次不能是符号链接");
+      const paths = await assertBatchDirectory(entry.name);
+      const meta = normalizeBatchMeta(await readJson(paths.metaPath), entry.name);
+      if (Date.parse(meta.expiresAt) <= now) await removeBatchDirectory(entry.name);
+    }
+  }
+
+  async function loadBatch(batchId) {
+    await purgeExpiredBatches();
+    const paths = await assertBatchDirectory(batchId);
+    const meta = normalizeBatchMeta(await readJson(paths.metaPath), batchId);
+    if (Date.parse(meta.expiresAt) <= Date.now()) {
+      await removeBatchDirectory(batchId);
+      throw new Error(`整组暂存 ${batchId} 已过期`);
+    }
+    return { ...paths, meta };
+  }
+
+  async function createBatch() {
+    return enqueueOperation(async () => {
+      await recoverTransactions();
+      await purgeExpiredBatches();
+      while (true) {
+        const batchId = randomUUID();
+        const paths = batchPaths(batchId);
+        try {
+          await mkdir(paths.directory);
+        } catch (error) {
+          if (error.code === "EEXIST") continue;
+          throw error;
+        }
+        try {
+          await assertBatchDirectory(batchId);
+          const createdAt = new Date();
+          await writeJsonAtomic(paths.metaPath, {
+            schemaVersion: 1,
+            batchId,
+            createdAt: createdAt.toISOString(),
+            expiresAt: new Date(createdAt.getTime() + batchTtlMs).toISOString(),
+            positions: {},
+          });
+          return batchId;
+        } catch (error) {
+          await assertInsideRealRoot(paths.directory, "整组暂存批次")
+            .then(() => rm(paths.directory, { recursive: true, force: true }))
+            .catch(() => {});
+          throw error;
+        }
+      }
+    });
+  }
+
+  async function stageBatchFile(batchIdValue, positionValue, inputPathValue) {
+    const batchId = requireBatchId(batchIdValue);
+    const position = requireBatchPosition(positionValue);
+    const inputPath = requireText(inputPathValue, "上传文件路径");
+    return enqueueOperation(async () => {
+      const batch = await loadBatch(batchId);
+      if (batch.meta.positions[position]) throw new Error(`整组第 ${position} 张已经暂存，不能重复写入`);
+      const targets = batchAssetPaths(batch.directory, position);
+      for (const [kind, target] of Object.entries(targets)) {
+        await assertInsideRealRoot(target, `整组第 ${position} 张${kind}`);
+        const targetState = await noFollowKind(target, `整组第 ${position} 张${kind}`);
+        if (targetState.kind !== "missing") throw new Error(`整组第 ${position} 张已经暂存`);
+      }
+      const prepared = await prepareNewAsset(portfolioCatalog.photoCount + position, inputPath);
+      const token = randomBytes(6).toString("hex");
+      const temporary = {
+        full: `${targets.full}.tmp-style-batch-${token}`,
+        thumb: `${targets.thumb}.tmp-style-batch-${token}`,
+      };
+      try {
+        await Promise.all(Object.entries(temporary).map(([kind, path]) =>
+          assertInsideRealRoot(path, `整组第 ${position} 张${kind}临时文件`)));
+        await Promise.all([
+          copyFile(prepared.generated.full, temporary.full),
+          copyFile(prepared.generated.thumb, temporary.thumb),
+        ]);
+        await rename(temporary.full, targets.full);
+        await rename(temporary.thumb, targets.thumb);
+        const nextMeta = clone(batch.meta);
+        nextMeta.positions[position] = {
+          width: prepared.sourceInfo.width,
+          height: prepared.sourceInfo.height,
+          codec: prepared.sourceInfo.codec,
+          stagedAt: new Date().toISOString(),
+        };
+        await writeJsonAtomic(batch.metaPath, nextMeta);
+        return { batchId, position };
+      } catch (error) {
+        await Promise.all([
+          ...Object.values(temporary).map((path) => rm(path, { force: true }).catch(() => {})),
+          ...Object.values(targets).map((path) => rm(path, { force: true }).catch(() => {})),
+        ]);
+        throw error;
+      } finally {
+        await rm(prepared.directory, { recursive: true, force: true });
+      }
+    });
+  }
+
+  function requireOrderedPositions(value) {
+    if (!Array.isArray(value) || value.length !== 9
+      || value.some((position) => !Number.isInteger(position) || position < 1 || position > 9)
+      || new Set(value).size !== 9) {
+      throw new Error("整组顺序必须完整包含 1–9 且不重复");
+    }
+    return [...value];
+  }
+
+  async function committedBatchMeta(batchId) {
+    let entries = [];
+    try {
+      entries = await readdir(transactionRoot, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+    for (const entry of entries.filter((item) => item.isDirectory()).sort((left, right) => right.name.localeCompare(left.name))) {
+      try {
+        const meta = await readJson(join(transactionRoot, entry.name, "meta.json"));
+        if (meta.operation === "replace-style-batch" && meta.status === "committed" && meta.batchId === batchId) return meta;
+      } catch {
+        // A malformed unrelated history entry cannot make a batch reusable.
+      }
+    }
+    return null;
+  }
+
+  async function commitBatch(input) {
+    requireExactKeys(input, ["batchId", "styleId", "orderedPositions"], "整组提交");
+    const batchId = requireBatchId(input.batchId);
+    const styleId = requireText(input.styleId, "风格编号");
+    const orderedPositions = requireOrderedPositions(input.orderedPositions);
+    return enqueueOperation(async () => {
+      const state = await readStateUnlocked();
+      if (await committedBatchMeta(batchId)) throw new Error(`整组暂存 ${batchId} 已处理`);
+      const batch = await loadBatch(batchId);
+      for (let position = 1; position <= 9; position += 1) {
+        if (!batch.meta.positions[position]) throw new Error(`整组暂存缺少第 ${position} 张`);
+      }
+      const style = state.styles.find((item) => item.id === styleId);
+      if (!style) throw new Error("风格不存在");
+      const firstAssetId = Math.max(...state.assetIds) + 1;
+      const assetIds = Array.from({ length: 9 }, (_, index) => firstAssetId + index);
+      const now = new Date().toISOString();
+      const additions = clone(state.additions);
+      const stagedPaths = {};
+      for (let position = 1; position <= 9; position += 1) {
+        const paths = batchAssetPaths(batch.directory, position);
+        const states = await Promise.all([
+          noFollowKind(paths.full, `整组第 ${position} 张高清图`),
+          noFollowKind(paths.thumb, `整组第 ${position} 张缩略图`),
+        ]);
+        if (states.some(({ kind }) => kind !== "file")) throw new Error(`整组暂存缺少第 ${position} 张`);
+        stagedPaths[position] = paths;
+        const sourceSlot = style.slots[position - 1];
+        const baseAsset = state.assetById[sourceSlot.assetId];
+        additions.photos.push({
+          id: assetIds[position - 1],
+          scene: style.scene,
+          theme: baseAsset.theme,
+          category: baseAsset.category,
+          title: style.label,
+          styleTitle: baseAsset.styleTitle,
+          featured: false,
+          visibility: "published",
+          publishedAt: now,
+        });
+      }
+      const normalizedAdditions = normalizePortfolioAdditions(additions);
+      const assignments = clone(state.assignments);
+      const layout = assignments.assignments[styleId];
+      layout.slots = orderedPositions.map((position, index) => ({
+        ...layout.slots[index],
+        assetId: assetIds[position - 1],
+        source: "upload",
+        updatedAt: now,
+      }));
+      layout.maturity = "updating";
+      layout.updatedAt = now;
+      normalizeStyleAssignments(assignments, validationCatalog(state.catalog), new Map([
+        ...state.assets.map((asset) => [asset.id, asset]),
+        ...normalizedAdditions.photos.slice(-9).map((photo) => [photo.id, publicAsset(photo.id, photo)]),
+      ]));
+      const outputs = [];
+      for (let position = 1; position <= 9; position += 1) {
+        const assetId = assetIds[position - 1];
+        const filename = slotFilename(assetId);
+        outputs.push(
+          { key: `full-${position}`, action: "write", target: join(photoRoot, "full", `${filename}.jpg`), sourcePath: stagedPaths[position].full },
+          { key: `thumb-${position}`, action: "write", target: join(photoRoot, "thumbs", `${filename}.webp`), sourcePath: stagedPaths[position].thumb },
+        );
+      }
+      outputs.push(
+        { key: "additions", action: "write", target: additionsPath, content: `${JSON.stringify(normalizedAdditions, null, 2)}\n` },
+        { key: "assignments", action: "write", target: assignmentsPath, content: `${JSON.stringify(assignments, null, 2)}\n` },
+      );
+      await commitTransaction({
+        operation: "replace-style-batch",
+        context: { batchId, styleId, assetIds, orderedPositions },
+        outputs,
+      });
+      await removeBatchDirectory(batchId);
+      return { batchId, styleId, assetIds };
+    });
+  }
+
+  async function discardBatch(batchIdValue) {
+    const batchId = requireBatchId(batchIdValue);
+    return enqueueOperation(async () => ({ batchId, discarded: await removeBatchDirectory(batchId) }));
+  }
+
   async function replaceSlot(input) {
     requireExactKeys(input, ["slotId", "inputPath", "originalName"], "替换照片位");
     const slotId = requireText(input.slotId, "照片位编号");
@@ -874,6 +1198,7 @@ export function createPortfolioStyleStore({
           source: "upload",
           updatedAt: now,
         };
+        targetLayout.maturity = sourceDerivedMaturity(targetLayout.slots);
         targetLayout.updatedAt = now;
         const baseAsset = state.assetById[slot.assetId];
         const additions = clone(state.additions);
@@ -995,6 +1320,88 @@ export function createPortfolioStyleStore({
     ]);
   }
 
+  function hasCompleteBatchRecord(entry, meta) {
+    if (!hasCommittedEnvelope(meta, "replace-style-batch")
+      || !batchIdPattern.test(meta.batchId || "")
+      || !/^ST-(?:IN|OUT)-0[1-6]-(?:0[1-9]|1[01])$/.test(meta.styleId || "")
+      || !Array.isArray(meta.assetIds)
+      || meta.assetIds.length !== 9
+      || new Set(meta.assetIds).size !== 9
+      || meta.assetIds.some((assetId, index) => !Number.isInteger(assetId)
+        || assetId <= portfolioCatalog.photoCount
+        || (index > 0 && assetId !== meta.assetIds[index - 1] + 1))) return false;
+    try {
+      requireOrderedPositions(meta.orderedPositions);
+    } catch {
+      return false;
+    }
+    const expected = [];
+    meta.assetIds.forEach((assetId, index) => {
+      const position = index + 1;
+      const base = slotFilename(assetId);
+      expected.push(
+        { key: `full-${position}`, action: "write", target: join(photoRoot, "full", `${base}.jpg`) },
+        { key: `thumb-${position}`, action: "write", target: join(photoRoot, "thumbs", `${base}.webp`) },
+      );
+    });
+    expected.push(
+      { key: "additions", action: "write", target: additionsPath },
+      { key: "assignments", action: "write", target: assignmentsPath },
+    );
+    return hasExpectedCommittedOutputs(entry, meta.outputs, expected);
+  }
+
+  async function assetOriginStyleIds() {
+    await assertInsideRealRoot(transactionRoot, "事务目录");
+    let entries = [];
+    try {
+      entries = (await readdir(transactionRoot, { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+    } catch (error) {
+      if (error.code === "ENOENT") return new Map();
+      throw error;
+    }
+    const origins = new Map();
+    for (const entry of entries) {
+      try {
+        const meta = await readJson(join(transactionRoot, entry, "meta.json"));
+        if (hasCompleteReplacementRecord(entry, meta)) {
+          origins.set(meta.assetId, meta.slotId.replace(/-P0[1-9]$/, ""));
+        } else if (hasCompleteBatchRecord(entry, meta)) {
+          meta.assetIds.forEach((assetId) => origins.set(assetId, meta.styleId));
+        }
+      } catch {
+        // Invalid or unrelated history cannot prove a public maturity claim.
+      }
+    }
+    return origins;
+  }
+
+  async function assertRequestedMaturity(state, style, requestedMaturity) {
+    const uploadedSlots = style.slots.filter(({ source }) => source === "upload");
+    if (uploadedSlots.length === 0) {
+      if (requestedMaturity !== "reference") throw new Error("没有 upload 来源时成熟度只能是风格参考");
+      return;
+    }
+    if (uploadedSlots.length < 9) {
+      if (requestedMaturity !== "updating") throw new Error("不足 9 张 upload 照片时只能标记正在完善");
+      return;
+    }
+    if (requestedMaturity === "updating") return;
+    if (requestedMaturity !== "complete") throw new Error("全部换图后成熟度只能是正在完善或完整客片组");
+    const assetIds = uploadedSlots.map(({ assetId }) => assetId);
+    if (new Set(assetIds).size !== 9) throw new Error("完整客片组必须使用 9 个不重复资产");
+    const additionsById = new Map(state.additions.photos.map((photo) => [photo.id, photo]));
+    if (assetIds.some((assetId) => additionsById.get(assetId)?.visibility !== "published")) {
+      throw new Error("完整客片组的 9 张照片必须均已确认可公开");
+    }
+    const origins = await assetOriginStyleIds();
+    if (assetIds.some((assetId) => origins.get(assetId) !== style.id)) {
+      throw new Error("完整客片组的 9 张照片必须全部为本风格创建，不能只根据 NB 编号判定");
+    }
+  }
+
   function hasCompleteUndoRecord(entry, meta, source) {
     if (!hasCommittedEnvelope(meta, "undo-slot")
       || typeof meta.sourceTransaction !== "string"
@@ -1091,6 +1498,7 @@ export function createPortfolioStyleStore({
       const assignments = clone(state.assignments);
       const targetLayout = assignments.assignments[slot.styleId];
       targetLayout.slots[slot.position - 1] = clone(history.meta.previousAssignment);
+      targetLayout.maturity = sourceDerivedMaturity(targetLayout.slots);
       targetLayout.updatedAt = history.meta.previousLayoutUpdatedAt ?? null;
       const remainingSlotReference = Object.values(assignments.assignments)
         .some((layout) => layout.slots.some((assignment) => assignment.assetId === history.meta.assetId));
@@ -1157,6 +1565,7 @@ export function createPortfolioStyleStore({
       if (input.orderedSlotIds.some((slotId) => !currentIds.has(slotId)) || !currentIds.has(coverSlotId)) {
         throw new Error("风格布局必须完整使用该风格的 9 个照片位");
       }
+      await assertRequestedMaturity(state, style, input.maturity);
       const assignments = clone(state.assignments);
       const layout = assignments.assignments[styleId];
       const currentById = new Map(style.slots.map((slot) => [
@@ -1231,8 +1640,12 @@ export function createPortfolioStyleStore({
   }
 
   return {
+    commitBatch,
+    createBatch,
+    discardBatch,
     read: () => enqueueOperation(readStateUnlocked),
     replaceSlot,
+    stageBatchFile,
     undoSlot,
     updateLayout,
     updateStyleMeta,

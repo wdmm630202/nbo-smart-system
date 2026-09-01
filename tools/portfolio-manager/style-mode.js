@@ -62,6 +62,8 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     selectedId: required(root, "#style-selected-id"),
     maturityLabel: required(root, "#style-maturity-label"),
     maturity: required(root, "#style-maturity"),
+    publicConfirm: required(root, "#style-public-confirm"),
+    layoutSave: required(root, "#style-layout-save"),
     slotCount: required(root, "#style-slot-count"),
     uniqueAssets: required(root, "#style-unique-assets"),
     copyEditor: required(root, "#style-copy-editor"),
@@ -83,6 +85,15 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     replaceCurrentLabel: required(root, "#style-slot-current-label"),
     replaceNewLabel: required(root, "#style-slot-new-label"),
     replaceTitle: required(root, "#style-slot-replace-title"),
+    batchOpen: required(root, "#style-batch-open"),
+    batchDialog: required(root, "#style-batch-dialog"),
+    batchClose: required(root, "#style-batch-close"),
+    batchCancel: required(root, "#style-batch-cancel"),
+    batchCommit: required(root, "#style-batch-commit"),
+    batchFiles: required(root, "#style-batch-files"),
+    batchList: required(root, "#style-batch-list"),
+    batchStatus: required(root, "#style-batch-status"),
+    batchTitle: required(root, "#style-batch-title"),
   };
   const state = {
     library: null,
@@ -99,6 +110,13 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     replaceGeneration: 0,
     replaceValid: false,
     replaceOpener: null,
+    layoutDrafts: new Map(),
+    pointerDrag: null,
+    batchId: "",
+    batchStyleId: "",
+    batchEntries: new Map(),
+    batchOrder: [],
+    batchOpener: null,
   };
 
   function activeFamilies() {
@@ -111,6 +129,61 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
 
   function selectedStyle() {
     return state.library?.styles.find(({ id }) => id === state.styleId) || null;
+  }
+
+  function styleStateFingerprint(style) {
+    return JSON.stringify([
+      style.maturity,
+      style.coverSlotId,
+      ...style.slots.flatMap(({ id, assetId, source, updatedAt }) => [id, assetId, source, updatedAt]),
+    ]);
+  }
+
+  function layoutDraft(style = selectedStyle()) {
+    if (!style) return null;
+    const currentIds = style.slots.map(({ id }) => id);
+    const baseFingerprint = styleStateFingerprint(style);
+    let draft = state.layoutDrafts.get(style.id);
+    if (!draft || draft.orderedSlotIds.length !== 9
+      || draft.orderedSlotIds.some((slotId) => !currentIds.includes(slotId))) {
+      draft = {
+        orderedSlotIds: currentIds,
+        coverSlotId: style.coverSlotId,
+        maturity: style.maturity,
+        publicConfirmed: false,
+        dirty: false,
+        baseFingerprint,
+      };
+      state.layoutDrafts.set(style.id, draft);
+    } else if (draft.baseFingerprint !== baseFingerprint) {
+      draft.baseFingerprint = baseFingerprint;
+      draft.maturity = style.maturity;
+      draft.publicConfirmed = false;
+      draft.dirty = draft.coverSlotId !== style.coverSlotId
+        || draft.orderedSlotIds.some((slotId, index) => style.slots[index]?.id !== slotId);
+    }
+    return draft;
+  }
+
+  function orderedStyleSlots(style, draft = layoutDraft(style)) {
+    const byId = new Map(style.slots.map((slot) => [slot.id, slot]));
+    return draft.orderedSlotIds.map((slotId) => byId.get(slotId)).filter(Boolean);
+  }
+
+  function updateLayoutControls(style, draft) {
+    const uploadCount = style.slots.filter(({ source }) => source === "upload").length;
+    const referenceOption = elements.maturity.querySelector('option[value="reference"]');
+    const updatingOption = elements.maturity.querySelector('option[value="updating"]');
+    const completeOption = elements.maturity.querySelector('option[value="complete"]');
+    referenceOption.disabled = uploadCount !== 0;
+    updatingOption.disabled = uploadCount === 0;
+    completeOption.disabled = style.completeEligible !== true;
+    elements.maturity.value = draft.maturity;
+    elements.maturityLabel.textContent = maturityLabels[draft.maturity] || draft.maturity;
+    elements.publicConfirm.disabled = state.busy || draft.maturity !== "complete" || style.completeEligible !== true;
+    elements.publicConfirm.checked = draft.publicConfirmed;
+    elements.layoutSave.disabled = state.busy || !draft.dirty
+      || (draft.maturity === "complete" && !draft.publicConfirmed);
   }
 
   function reconcileSelection() {
@@ -224,22 +297,23 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     }));
   }
 
-  function slotCard(style, slot) {
+  function slotCard(style, slot, displayPosition, coverSlotId) {
+    const isCover = slot.id === coverSlotId;
     const card = documentObject.createElement("article");
-    card.className = `style-slot-card${slot.isCover ? " is-cover" : ""}`;
+    card.className = `style-slot-card${isCover ? " is-cover" : ""}`;
     card.dataset.styleSlotId = slot.id;
     card.dataset.assetId = String(slot.assetId);
     const media = documentObject.createElement("div");
     media.className = "style-slot-media";
     const image = documentObject.createElement("img");
     image.src = `/media/thumb/${slot.assetId}`;
-    image.alt = `${style.label}第 ${slot.position} 个照片位`;
+    image.alt = `${style.label}排序第 ${displayPosition} 张`;
     image.width = 480;
     image.height = 640;
     image.loading = "lazy";
     const position = documentObject.createElement("span");
-    position.textContent = String(slot.position).padStart(2, "0");
-    if (slot.isCover) {
+    position.textContent = String(displayPosition).padStart(2, "0");
+    if (isCover) {
       const coverBadge = documentObject.createElement("strong");
       coverBadge.textContent = "封面";
       media.append(image, position, coverBadge);
@@ -279,21 +353,28 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
 
     const actions = documentObject.createElement("div");
     actions.className = "style-slot-actions";
+    const drag = button(documentObject, {
+      className: "button button-secondary style-slot-drag",
+      text: "排序",
+      label: `移动 ${slot.id}，可拖动或使用方向键、Home、End`,
+    });
+    drag.dataset.dragSlotId = slot.id;
+    drag.setAttribute("aria-describedby", "style-layout-note");
     const save = button(documentObject, { className: "button button-secondary style-slot-save", text: "保存标签" });
     const cover = button(documentObject, {
       className: "button button-secondary style-slot-cover",
-      text: slot.isCover ? "当前封面" : "设为封面",
-      label: `${slot.isCover ? "当前封面" : "设为封面"}，${slot.id}`,
+      text: isCover ? "当前封面" : "设为封面",
+      label: `${isCover ? "当前封面" : "设为封面"}，${slot.id}`,
     });
-    cover.disabled = slot.isCover;
+    cover.disabled = isCover;
     const replace = button(documentObject, { className: "button button-primary style-slot-replace", text: "换这一张" });
     const undo = button(documentObject, { className: "button button-danger-subtle style-slot-undo", text: "撤销换图" });
     undo.hidden = slot.source !== "upload";
     save.addEventListener("click", () => saveSlotMeta(slot.id, pose.value));
-    cover.addEventListener("click", () => saveLayout(slot.id, elements.maturity.value));
+    cover.addEventListener("click", () => setDraftCover(slot.id, cover));
     replace.addEventListener("click", () => openReplaceDialog(slot, replace));
     undo.addEventListener("click", () => undoSlot(slot.id));
-    actions.append(save, cover, replace, undo);
+    actions.append(drag, save, cover, replace, undo);
     body.append(heading, poseLabel, actions);
     card.append(media, body);
     return card;
@@ -305,17 +386,19 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
       elements.slotGrid.replaceChildren();
       return;
     }
+    const draft = layoutDraft(style);
+    const orderedSlots = orderedStyleSlots(style, draft);
     elements.selectedTitle.textContent = style.label;
     elements.selectedId.textContent = `${sceneLabels[style.scene]} · ${style.familyId} · ${style.id}`;
-    elements.maturityLabel.textContent = maturityLabels[style.maturity] || style.maturity;
-    elements.maturity.value = style.maturity;
     elements.slotCount.textContent = `${style.slots.length} 个照片位`;
     elements.uniqueAssets.textContent = `${new Set(style.slots.map(({ assetId }) => assetId)).size} 张独立资产`;
     elements.styleName.value = style.label;
     elements.audience.value = style.audience;
     elements.description.value = style.description;
     elements.visibility.value = style.visibility;
-    elements.slotGrid.replaceChildren(...style.slots.map((slot) => slotCard(style, slot)));
+    elements.slotGrid.replaceChildren(...orderedSlots.map((slot, index) =>
+      slotCard(style, slot, index + 1, draft.coverSlotId)));
+    updateLayoutControls(style, draft);
   }
 
   function render() {
@@ -351,6 +434,9 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
       else if (control.classList.contains("style-slot-cover") && control.closest(".is-cover")) control.disabled = true;
       else control.disabled = state.busy;
     });
+    const style = selectedStyle();
+    if (style) updateLayoutControls(style, layoutDraft(style));
+    updateBatchControls();
     setRootState();
   }
 
@@ -401,9 +487,42 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     }
   }
 
-  async function saveLayout(coverSlotId, maturity) {
+  function setDraftCover(coverSlotId, focusTarget = null) {
     const style = selectedStyle();
     if (!style) return;
+    const draft = layoutDraft(style);
+    if (!draft.orderedSlotIds.includes(coverSlotId) || draft.coverSlotId === coverSlotId) return;
+    draft.coverSlotId = coverSlotId;
+    draft.dirty = true;
+    renderSelectedStyle();
+    if (focusTarget) root.querySelector(`[data-style-slot-id="${coverSlotId}"] .style-slot-cover`)?.focus({ preventScroll: true });
+  }
+
+  function moveDraftSlot(slotId, targetIndex, { focus = true } = {}) {
+    const style = selectedStyle();
+    const draft = layoutDraft(style);
+    if (!style || !draft) return;
+    const currentIndex = draft.orderedSlotIds.indexOf(slotId);
+    const boundedTarget = Math.max(0, Math.min(draft.orderedSlotIds.length - 1, targetIndex));
+    if (currentIndex < 0 || currentIndex === boundedTarget) return;
+    draft.orderedSlotIds.splice(currentIndex, 1);
+    draft.orderedSlotIds.splice(boundedTarget, 0, slotId);
+    draft.dirty = true;
+    renderSelectedStyle();
+    if (state.pointerDrag?.slotId === slotId) {
+      root.querySelector(`[data-style-slot-id="${slotId}"]`)?.classList.add("is-dragging");
+    }
+    if (focus) root.querySelector(`[data-style-slot-id="${slotId}"] .style-slot-drag`)?.focus({ preventScroll: true });
+  }
+
+  async function saveLayout() {
+    const style = selectedStyle();
+    const draft = layoutDraft(style);
+    if (!style || !draft || !draft.dirty) return;
+    if (draft.maturity === "complete" && !draft.publicConfirmed) {
+      showToast("请先确认 9 张照片均属于本风格且可公开", "error");
+      return;
+    }
     setBusy(true);
     try {
       await requestJson("/api/styles/layout", {
@@ -411,17 +530,251 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           styleId: style.id,
-          orderedSlotIds: style.slots.map(({ id }) => id),
-          coverSlotId: coverSlotId || style.coverSlotId,
-          maturity,
+          orderedSlotIds: [...draft.orderedSlotIds],
+          coverSlotId: draft.coverSlotId,
+          maturity: draft.maturity,
         }),
       });
+      state.layoutDrafts.delete(style.id);
       await refresh();
-      showToast("风格布局已保存在本机，尚未同步到网站", "success");
+      showToast("顺序与封面已保存在本机，尚未同步到网站", "success");
     } catch (error) {
       showToast(error.message, "error");
     } finally {
       setBusy(false);
+    }
+  }
+
+  function clearBatchEntries() {
+    for (const entry of state.batchEntries.values()) {
+      if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+    }
+    state.batchEntries.clear();
+    state.batchOrder = [];
+    elements.batchFiles.value = "";
+    elements.batchList.replaceChildren();
+  }
+
+  function updateBatchControls() {
+    const ready = state.batchOrder.length === 9
+      && state.batchOrder.every((position) => state.batchEntries.get(position)?.status === "ready");
+    elements.batchCommit.disabled = state.busy || !ready;
+    elements.batchCancel.disabled = state.busy;
+    elements.batchClose.disabled = state.busy;
+    elements.batchFiles.disabled = state.busy;
+  }
+
+  function moveBatchPosition(position, delta) {
+    const index = state.batchOrder.indexOf(position);
+    const nextIndex = index + delta;
+    if (index < 0 || nextIndex < 0 || nextIndex >= state.batchOrder.length) return;
+    state.batchOrder.splice(index, 1);
+    state.batchOrder.splice(nextIndex, 0, position);
+    renderBatchEntries();
+    elements.batchList.querySelector(`[data-batch-position="${position}"] .style-batch-move`)?.focus({ preventScroll: true });
+  }
+
+  function renderBatchEntries() {
+    elements.batchList.replaceChildren(...state.batchOrder.map((position, index) => {
+      const entry = state.batchEntries.get(position);
+      const row = documentObject.createElement("li");
+      row.className = "style-batch-row";
+      row.dataset.batchPosition = String(position);
+      row.dataset.batchStatus = entry.status;
+      const preview = documentObject.createElement("img");
+      preview.src = entry.objectUrl;
+      preview.alt = `整组排序第 ${index + 1} 张`;
+      preview.width = 96;
+      preview.height = 128;
+      const copy = documentObject.createElement("div");
+      const title = documentObject.createElement("strong");
+      title.textContent = `${String(index + 1).padStart(2, "0")} · ${entry.file.name}`;
+      const status = documentObject.createElement("small");
+      status.textContent = entry.status === "ready" ? "已通过并暂存"
+        : (entry.status === "error" ? entry.error : "正在检查…");
+      copy.append(title, status);
+      const controls = documentObject.createElement("div");
+      controls.className = "style-batch-row-actions";
+      const earlier = button(documentObject, {
+        className: "button button-secondary style-batch-move",
+        text: "前移",
+        label: `把暂存第 ${position} 张前移`,
+      });
+      earlier.disabled = state.busy || index === 0;
+      earlier.addEventListener("click", () => moveBatchPosition(position, -1));
+      const later = button(documentObject, {
+        className: "button button-secondary style-batch-move",
+        text: "后移",
+        label: `把暂存第 ${position} 张后移`,
+      });
+      later.disabled = state.busy || index === state.batchOrder.length - 1;
+      later.addEventListener("click", () => moveBatchPosition(position, 1));
+      controls.append(earlier, later);
+      if (entry.status === "error") {
+        const retry = documentObject.createElement("label");
+        retry.className = "button button-primary style-batch-retry";
+        retry.textContent = "重选此张";
+        const input = documentObject.createElement("input");
+        input.type = "file";
+        input.accept = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+        input.addEventListener("change", () => {
+          const file = input.files?.[0];
+          if (file) retryBatchPosition(position, file);
+        });
+        retry.append(input);
+        controls.append(retry);
+      }
+      row.append(preview, copy, controls);
+      return row;
+    }));
+    updateBatchControls();
+  }
+
+  async function stageBatchPosition(position, file) {
+    const entry = state.batchEntries.get(position);
+    if (!entry || !state.batchId) return;
+    entry.status = "checking";
+    entry.error = "";
+    renderBatchEntries();
+    try {
+      await requestJson(`/api/style-batches/${encodeURIComponent(state.batchId)}/files/${position}`, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+        body: file,
+      });
+      entry.status = "ready";
+    } catch (error) {
+      entry.status = "error";
+      entry.error = error.message;
+    }
+    renderBatchEntries();
+  }
+
+  async function retryBatchPosition(position, file) {
+    if (state.busy || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      if (!state.busy) showToast("只支持 JPG、PNG 或 WebP 图片", "error");
+      return;
+    }
+    const entry = state.batchEntries.get(position);
+    if (!entry || entry.status !== "error") return;
+    if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+    entry.file = file;
+    entry.objectUrl = URL.createObjectURL(file);
+    setBusy(true);
+    try {
+      await stageBatchPosition(position, file);
+      const readyCount = [...state.batchEntries.values()].filter(({ status }) => status === "ready").length;
+      elements.batchStatus.textContent = `${readyCount} / 9 张已通过`;
+    } finally {
+      setBusy(false);
+      renderBatchEntries();
+    }
+  }
+
+  async function discardOpenBatch() {
+    if (!state.batchId) return;
+    const batchId = state.batchId;
+    await requestJson(`/api/style-batches/${encodeURIComponent(batchId)}`, { method: "DELETE" });
+    if (state.batchId === batchId) state.batchId = "";
+  }
+
+  async function acceptBatchFiles(fileList) {
+    const files = [...fileList];
+    if (files.length !== 9) {
+      elements.batchStatus.textContent = "请一次选择恰好 9 张照片。";
+      showToast("整组换图必须恰好选择 9 张", "error");
+      return;
+    }
+    if (files.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 50 * 1024 * 1024)) {
+      elements.batchStatus.textContent = "只支持每张不超过 50 MB 的 JPG、PNG 或 WebP。";
+      return;
+    }
+    setBusy(true);
+    try {
+      await discardOpenBatch();
+      clearBatchEntries();
+      const created = await requestJson("/api/style-batches", { method: "POST" });
+      state.batchId = created.result.batchId;
+      state.batchStyleId = selectedStyle()?.id || "";
+      files.forEach((file, index) => {
+        const position = index + 1;
+        state.batchEntries.set(position, {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          status: "checking",
+          error: "",
+        });
+        state.batchOrder.push(position);
+      });
+      renderBatchEntries();
+      for (let position = 1; position <= 9; position += 1) {
+        await stageBatchPosition(position, state.batchEntries.get(position).file);
+      }
+      const readyCount = [...state.batchEntries.values()].filter(({ status }) => status === "ready").length;
+      elements.batchStatus.textContent = readyCount === 9
+        ? "9 / 9 张已通过，可调整顺序后原子提交。"
+        : `${readyCount} / 9 张已通过；请重选标红的照片。`;
+    } catch (error) {
+      elements.batchStatus.textContent = error.message;
+      showToast(error.message, "error");
+    } finally {
+      setBusy(false);
+      renderBatchEntries();
+    }
+  }
+
+  function openBatchDialog() {
+    const style = selectedStyle();
+    if (!style) return;
+    state.batchStyleId = style.id;
+    state.batchOpener = documentObject.activeElement;
+    elements.batchTitle.textContent = `整组换 9 张 · ${style.id}`;
+    elements.batchStatus.textContent = "还未选择照片。";
+    elements.batchDialog.showModal();
+    elements.batchFiles.focus({ preventScroll: true });
+  }
+
+  async function closeBatchDialog() {
+    if (state.busy) return;
+    setBusy(true);
+    try {
+      await discardOpenBatch();
+      if (elements.batchDialog.open) elements.batchDialog.close();
+      clearBatchEntries();
+      elements.batchStatus.textContent = "还未选择照片。";
+      state.batchStyleId = "";
+      state.batchOpener?.focus?.({ preventScroll: true });
+      state.batchOpener = null;
+    } catch (error) {
+      showToast(error.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function commitOpenBatch() {
+    if (state.busy || !state.batchId || state.batchOrder.length !== 9) return;
+    setBusy(true);
+    try {
+      await requestJson(`/api/style-batches/${encodeURIComponent(state.batchId)}/commit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          styleId: state.batchStyleId,
+          orderedPositions: [...state.batchOrder],
+        }),
+      });
+      state.batchId = "";
+      state.layoutDrafts.delete(state.batchStyleId);
+      if (elements.batchDialog.open) elements.batchDialog.close();
+      clearBatchEntries();
+      await refresh();
+      showToast("整组 9 张已原子保存，尚未同步到网站", "success");
+    } catch (error) {
+      showToast(error.message, "error");
+    } finally {
+      setBusy(false);
+      if (elements.batchDialog.open) renderBatchEntries();
     }
   }
 
@@ -629,18 +982,6 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
           body: JSON.stringify({ slotId, poseLabel: reviewedPoseLabel }),
         });
       }
-      if (reviewedStyle) {
-        await requestJson("/api/styles/layout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            styleId: reviewedStyle.id,
-            orderedSlotIds: reviewedStyle.slots.map(({ id }) => id),
-            coverSlotId: reviewedStyle.coverSlotId,
-            maturity: reviewedStyle.maturity,
-          }),
-        });
-      }
       await refresh();
       showToast("已撤销当前照片位的最近一次换图", "success");
     } catch (error) {
@@ -662,7 +1003,85 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     const controls = [...elements.styleList.querySelectorAll("[data-style-id]")];
     moveSelection(event, controls, controls.findIndex(({ dataset }) => dataset.styleId === state.styleId), (control, focus) => chooseStyle(control.dataset.styleId, focus));
   });
-  elements.maturity.addEventListener("change", () => saveLayout(selectedStyle()?.coverSlotId || "", elements.maturity.value));
+  elements.slotGrid.addEventListener("keydown", (event) => {
+    const handle = event.target.closest?.(".style-slot-drag");
+    if (!handle) return;
+    const keys = new Set(["ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight", "Home", "End"]);
+    if (!keys.has(event.key)) return;
+    const draft = layoutDraft();
+    const slotId = handle.dataset.dragSlotId;
+    const currentIndex = draft?.orderedSlotIds.indexOf(slotId) ?? -1;
+    if (currentIndex < 0) return;
+    event.preventDefault();
+    let targetIndex = currentIndex;
+    if (event.key === "Home") targetIndex = 0;
+    else if (event.key === "End") targetIndex = draft.orderedSlotIds.length - 1;
+    else if (event.key === "ArrowUp" || event.key === "ArrowLeft") targetIndex -= 1;
+    else targetIndex += 1;
+    moveDraftSlot(slotId, targetIndex);
+  });
+  elements.slotGrid.addEventListener("pointerdown", (event) => {
+    const handle = event.target.closest?.(".style-slot-drag");
+    if (!handle || state.busy) return;
+    event.preventDefault();
+    state.pointerDrag = { pointerId: event.pointerId, slotId: handle.dataset.dragSlotId };
+    elements.slotGrid.classList.add("is-pointer-sorting");
+    handle.closest(".style-slot-card")?.classList.add("is-dragging");
+    try {
+      elements.slotGrid.setPointerCapture(event.pointerId);
+    } catch {
+      // Synthetic browser tests do not create a native active pointer.
+    }
+  });
+  elements.slotGrid.addEventListener("pointermove", (event) => {
+    if (!state.pointerDrag || state.pointerDrag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    let targetCard = documentObject.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-style-slot-id]");
+    if (!targetCard || !elements.slotGrid.contains(targetCard)) {
+      targetCard = [...elements.slotGrid.querySelectorAll("[data-style-slot-id]")].find((card) => {
+        const rect = card.getBoundingClientRect();
+        return event.clientX >= rect.left && event.clientX <= rect.right
+          && event.clientY >= rect.top && event.clientY <= rect.bottom;
+      });
+    }
+    const draft = layoutDraft();
+    const targetIndex = draft?.orderedSlotIds.indexOf(targetCard?.dataset.styleSlotId) ?? -1;
+    if (targetIndex >= 0) moveDraftSlot(state.pointerDrag.slotId, targetIndex, { focus: false });
+  });
+  const finishPointerSort = (event) => {
+    if (!state.pointerDrag || state.pointerDrag.pointerId !== event.pointerId) return;
+    const { slotId, pointerId } = state.pointerDrag;
+    state.pointerDrag = null;
+    elements.slotGrid.classList.remove("is-pointer-sorting");
+    root.querySelectorAll(".style-slot-card.is-dragging").forEach((card) => card.classList.remove("is-dragging"));
+    try {
+      if (elements.slotGrid.hasPointerCapture(pointerId)) elements.slotGrid.releasePointerCapture(pointerId);
+    } catch {
+      // Pointer capture may be absent for a cancelled or synthetic pointer.
+    }
+    root.querySelector(`[data-style-slot-id="${slotId}"] .style-slot-drag`)?.focus({ preventScroll: true });
+  };
+  elements.slotGrid.addEventListener("pointerup", finishPointerSort);
+  elements.slotGrid.addEventListener("pointercancel", finishPointerSort);
+  elements.maturity.addEventListener("change", () => {
+    const style = selectedStyle();
+    const draft = layoutDraft(style);
+    if (!style || !draft) return;
+    draft.maturity = elements.maturity.value;
+    if (draft.maturity !== "complete") draft.publicConfirmed = false;
+    draft.dirty = draft.maturity !== style.maturity
+      || draft.coverSlotId !== style.coverSlotId
+      || draft.orderedSlotIds.some((slotId, index) => style.slots[index]?.id !== slotId);
+    updateLayoutControls(style, draft);
+  });
+  elements.publicConfirm.addEventListener("change", () => {
+    const style = selectedStyle();
+    const draft = layoutDraft(style);
+    if (!style || !draft) return;
+    draft.publicConfirmed = elements.publicConfirm.checked;
+    updateLayoutControls(style, draft);
+  });
+  elements.layoutSave.addEventListener("click", saveLayout);
   elements.copyEditor.addEventListener("submit", (event) => {
     event.preventDefault();
     saveStyleMeta();
@@ -686,6 +1105,20 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   });
   elements.replaceDialog.addEventListener("click", (event) => {
     if (event.target === elements.replaceDialog) closeReplaceDialog();
+  });
+  elements.batchOpen.addEventListener("click", openBatchDialog);
+  elements.batchFiles.addEventListener("change", () => {
+    if (elements.batchFiles.files?.length) acceptBatchFiles(elements.batchFiles.files);
+  });
+  elements.batchClose.addEventListener("click", closeBatchDialog);
+  elements.batchCancel.addEventListener("click", closeBatchDialog);
+  elements.batchCommit.addEventListener("click", commitOpenBatch);
+  elements.batchDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    if (!state.busy) closeBatchDialog();
+  });
+  elements.batchDialog.addEventListener("click", (event) => {
+    if (event.target === elements.batchDialog) closeBatchDialog();
   });
 
   return {

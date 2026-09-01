@@ -104,8 +104,8 @@ export function buildSeedAssignments({ catalog, assets }) {
 function publicAssets() {
   return buildPortfolioItems(portfolioCatalog).map((asset) => ({
     ...asset,
-    thumb: `../portfolio/assets/photos/thumbs/photo-${String(asset.id).padStart(3, "0")}.webp`,
-    full: `../portfolio/assets/photos/full/photo-${String(asset.id).padStart(3, "0")}.jpg`,
+    thumb: `../apps/portfolio/assets/photos/thumbs/photo-${String(asset.id).padStart(3, "0")}.webp`,
+    full: `../apps/portfolio/assets/photos/full/photo-${String(asset.id).padStart(3, "0")}.jpg`,
   }));
 }
 

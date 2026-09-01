@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { access, readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import { buildPortfolioItems, portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
 import {
   fixtureAssets,
@@ -9,6 +13,8 @@ import {
 } from "./helpers/portfolio-style-fixtures.mjs";
 
 let publicContract;
+const execFileAsync = promisify(execFile);
+const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
 async function loadPublicContract() {
   if (publicContract) return publicContract;
@@ -155,6 +161,33 @@ test("seed creates 1188 valid slot references without copying assets", async () 
     assert.ok(slots.every(({ source }) => source === "seed"));
   }
   assert.equal(new Set(Object.values(seeded.assignments).flatMap((entry) => entry.slots.map(({ assetId }) => assetId))).size, 158);
+});
+
+test("seed keeps 11 family covers distinct in sequence and CLI audits 132 local image files", async () => {
+  const { buildSeedAssignments } = await loadSeedModule();
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = normalizeStyleCatalog(await loadProductionCatalog());
+  const seeded = buildSeedAssignments({ catalog, assets: buildPortfolioItems(portfolioCatalog) });
+  for (const family of catalog.families) {
+    const coverAssetIds = catalog.styles
+      .filter((style) => style.familyId === family.id)
+      .map((style) => seeded.assignments[style.id].slots[0].assetId);
+    assert.equal(coverAssetIds.length, 11);
+    for (let index = 1; index < coverAssetIds.length; index += 1) {
+      assert.notEqual(coverAssetIds[index], coverAssetIds[index - 1], `${family.id} adjacent covers must differ`);
+    }
+  }
+
+  const { stdout } = await execFileAsync(process.execPath, ["tools/seed-portfolio-style-library.mjs"], {
+    cwd: repositoryRoot,
+  });
+  assert.match(stdout, /132 styles · 1188 slots · 158 assets/);
+  const report = JSON.parse(await readFile(resolve(repositoryRoot, ".local/portfolio-style-seed-report.json"), "utf8"));
+  assert.deepEqual([report.styles, report.slots, report.assets], [132, 1188, 158]);
+  const audit = await readFile(resolve(repositoryRoot, ".local/portfolio-style-cover-audit.html"), "utf8");
+  const imageSources = [...audit.matchAll(/<img src="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(imageSources.length, 132);
+  await Promise.all(imageSources.map((source) => access(resolve(repositoryRoot, ".local", source))));
 });
 
 test("production catalog matches every approved family and style identity", async () => {

@@ -60,6 +60,7 @@ async function startManagerFixture(t) {
   assignments.assignments["ST-IN-01-01"].slots[0].assetId = 137;
   assignments.assignments["ST-IN-01-02"].slots[0].assetId = 137;
   await Promise.all([
+    mkdir(draftRoot, { recursive: true }),
     mkdir(join(photoRoot, "full"), { recursive: true }),
     mkdir(join(photoRoot, "thumbs"), { recursive: true }),
     writeFile(additionsPath, `${JSON.stringify({ schemaVersion: 1, themes: [], photos: [] }, null, 2)}\n`),

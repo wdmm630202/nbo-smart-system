@@ -47,10 +47,20 @@ async function startIsolatedManager(t, { additions, prepare } = {}) {
   const draftDirectory = join(sandbox, "drafts");
   const additionsPath = join(sandbox, "catalog-additions.json");
   const publicPhotoRoot = join(sandbox, "public");
+  const styleCatalogPath = join(sandbox, "style-catalog.json");
+  const styleAssignmentsPath = join(sandbox, "style-slot-assignments.json");
   const port = 0;
   const initialAdditions = additions || { schemaVersion: 1, themes: [], photos: [] };
   await mkdir(publicPhotoRoot, { recursive: true });
-  await writeFile(additionsPath, `${JSON.stringify(initialAdditions, null, 2)}\n`);
+  const [styleCatalog, styleAssignments] = await Promise.all([
+    readFile(new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url), "utf8"),
+    readFile(new URL("../apps/portfolio-v2/style-slot-assignments.json", import.meta.url), "utf8"),
+  ]);
+  await Promise.all([
+    writeFile(additionsPath, `${JSON.stringify(initialAdditions, null, 2)}\n`),
+    writeFile(styleCatalogPath, styleCatalog),
+    writeFile(styleAssignmentsPath, styleAssignments),
+  ]);
   const store = createDraftStore({ rootDir: draftDirectory, legacyMaxId: 158 });
   await store.addPhoto({
     id: 159,
@@ -66,9 +76,13 @@ async function startIsolatedManager(t, { additions, prepare } = {}) {
     env: {
       ...process.env,
       NANBO_PORTFOLIO_PORT: String(port),
+      NANBO_PORTFOLIO_FIXTURE_ROOT: sandbox,
       NANBO_PORTFOLIO_DRAFT_ROOT: draftDirectory,
       NANBO_PORTFOLIO_ADDITIONS_PATH: additionsPath,
       NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: publicPhotoRoot,
+      NANBO_PORTFOLIO_STYLE_ROOT: sandbox,
+      NANBO_PORTFOLIO_STYLE_CATALOG_PATH: styleCatalogPath,
+      NANBO_PORTFOLIO_STYLE_ASSIGNMENTS_PATH: styleAssignmentsPath,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -96,7 +110,12 @@ async function startIsolatedManager(t, { additions, prepare } = {}) {
       return fetch(new URL(path, url), {
         method: "POST",
         body: JSON.stringify(body),
-        headers: { "content-type": "application/json", "x-nanbo-token": token, ...headers },
+        headers: {
+          "content-type": "application/json",
+          origin: new URL(url).origin,
+          "x-nanbo-token": token,
+          ...headers,
+        },
       });
     },
   };
@@ -112,6 +131,8 @@ async function gitAt(cwd, args) {
 }
 
 async function createSyntheticPublishManager(t, {
+  escapeFixturePhotoRoot = false,
+  expectStartupFailure = false,
   failFirstPush = false,
   sourceChange = "metadata",
   unexpectedExportOnce = false,
@@ -124,6 +145,7 @@ async function createSyntheticPublishManager(t, {
   const draftDirectory = join(repository, ".local/portfolio-drafts");
   const additionsPath = join(repository, "apps/portfolio-v2/catalog-additions.json");
   const publicPhotoRoot = join(repository, "apps/portfolio/assets/photos");
+  let configuredPublicPhotoRoot = publicPhotoRoot;
   const port = 0;
   let child;
   t.after(async () => {
@@ -324,19 +346,32 @@ async function createSyntheticPublishManager(t, {
   if (unexpectedExportOnce) {
     await writeFixture(join(repository, ".local/emit-unexpected-export"), "1\n");
   }
+  if (escapeFixturePhotoRoot) {
+    const escapedPhotoRoot = await mkdtemp(join(tmpdir(), "nanbo-fixture-escape-"));
+    const photoRootLink = join(repository, ".local/escaped-public-photo-root");
+    await mkdir(dirname(photoRootLink), { recursive: true });
+    await symlink(escapedPhotoRoot, photoRootLink);
+    configuredPublicPhotoRoot = photoRootLink;
+    t.after(() => rm(escapedPhotoRoot, { recursive: true, force: true }));
+  }
 
   child = spawn(process.execPath, [join(repository, "tools/portfolio-manager-server.mjs")], {
     cwd: repository,
     env: {
       ...process.env,
       NANBO_PORTFOLIO_PORT: String(port),
+      NANBO_PORTFOLIO_FIXTURE_ROOT: repository,
       NANBO_PORTFOLIO_DRAFT_ROOT: draftDirectory,
       NANBO_PORTFOLIO_ADDITIONS_PATH: additionsPath,
-      NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: publicPhotoRoot,
+      NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: configuredPublicPhotoRoot,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
-  const output = await waitForOutput(child, /南铂客片管理台：/);
+  const output = await waitForOutput(
+    child,
+    expectStartupFailure ? /(?:客片安全检查未完成|南铂客片管理台)：/ : /南铂客片管理台：/,
+  );
+  if (expectStartupFailure) return { output, repository, sandbox };
   const selectedPort = output.match(/南铂客片管理台：http:\/\/127\.0\.0\.1:(\d+)\//)?.[1];
   if (!selectedPort || selectedPort === "0") throw new Error(`管理台没有报告系统分配端口：${output}`);
   const url = `http://127.0.0.1:${selectedPort}/`;
@@ -352,7 +387,10 @@ async function createSyntheticPublishManager(t, {
     url,
     token,
     publish() {
-      return fetch(new URL("api/publish", url), { method: "POST", headers: { "x-nanbo-token": token } });
+      return fetch(new URL("api/publish", url), {
+        method: "POST",
+        headers: { origin: new URL(url).origin, "x-nanbo-token": token },
+      });
     },
     async status() {
       return (await fetch(new URL("api/status", url))).json();
@@ -638,6 +676,60 @@ test("草稿修改接口拒绝缺少令牌和跨站请求", { timeout: 30_000 },
   assert.equal(portlessWithoutManagerReferer.status, 403);
 });
 
+test("所有旧 POST 路由在业务校验前拒绝非精确本机 Origin", { timeout: 60_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const port = new URL(server.url).port;
+  const routes = [
+    ["api/replace?id=bad", "not-an-image", { "content-type": "text/plain", "x-file-name": "bad.txt" }],
+    ["api/undo?id=bad", "", {}],
+    ["api/drafts/upload", "not-an-image", { "content-type": "text/plain", "x-file-name": "bad.txt" }],
+    ["api/drafts/update?id=bad", "{", { "content-type": "application/json" }],
+    ["api/drafts/ready?id=bad", "{", { "content-type": "application/json" }],
+    ["api/drafts/archive?id=bad", "{", { "content-type": "application/json" }],
+    ["api/drafts/restore?id=bad", "{", { "content-type": "application/json" }],
+    ["api/drafts/stage?id=bad", "{", { "content-type": "application/json" }],
+    ["api/draft-themes", "{", { "content-type": "application/json" }],
+    ["api/public/visibility?id=bad", "{", { "content-type": "application/json" }],
+  ];
+  const origins = [
+    undefined,
+    "http://127.0.0.1",
+    `http://127.0.0.1:${Number(port) + 1}`,
+    "https://evil.example",
+    "null",
+  ];
+
+  for (const [path, body, routeHeaders] of routes) {
+    for (const origin of origins) {
+      const headers = { "x-nanbo-token": server.token, ...routeHeaders };
+      if (origin !== undefined) headers.origin = origin;
+      const response = await fetch(new URL(path, server.url), { method: "POST", body, headers });
+      const payload = await response.json();
+      assert.equal(response.status, 403, `${path} should reject origin ${String(origin)}`);
+      assert.equal(payload.code, "ORIGIN_FORBIDDEN", `${path} leaked business validation for ${String(origin)}`);
+    }
+  }
+});
+
+test("旧 POST 路由仅接受当前端口的 localhost 和 127.0.0.1 Origin", { timeout: 30_000 }, async (t) => {
+  const server = await startIsolatedManager(t);
+  const port = new URL(server.url).port;
+  for (const origin of [`http://127.0.0.1:${port}`, `http://localhost:${port}`]) {
+    const response = await fetch(new URL("api/replace?id=bad", server.url), {
+      method: "POST",
+      body: "not-an-image",
+      headers: {
+        "content-type": "text/plain",
+        origin,
+        "x-file-name": "bad.txt",
+        "x-nanbo-token": server.token,
+      },
+    });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, "BAD_REQUEST");
+  }
+});
+
 test("精确匹配本机来源时不因 Chrome 跨站辅助字段误拒绝", { timeout: 30_000 }, async (t) => {
   const server = await startIsolatedManager(t);
   const response = await fetch(`${server.url}api/replace?id=137`, {
@@ -656,7 +748,7 @@ test("精确匹配本机来源时不因 Chrome 跨站辅助字段误拒绝", { t
   assert.match((await response.json()).error, /只支持 JPG、PNG 或 WebP 图片/);
 });
 
-test("Chrome 省略本机非默认端口时仍允许当前管理台换图", { timeout: 30_000 }, async (t) => {
+test("端口被省略时即使 Referer 一致也拒绝换图", { timeout: 30_000 }, async (t) => {
   const server = await startIsolatedManager(t);
   const response = await fetch(`${server.url}api/replace?id=137`, {
     method: "POST",
@@ -671,8 +763,8 @@ test("Chrome 省略本机非默认端口时仍允许当前管理台换图", { ti
     },
   });
 
-  assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /只支持 JPG、PNG 或 WebP 图片/);
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).code, "ORIGIN_FORBIDDEN");
 });
 
 test("未授权草稿不能进入待公开", { timeout: 30_000 }, async (t) => {
@@ -683,7 +775,7 @@ test("未授权草稿不能进入待公开", { timeout: 30_000 }, async (t) => {
 
   const withoutBody = await fetch(`${server.url}api/drafts/ready?id=159`, {
     method: "POST",
-    headers: { "x-nanbo-token": server.token },
+    headers: { origin: new URL(server.url).origin, "x-nanbo-token": server.token },
   });
   assert.equal(withoutBody.status, 400);
   assert.match((await withoutBody.json()).error, /公开授权/);
@@ -829,7 +921,11 @@ test("草稿 API 校验主题并且归档恢复不删除资产", { timeout: 30_0
   const malformed = await fetch(new URL("api/drafts/update?id=159", server.url), {
     method: "POST",
     body: "{",
-    headers: { "content-type": "application/json", "x-nanbo-token": server.token },
+    headers: {
+      "content-type": "application/json",
+      origin: new URL(server.url).origin,
+      "x-nanbo-token": server.token,
+    },
   });
   assert.equal(malformed.status, 400);
   assert.match((await malformed.json()).error, /有效 JSON/);
@@ -843,6 +939,7 @@ test("上传接口逐张返回成功或失败且成功草稿保留", { timeout: 
     body,
     headers: {
       "content-type": "image/jpeg",
+      origin: new URL(server.url).origin,
       "x-file-name": encodeURIComponent("李先生_13800138000.jpg"),
       "x-nanbo-token": server.token,
     },
@@ -882,6 +979,7 @@ test("待公开安装与隐藏恢复保留编号和本地草稿", { timeout: 60_
     body: await readFile(source),
     headers: {
       "content-type": "image/jpeg",
+      origin: new URL(server.url).origin,
       "x-file-name": "stage-upload.jpg",
       "x-nanbo-token": server.token,
     },
@@ -920,6 +1018,41 @@ test("待公开安装与隐藏恢复保留编号和本地草稿", { timeout: 60_
   assert.equal(additions.photos[0].visibility, "published");
   state = await createDraftStore({ rootDir: server.draftDirectory, legacyMaxId: 158 }).read();
   assert.equal(state.photos.find((photo) => photo.id === id).status, "ready");
+});
+
+test("缺少 style store 只允许 realpath 完全位于显式测试 fixture 的兼容启动", { timeout: 60_000 }, async (t) => {
+  const legalFixture = await createSyntheticPublishManager(t, { sourceChange: "none" });
+  const session = await fetch(new URL("api/session", legalFixture.url));
+  assert.equal(session.status, 200);
+  assert.equal((await session.json()).token, legalFixture.token);
+});
+
+test("缺少 style store 时拒绝指向 fixture 外的真实自定义路径", { timeout: 60_000 }, async (t) => {
+  const rejected = await createSyntheticPublishManager(t, {
+    escapeFixturePhotoRoot: true,
+    expectStartupFailure: true,
+    sourceChange: "none",
+  });
+  assert.match(rejected.output, /客片安全检查未完成：/);
+  assert.doesNotMatch(rejected.output, /南铂客片管理台：http/);
+});
+
+test("发布 POST 在任何业务检查前拒绝非精确本机 Origin", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { sourceChange: "none" });
+  const port = new URL(server.url).port;
+  for (const origin of [
+    undefined,
+    "http://127.0.0.1",
+    `http://127.0.0.1:${Number(port) + 1}`,
+    "https://evil.example",
+    "null",
+  ]) {
+    const headers = { "x-nanbo-token": server.token };
+    if (origin !== undefined) headers.origin = origin;
+    const response = await fetch(new URL("api/publish", server.url), { method: "POST", headers });
+    assert.equal(response.status, 403, `publish should reject origin ${String(origin)}`);
+    assert.equal((await response.json()).code, "ORIGIN_FORBIDDEN");
+  }
 });
 
 test("发布增量元数据同时暂存源清单和 Pages 副本", { timeout: 60_000 }, async (t) => {

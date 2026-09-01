@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { readFile, realpath, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { extname, join, normalize, relative, resolve, sep } from "node:path";
 import { URL } from "node:url";
 
@@ -94,14 +95,6 @@ const publishExactPaths = new Set([
   "docs/i/index.html",
 ]);
 const publicationMetadata = "apps/portfolio-v2/catalog-additions.json";
-const styleMutationPaths = new Set([
-  "/api/style-slots/replace",
-  "/api/style-slots/undo",
-  "/api/style-slots/meta",
-  "/api/styles/layout",
-  "/api/styles/meta",
-]);
-
 function allowedLocalHosts() {
   return new Set([`${host}:${activePort}`, `localhost:${activePort}`]);
 }
@@ -349,21 +342,40 @@ async function catalogPayload() {
   };
 }
 
-async function initializeStyleStore() {
-  let createPortfolioStyleStore;
+async function isExplicitIsolatedFixture() {
+  if (requestedPort !== 0 || !configuredFixtureRoot) return false;
   try {
-    ({ createPortfolioStyleStore } = await import(styleStoreModuleUrl.href));
+    const [fixtureRoot, temporaryRoot, ...configuredPaths] = await Promise.all([
+      realpath(configuredFixtureRoot),
+      realpath(tmpdir()),
+      ...[
+        configuredDraftRoot,
+        additionsPath,
+        publicPhotoRoot,
+        configuredStyleRoot,
+      ].map((path) => realpath(path)),
+    ]);
+    return isPathInside(temporaryRoot, fixtureRoot)
+      && configuredPaths.every((path) => isPathInside(fixtureRoot, path));
+  } catch {
+    return false;
+  }
+}
+
+async function loadStyleStoreFactory({ isolatedFixture }) {
+  try {
+    const { createPortfolioStyleStore } = await import(styleStoreModuleUrl.href);
+    return createPortfolioStyleStore;
   } catch (error) {
-    const isolatedLegacyFixture = requestedPort === 0
-      && Boolean(process.env.NANBO_PORTFOLIO_DRAFT_ROOT)
-      && Boolean(process.env.NANBO_PORTFOLIO_ADDITIONS_PATH)
-      && Boolean(process.env.NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT)
-      && !hasConfiguredStyleRoot;
-    if (isolatedLegacyFixture && error?.code === "ERR_MODULE_NOT_FOUND" && error?.url === styleStoreModuleUrl.href) {
+    if (isolatedFixture && error?.code === "ERR_MODULE_NOT_FOUND" && error?.url === styleStoreModuleUrl.href) {
       return null;
     }
     throw error;
   }
+}
+
+async function initializeStyleStore(createPortfolioStyleStore) {
+  if (!createPortfolioStyleStore) return null;
   const store = createPortfolioStyleStore({
     rootDir: configuredStyleRoot,
     photoRoot: stylePhotoRoot,
@@ -496,16 +508,6 @@ async function assetReferencesPayload(url) {
   };
 }
 
-function requireExactStyleSession(request) {
-  if (request.headers["x-nanbo-token"] !== sessionToken) {
-    throw apiError("AUTH_REQUIRED", "管理台会话已过期，请刷新页面后重试", 403);
-  }
-  const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
-  if (!allowedOrigins.has(String(request.headers.origin || ""))) {
-    throw apiError("ORIGIN_FORBIDDEN", "为保护本地客片，已拒绝其他网页发起的操作", 403);
-  }
-}
-
 function styleOperationError(error) {
   if (error?.apiCode) return error;
   const message = error instanceof Error ? error.message : String(error);
@@ -614,34 +616,16 @@ function decodedUploadName(request) {
 }
 
 function requireSession(request) {
-  const origin = String(request.headers.origin || "");
-  const referer = String(request.headers.referer || "");
-  const fetchSite = String(request.headers["sec-fetch-site"] || "");
-  // Chrome 的本地网络访问保护有时会把非默认端口从 Origin 中省略，
-  // 但 Referer、Host 和 Sec-Fetch-Site 仍表明请求来自当前管理台。
-  // 令牌仍是每次启动随机生成，外部网页既读不到也不能伪造。
-  const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
-  const portlessOrigins = new Set([`http://${host}`, "http://localhost"]);
-  const allowedReferers = [`http://${host}:${activePort}/`, `http://localhost:${activePort}/`];
-  const hasTrustedPortlessOrigin = portlessOrigins.has(origin)
-    && allowedReferers.some((allowed) => referer.startsWith(allowed))
-    && fetchSite === "same-origin";
-  const hasBlockedOrigin = origin && !allowedOrigins.has(origin) && !hasTrustedPortlessOrigin;
-  const hasUntrustedFetchMetadata = !origin && fetchSite === "cross-site";
-  if (hasBlockedOrigin || hasUntrustedFetchMetadata) {
-    const error = new Error("为保护本地客片，已拒绝其他网页发起的操作");
-    error.status = 403;
-    throw error;
-  }
   if (request.headers["x-nanbo-token"] !== sessionToken) {
-    const error = new Error("管理台会话已过期，请刷新页面后重试");
-    error.status = 403;
-    throw error;
+    throw apiError("AUTH_REQUIRED", "管理台会话已过期，请刷新页面后重试", 403);
+  }
+  const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
+  if (!allowedOrigins.has(String(request.headers.origin || ""))) {
+    throw apiError("ORIGIN_FORBIDDEN", "为保护本地客片，已拒绝其他网页发起的操作", 403);
   }
 }
 
 async function replacePhotoRequest(request, response, url) {
-  requireSession(request);
   beginMutation("替换客片");
   try {
     await recoverIncompletePhotoTransactions();
@@ -666,7 +650,6 @@ async function replacePhotoRequest(request, response, url) {
 }
 
 async function undoPhotoRequest(request, response, url) {
-  requireSession(request);
   beginMutation("恢复客片");
   try {
     await recoverIncompletePhotoTransactions();
@@ -678,7 +661,6 @@ async function undoPhotoRequest(request, response, url) {
 }
 
 async function draftUploadRequest(request, response) {
-  requireSession(request);
   beginMutation("新增草稿");
   try {
     const originalName = decodedUploadName(request);
@@ -706,7 +688,6 @@ async function draftUploadRequest(request, response) {
 }
 
 async function draftUpdateRequest(request, response, url) {
-  requireSession(request);
   beginMutation("保存草稿");
   try {
     const id = numericDraftId(url);
@@ -741,7 +722,6 @@ async function draftUpdateRequest(request, response, url) {
 }
 
 async function draftTransitionRequest(request, response, url, nextStatus, label) {
-  requireSession(request);
   beginMutation(label);
   try {
     const result = await draftStore.transitionPhoto(numericDraftId(url), nextStatus);
@@ -752,7 +732,6 @@ async function draftTransitionRequest(request, response, url, nextStatus, label)
 }
 
 async function draftStageRequest(request, response, url) {
-  requireSession(request);
   beginMutation("安装待公开客片");
   try {
     const result = await stageDraftForPublication(numericDraftId(url), publicationOptions);
@@ -767,7 +746,6 @@ function stringLength(value) {
 }
 
 async function draftThemeRequest(request, response) {
-  requireSession(request);
   beginMutation("新建草稿主题");
   try {
     const body = await readJsonBody(request);
@@ -794,7 +772,6 @@ async function draftThemeRequest(request, response) {
 }
 
 async function publicVisibilityRequest(request, response, url) {
-  requireSession(request);
   beginMutation("更新公开状态");
   try {
     const { visibility } = await readJsonBody(request);
@@ -867,7 +844,6 @@ async function sourcePhotoFilesFromGit() {
 }
 
 async function publishPhotos(request, response) {
-  requireSession(request);
   beginMutation("同步网站");
   try {
     await recoverIncompletePhotoTransactions();
@@ -1037,9 +1013,7 @@ async function route(request, response) {
       error.status = 503;
       throw error;
     }
-    if (request.method === "POST" && styleMutationPaths.has(url.pathname)) {
-      requireExactStyleSession(request);
-    }
+    if (request.method === "POST") requireSession(request);
     if (request.method === "GET" && url.pathname === "/api/session") {
       json(response, 200, { ok: true, token: sessionToken });
       return;
@@ -1203,16 +1177,8 @@ server.listen(requestedPort, host, async () => {
   try {
     // 只有成功绑定端口的单一进程才允许检查事务目录。第二次双击会先走
     // EADDRINUSE，不会把第一个进程的正在换图误当成崩溃恢复。
-    const isolatedFixture = requestedPort === 0
-      && configuredFixtureRoot
-      && [
-        configuredDraftRoot,
-        styleAdditionsPath,
-        stylePhotoRoot,
-        configuredStyleRoot,
-        styleCatalogPath,
-        styleAssignmentsPath,
-      ].every((path) => isPathInside(configuredFixtureRoot, path));
+    const isolatedFixture = await isExplicitIsolatedFixture();
+    const createPortfolioStyleStore = await loadStyleStoreFactory({ isolatedFixture });
     const [recoveredPhotoTransactions, recoveredPublicationTransactions] = await Promise.all([
       isolatedFixture ? Promise.resolve([]) : recoverIncompletePhotoTransactions(),
       recoverIncompletePublicationTransactions(publicationOptions),
@@ -1223,7 +1189,7 @@ server.listen(requestedPort, host, async () => {
     if (recoveredPublicationTransactions.length) {
       console.log(`已自动恢复中断的客片公开：${recoveredPublicationTransactions.join("、")}`);
     }
-    styleStore = await initializeStyleStore();
+    styleStore = await initializeStyleStore(createPortfolioStyleStore);
     serverReady = true;
     console.log(`南铂客片管理台：${url}`);
     console.log("保持这个窗口开启；结束时可直接关闭窗口。");

@@ -2138,6 +2138,56 @@ test("nine-photo manager reports the invalid position without committing partial
   await browser.waitFor('document.querySelector("#style-batch-dialog")?.open === false');
   const batchRoot = join(server.sandbox, ".local/portfolio-style-batches");
   assert.deepEqual(await readdir(batchRoot), []);
+  assert.equal(await browser.evaluate("document.activeElement?.id"), "style-batch-open");
+});
+
+test("batch cancel keeps a failed deletion retryable and restores opener focus only after cleanup", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const validCopies = [];
+  const validBytes = await readFile(validPhoto);
+  for (let position = 1; position <= 8; position += 1) {
+    const path = join(server.sandbox, `batch-delete-retry-${position}.jpg`);
+    await writeFile(path, validBytes);
+    validCopies.push(path);
+  }
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const mode = document.querySelector('input[name="library-mode"][value="styles"]');
+    mode.checked = true;
+    mode.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.evaluate('document.querySelector("#style-batch-open").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open');
+  await browser.setFileInput("#style-batch-files", [...validCopies, wrongRatioPhoto]);
+  await browser.waitFor("document.querySelector('[data-batch-position=\"9\"]')?.dataset.batchStatus === 'error'", 30_000);
+  const batchRoot = join(server.sandbox, ".local/portfolio-style-batches");
+  assert.equal((await readdir(batchRoot)).length, 1);
+
+  await browser.evaluate(`(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.__batchDeleteAttempts = 0;
+    window.fetch = (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      if ((init.method || "GET") === "DELETE" && String(url).includes("/api/style-batches/")) {
+        window.__batchDeleteAttempts += 1;
+        if (window.__batchDeleteAttempts === 1) return Promise.reject(new Error("模拟删除失败"));
+      }
+      return originalFetch(input, init);
+    };
+    document.querySelector("#style-batch-cancel").click();
+  })()`);
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("模拟删除失败")');
+  assert.equal(await browser.evaluate('document.querySelector("#style-batch-dialog")?.open'), true);
+  assert.equal(await browser.evaluate('document.querySelector("#style-batch-cancel")?.disabled'), false);
+  assert.equal((await readdir(batchRoot)).length, 1);
+
+  await browser.evaluate('document.querySelector("#style-batch-cancel").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open === false');
+  assert.equal(await browser.evaluate("window.__batchDeleteAttempts"), 2);
+  assert.deepEqual(await readdir(batchRoot), []);
+  assert.equal(await browser.evaluate("document.activeElement?.id"), "style-batch-open");
 });
 
 test("manager can undo a slot after committing a nine-photo batch", { skip: !hasChrome, timeout: 180_000 }, async (t) => {

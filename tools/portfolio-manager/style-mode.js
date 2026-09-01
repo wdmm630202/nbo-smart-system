@@ -677,8 +677,8 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function discardOpenBatch() {
     if (!state.batchId) return;
     const batchId = state.batchId;
-    state.batchId = "";
     await requestJson(`/api/style-batches/${encodeURIComponent(batchId)}`, { method: "DELETE" });
+    if (state.batchId === batchId) state.batchId = "";
   }
 
   function batchFileValidationError(file) {
@@ -692,14 +692,10 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function acceptBatchFiles(fileList) {
     const files = [...fileList];
     setBusy(true);
-    const previousBatchId = state.batchId;
-    state.batchId = "";
-    clearBatchEntries();
-    elements.batchStatus.textContent = "正在建立新的 9 张暂存…";
     try {
-      if (previousBatchId) {
-        await requestJson(`/api/style-batches/${encodeURIComponent(previousBatchId)}`, { method: "DELETE" });
-      }
+      await discardOpenBatch();
+      clearBatchEntries();
+      elements.batchStatus.textContent = "正在建立新的 9 张暂存…";
       if (files.length !== 9) {
         elements.batchStatus.textContent = "请一次选择恰好 9 张照片。旧组已失效。";
         showToast("整组换图必须恰好选择 9 张", "error");
@@ -741,7 +737,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     const style = selectedStyle();
     if (!style) return;
     state.batchStyleId = style.id;
-    state.batchOpener = documentObject.activeElement;
+    state.batchOpener = elements.batchOpen;
     elements.batchTitle.textContent = `整组换 9 张 · ${style.id}`;
     elements.batchStatus.textContent = "还未选择照片。";
     elements.batchDialog.showModal();
@@ -751,18 +747,26 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function closeBatchDialog() {
     if (state.busy) return;
     setBusy(true);
+    let closed = false;
     try {
       await discardOpenBatch();
       if (elements.batchDialog.open) elements.batchDialog.close();
       clearBatchEntries();
       elements.batchStatus.textContent = "还未选择照片。";
       state.batchStyleId = "";
-      state.batchOpener?.focus?.({ preventScroll: true });
-      state.batchOpener = null;
+      closed = true;
     } catch (error) {
+      elements.batchStatus.textContent = `暂存清理失败：${error.message}。请再次点击“放弃整组”重试。`;
       showToast(error.message, "error");
     } finally {
       setBusy(false);
+      if (closed) {
+        const opener = state.batchOpener;
+        state.batchOpener = null;
+        opener?.focus?.({ preventScroll: true });
+      } else {
+        elements.batchCancel.focus({ preventScroll: true });
+      }
     }
   }
 

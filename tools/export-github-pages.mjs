@@ -6,6 +6,32 @@ import { buildPortfolioVersion, validatePortfolioLibrary } from "./portfolio-pho
 import { getProjectInterface } from "../app/project-visuals.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+
+function containsLocalAbsolutePath(value) {
+  return /file:\/\//i.test(value)
+    || /[A-Za-z]:[\\/]/.test(value)
+    || /\\\\[^\\/\s]+[\\/][^\s]*/.test(value)
+    || /(?:^|[\s("'=])\/\/[^/\s]+\/[^\s]*/.test(value)
+    || /(?:^|[\s("'=])\/(?!\/)[^\s"')]+/.test(value);
+}
+
+function findLocalAbsolutePath(value, location = "$") {
+  if (typeof value === "string") return containsLocalAbsolutePath(value) ? location : "";
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      const found = findLocalAbsolutePath(value[index], `${location}[${index}]`);
+      if (found) return found;
+    }
+    return "";
+  }
+  if (!value || typeof value !== "object") return "";
+  for (const [key, entry] of Object.entries(value)) {
+    const found = findLocalAbsolutePath(entry, `${location}.${key}`);
+    if (found) return found;
+  }
+  return "";
+}
+
 const portfolioValidation = await validatePortfolioLibrary();
 if (!portfolioValidation.ok) {
   throw new Error(`客片库校验失败：\n${portfolioValidation.errors.map((message) => `- ${message}`).join("\n")}`);
@@ -173,17 +199,15 @@ const styleRuntimeFiles = [
   "style-preferences.js",
   "style-explorer.js",
 ];
-for (const filename of styleRuntimeFiles) {
-  const [sourceBytes, publishedBytes] = await Promise.all([
-    readFile(join(root, "apps/portfolio-v2", filename)),
-    readFile(join(docs, "projects/portfolio-v2", filename)),
-  ]);
-  if (!sourceBytes.equals(publishedBytes)) throw new Error(`风格静态副本不一致：${filename}`);
-}
 const portfolioPublicRoot = join(docs, "projects/portfolio-v2");
 const publicEntries = await readdir(portfolioPublicRoot, { recursive: true });
 if (publicEntries.some((path) => /(?:^|\/)(?:\.local|manager)(?:\/|$)|transaction|batch|audit/i.test(path))) {
   throw new Error("风格公开包含有管理台或本机私有文件");
+}
+for (const path of publicEntries.filter((entry) => /\.json$/i.test(entry))) {
+  const manifest = JSON.parse(await readFile(join(portfolioPublicRoot, path), "utf8"));
+  const leakedAt = findLocalAbsolutePath(manifest);
+  if (leakedAt) throw new Error(`风格公开包含有本机绝对路径：${path} ${leakedAt}`);
 }
 const publicText = (await Promise.all(publicEntries
   .filter((path) => /\.(?:html|js|json|css)$/i.test(path))
@@ -191,10 +215,27 @@ const publicText = (await Promise.all(publicEntries
 if (/\/Users\/|portfolio-style-transactions|portfolio-style-batches|slotIdentities/.test(publicText)) {
   throw new Error("风格公开包含有本机绝对路径或私有字段");
 }
-for (const filename of ["index.html", "app.js"]) {
+for (const filename of publicEntries.filter((entry) => /\.js$/i.test(entry))) {
   const target = join(docs, "projects/portfolio-v2", filename);
   const content = await readFile(target, "utf8");
   await writeFile(target, content.replaceAll("__NBO_BUILD_VERSION__", portfolioBuildVersion));
+}
+const publishedIndexPath = join(docs, "projects/portfolio-v2", "index.html");
+await writeFile(
+  publishedIndexPath,
+  (await readFile(publishedIndexPath, "utf8")).replaceAll("__NBO_BUILD_VERSION__", portfolioBuildVersion),
+);
+for (const filename of styleRuntimeFiles) {
+  const [sourceContent, publishedContent] = await Promise.all([
+    readFile(join(root, "apps/portfolio-v2", filename), "utf8"),
+    readFile(join(docs, "projects/portfolio-v2", filename), "utf8"),
+  ]);
+  const expected = sourceContent.replaceAll("__NBO_BUILD_VERSION__", portfolioBuildVersion);
+  if (publishedContent !== expected) throw new Error(`风格静态副本不一致：${filename}`);
+}
+for (const filename of publicEntries.filter((entry) => /\.js$/i.test(entry))) {
+  const content = await readFile(join(portfolioPublicRoot, filename), "utf8");
+  if (content.includes("__NBO_BUILD_VERSION__")) throw new Error(`公开运行时仍有版本占位符：${filename}`);
 }
 await writeFile(
   join(docs, "projects/portfolio-v2", "build.json"),

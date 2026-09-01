@@ -751,7 +751,7 @@ async function measureHiddenDirectEntry(width = 390) {
   const { port } = server.address();
   try {
     const output = await runChrome(
-      `http://127.0.0.1:${port}/portfolio-v2/index.html?v=hidden&scene=outdoor&family=OUT-02&style=${hiddenStyleId}`,
+      `http://127.0.0.1:${port}/portfolio-v2/index.html?v=hidden&scene=outdoor&family=OUT-01&style=${hiddenStyleId}`,
       width,
     );
     const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
@@ -1016,6 +1016,56 @@ async function measureDemandEntryLabels(width = 390) {
   }
 }
 
+async function measurePublishedRuntimeRequests() {
+  const docsRoot = new URL("../docs/", import.meta.url);
+  const [publishedHtml, build] = await Promise.all([
+    readFile(new URL("projects/portfolio-v2/index.html", docsRoot), "utf8"),
+    readFile(new URL("projects/portfolio-v2/build.json", docsRoot), "utf8").then(JSON.parse),
+  ]);
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    window.addEventListener("load", () => window.setTimeout(() => {
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify(
+        performance.getEntriesByType("resource").map((entry) => {
+          const url = new URL(entry.name);
+          return url.pathname + url.search;
+        }),
+      );
+    }, 240));
+  </script>`;
+  const page = publishedHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace("</body>", `${probe}</body>`);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/projects/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      const asset = await readFile(new URL(url.pathname.replace(/^\/+/, ""), docsRoot));
+      response.writeHead(200, { "Content-Type": contentType(url.pathname) });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(`http://127.0.0.1:${port}/projects/portfolio-v2/index.html`, 390);
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return {
+      version: build.version,
+      resources: JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&")),
+    };
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 async function loadExplorerModel(loadModule = () => import(explorerModelUrl)) {
   try {
     return await loadModule();
@@ -1048,6 +1098,14 @@ function memoryStorage(initial = {}) {
     removeItem: (key) => values.delete(key),
   };
 }
+
+test("published nested style modules request the final build version instead of stale cache URLs", { skip: !hasChrome }, async () => {
+  const { version, resources } = await measurePublishedRuntimeRequests();
+  assert.match(version, /^pv2-[a-f0-9]{12}$/);
+  assert.equal(resources.some((url) => url.endsWith(`/style-library.js?v=${version}`)), true, resources.join("\n"));
+  assert.equal(resources.some((url) => url.endsWith(`/style-explorer-model.js?v=${version}`)), true, resources.join("\n"));
+  assert.equal(resources.some((url) => url.includes("__NBO_BUILD_VERSION__")), false, resources.join("\n"));
+});
 
 test("pose selections group by style without clearing legacy photo favorites", () => {
   const storage = memoryStorage({ "nanbo-favorite-photos": "[137]" });
@@ -1290,7 +1348,7 @@ test("hidden style deep links fall back to their visible family without renderin
     assets: fixtureAssets(),
   });
   const state = explorer.createExplorerState(library, new URLSearchParams(
-    "scene=outdoor&family=OUT-02&style=ST-OUT-02-03",
+    "scene=outdoor&family=OUT-01&style=ST-OUT-02-03",
   ));
 
   assert.deepEqual(state, {

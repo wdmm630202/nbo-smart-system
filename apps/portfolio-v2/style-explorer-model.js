@@ -61,7 +61,13 @@ export function createExplorerState(library, locationState) {
   const style = requestedStyleId && library.styles.find((item) => item.id === requestedStyleId);
   const requestedFamily = requestedFamilyId && findFamily(library, requestedFamilyId);
 
-  if ((requestedStyleId && !style) || (requestedFamilyId && !requestedFamily)) return fallback;
+  if (requestedStyleId && !style) return fallback;
+  if (style && style.visibility !== "published") {
+    const styleFamily = findFamily(library, style.familyId);
+    if (!styleFamily || styleFamily.scene !== style.scene) return fallback;
+    return { ...fallback, scene: style.scene, familyId: styleFamily.id };
+  }
+  if (requestedFamilyId && !requestedFamily) return fallback;
 
   const family = requestedFamily || (style && findFamily(library, style.familyId))
     || findFirstFamily(library, requestedScene || fallback.scene);

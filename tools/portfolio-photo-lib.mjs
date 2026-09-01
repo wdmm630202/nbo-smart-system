@@ -550,7 +550,32 @@ function validatePortfolioAdditions(additions, catalog) {
 }
 
 const publicStyleSlotKeys = new Set(["assetId", "poseLabel", "source", "updatedAt"]);
-const privatePublicationPattern = /(?:^|\/)(?:Users|private)(?:\/|$)|\.local(?:\/|$)|portfolio-style-(?:transactions|batches)|slotIdentities/;
+const privatePublicationPattern = /\.local(?:[\\/]|$)|portfolio-style-(?:transactions|batches)|slotIdentities/;
+
+function containsLocalAbsolutePath(value) {
+  return /file:\/\//i.test(value)
+    || /[A-Za-z]:[\\/]/.test(value)
+    || /\\\\[^\\/\s]+[\\/][^\s]*/.test(value)
+    || /(?:^|[\s("'=])\/\/[^/\s]+\/[^\s]*/.test(value)
+    || /(?:^|[\s("'=])\/(?!\/)[^\s"')]+/.test(value);
+}
+
+function collectPrivateManifestStrings(value, label, errors) {
+  if (typeof value === "string") {
+    if (privatePublicationPattern.test(value) || containsLocalAbsolutePath(value)) {
+      errors.push(`${label} 包含本机绝对路径或私有路径`);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => collectPrivateManifestStrings(entry, `${label}[${index}]`, errors));
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, entry] of Object.entries(value)) {
+    collectPrivateManifestStrings(entry, `${label}.${key}`, errors);
+  }
+}
 
 function stableSlotLabel(styleId, index) {
   try {
@@ -609,7 +634,9 @@ function preflightStyleAssignments(rawCatalog, rawAssignments, assetMap) {
       }
       if (slot.source === "seed" && slot.updatedAt !== null) errors.push(`${label} seed 来源更新时间必须为 null`);
       for (const value of Object.values(slot)) {
-        if (typeof value === "string" && privatePublicationPattern.test(value)) errors.push(`${label} 包含本机或私有路径`);
+        if (typeof value === "string" && (privatePublicationPattern.test(value) || containsLocalAbsolutePath(value))) {
+          errors.push(`${label} 包含本机绝对路径或私有路径`);
+        }
       }
     });
   }
@@ -652,6 +679,8 @@ async function validateStylePublication({ rawCatalog, rawAssignments, assets, ad
   const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
   const preflight = preflightStyleAssignments(rawCatalog, rawAssignments, assetMap);
   const errors = [...preflight.errors];
+  collectPrivateManifestStrings(rawCatalog, "风格目录", errors);
+  collectPrivateManifestStrings(rawAssignments, "照片位分配", errors);
   let library = null;
   if (!errors.length) {
     try {
@@ -667,22 +696,24 @@ async function validateStylePublication({ rawCatalog, rawAssignments, assets, ad
     const { confirmations, origins } = await readStyleProofs(transactionRootPath);
     for (const style of library.styles) {
       const uploaded = style.slots.filter(({ source }) => source === "upload");
-      if (uploaded.length === 0 && style.maturity !== "reference") {
-        errors.push(`风格 ${style.id} 成熟度必须为 reference`);
-      } else if (uploaded.length > 0 && uploaded.length < 9 && style.maturity !== "updating") {
-        errors.push(`风格 ${style.id} 成熟度必须为 updating`);
-      } else if (uploaded.length === 9 && !new Set(["updating", "complete"]).has(style.maturity)) {
-        errors.push(`风格 ${style.id} 全部上传后成熟度无效`);
+      const provenUploads = uploaded.filter(({ assetId }) => publishedAdditionIds.has(assetId)
+        && origins.get(assetId) === style.id);
+      for (const slot of uploaded) {
+        if (!publishedAdditionIds.has(slot.assetId) || origins.get(slot.assetId) !== style.id) {
+          errors.push(`${slot.id} upload 来源缺少公开增量和同风格事务证明`);
+        }
       }
-      if (style.maturity !== "complete") continue;
       const assetIds = style.slots.map(({ assetId }) => assetId);
       const confirmed = confirmations.get(style.id);
       const completeProof = uploaded.length === 9
+        && provenUploads.length === 9
         && new Set(assetIds).size === 9
-        && assetIds.every((assetId) => publishedAdditionIds.has(assetId) && origins.get(assetId) === style.id)
         && confirmed
         && JSON.stringify([...assetIds].sort((left, right) => left - right)) === JSON.stringify(confirmed);
-      if (!completeProof) errors.push(`风格 ${style.id} 缺少同风格上传事务和明确公开确认证明`);
+      const derivedMaturity = uploaded.length === 0 ? "reference" : (completeProof ? "complete" : "updating");
+      if (style.maturity !== derivedMaturity) {
+        errors.push(`风格 ${style.id} 成熟度必须为 ${derivedMaturity}`);
+      }
     }
   }
   return {

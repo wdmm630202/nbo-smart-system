@@ -133,6 +133,76 @@ function registeredAdditions() {
   };
 }
 
+function uploadedStyleAdditions(count) {
+  return {
+    schemaVersion: 1,
+    themes: [],
+    photos: Array.from({ length: count }, (_, index) => ({
+      id: 159 + index,
+      scene: "indoor",
+      theme: "magazine",
+      category: "business",
+      title: `上传客片 ${index + 1}`,
+      styleTitle: "杂志肖像",
+      featured: false,
+      visibility: "published",
+      publishedAt: `2026-09-02T00:${String(index).padStart(2, "0")}:00.000Z`,
+    })),
+  };
+}
+
+async function createProvenUploadStyleFixture(t, { count, maturity, confirmed = false }) {
+  const styleFixture = await createStylePublicationFixture(t);
+  const photoFixture = await createAdditionsLibraryFixture(t, uploadedStyleAdditions(count));
+  const styleId = "ST-IN-01-01";
+  const layout = styleFixture.assignments.assignments[styleId];
+  const assetIds = Array.from({ length: count }, (_, index) => 159 + index);
+  const now = "2026-09-02T01:00:00.000Z";
+  for (let index = 0; index < count; index += 1) {
+    layout.slots[index] = {
+      ...layout.slots[index],
+      assetId: assetIds[index],
+      source: "upload",
+      updatedAt: now,
+    };
+  }
+  layout.maturity = maturity;
+  layout.updatedAt = now;
+  await styleFixture.save();
+
+  const originDirectory = join(styleFixture.styleTransactionRoot, "upload-origin");
+  await mkdir(originDirectory, { recursive: true });
+  await writeFile(join(originDirectory, "meta.json"), `${JSON.stringify(count === 1 ? {
+    status: "committed",
+    operation: "replace-slot",
+    slotId: `${styleId}-P01`,
+    assetId: assetIds[0],
+  } : {
+    status: "committed",
+    operation: "replace-style-batch",
+    styleId,
+    assetIds,
+  })}\n`);
+  if (confirmed) {
+    const confirmationDirectory = join(styleFixture.styleTransactionRoot, "public-confirmation");
+    await mkdir(confirmationDirectory, { recursive: true });
+    await writeFile(join(confirmationDirectory, "meta.json"), `${JSON.stringify({
+      status: "committed",
+      operation: "update-layout",
+      maturity: "complete",
+      styleId,
+      assetIds,
+    })}\n`);
+  }
+  return {
+    styleId,
+    options: {
+      ...styleFixture.options(),
+      ...photoFixture,
+    },
+  };
+}
+
 function waitForOutput(child, pattern, timeout = 10_000) {
   return new Promise((resolve, reject) => {
     let output = "";
@@ -274,6 +344,91 @@ test("complete maturity requires same-style upload history and explicit confirma
   const withoutProof = await validatePortfolioLibrary(fixture.options());
   assert.equal(withoutProof.ok, false);
   assert.match(withoutProof.errors.join("\n"), /ST-IN-01-01.*事务|事务.*ST-IN-01-01/);
+});
+
+test("every upload slot requires a published addition and same-style transaction proof while updating", async (t) => {
+  const fixture = await createStylePublicationFixture(t);
+  const styleId = "ST-IN-01-01";
+  const layout = fixture.assignments.assignments[styleId];
+  layout.slots[0] = {
+    ...layout.slots[0],
+    source: "upload",
+    updatedAt: "2026-09-02T01:00:00.000Z",
+  };
+  layout.maturity = "updating";
+  await fixture.save();
+
+  const result = await validatePortfolioLibrary(fixture.options());
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /ST-IN-01-01-P01.*公开增量.*事务|ST-IN-01-01-P01.*事务.*公开增量/);
+});
+
+test("stored maturity matches zero, partial, unconfirmed-nine, and confirmed-nine upload proof", async (t) => {
+  const partial = await createProvenUploadStyleFixture(t, { count: 1, maturity: "updating" });
+  const partialResult = await validatePortfolioLibrary(partial.options);
+  assert.equal(partialResult.ok, true, partialResult.errors.join("\n"));
+
+  const unconfirmedNine = await createProvenUploadStyleFixture(t, { count: 9, maturity: "updating" });
+  const unconfirmedResult = await validatePortfolioLibrary(unconfirmedNine.options);
+  assert.equal(unconfirmedResult.ok, true, unconfirmedResult.errors.join("\n"));
+
+  const confirmedButUpdating = await createProvenUploadStyleFixture(t, {
+    count: 9,
+    maturity: "updating",
+    confirmed: true,
+  });
+  const forgedResult = await validatePortfolioLibrary(confirmedButUpdating.options);
+  assert.equal(forgedResult.ok, false);
+  assert.match(forgedResult.errors.join("\n"), /ST-IN-01-01.*成熟度必须为 complete/);
+
+  const complete = await createProvenUploadStyleFixture(t, { count: 9, maturity: "complete", confirmed: true });
+  const completeResult = await validatePortfolioLibrary(complete.options);
+  assert.equal(completeResult.ok, true, completeResult.errors.join("\n"));
+});
+
+test("public style manifests reject local absolute paths but keep relative public references", async (t) => {
+  const rejected = [
+    "/tmp/customer-secret.jpg",
+    "/var/folders/qn/customer-secret.jpg",
+    "C:\\Users\\customer\\secret.jpg",
+    "\\\\server\\share\\secret.jpg",
+    "//server/share/secret.jpg",
+    "file:///tmp/customer-secret.jpg",
+  ];
+  for (const value of rejected) {
+    await t.test(`rejects ${value}`, async (subtest) => {
+      const fixture = await createStylePublicationFixture(subtest);
+      fixture.assignments.assignments["ST-IN-01-01"].slots[0].poseLabel = value;
+      await fixture.save();
+      const result = await validatePortfolioLibrary(fixture.options());
+      assert.equal(result.ok, false, value);
+      assert.match(result.errors.join("\n"), /ST-IN-01-01-P01.*本机.*路径|ST-IN-01-01-P01.*绝对路径/, value);
+    });
+  }
+
+  for (const value of ["参考图/侧脸", "../portfolio/assets/photos/photo-001.jpg", "assets/photos/photo-001.jpg"]) {
+    await t.test(`allows ${value}`, async (subtest) => {
+      const fixture = await createStylePublicationFixture(subtest);
+      fixture.assignments.assignments["ST-IN-01-01"].slots[0].poseLabel = value;
+      await fixture.save();
+      const result = await validatePortfolioLibrary(fixture.options());
+      assert.equal(result.ok, true, result.errors.join("\n"));
+    });
+  }
+});
+
+test("static exporter independently blocks a POSIX absolute path in an added public manifest", async () => {
+  const probePath = join(root, "apps/portfolio-v2/review-private-probe.json");
+  try {
+    await writeFile(probePath, `${JSON.stringify({ customerReference: "/tmp/customer-secret.jpg" })}\n`);
+    const result = await runNodeScript("tools/export-github-pages.mjs");
+    assert.notEqual(result.code, 0, "exporter accepted a public local absolute path");
+    assert.match(`${result.stdout}\n${result.stderr}`, /本机.*路径|绝对路径|私有/);
+  } finally {
+    await rm(probePath, { force: true });
+    const restored = await runNodeScript("tools/export-github-pages.mjs");
+    assert.equal(restored.code, 0, restored.stderr);
+  }
 });
 
 test("公开库验证已发布和已归档增量的完整资源", async (t) => {
@@ -535,6 +690,7 @@ test("对外固定短链接不包含内部版本路径", async () => {
 });
 
 test("static portfolio export keeps style runtime byte parity and excludes private manager state", async () => {
+  const { version } = JSON.parse(await readFile(join(root, "docs/projects/portfolio-v2/build.json"), "utf8"));
   const publicFiles = [
     "style-catalog.json",
     "style-slot-assignments.json",
@@ -545,10 +701,14 @@ test("static portfolio export keeps style runtime byte parity and excludes priva
   ];
   for (const filename of publicFiles) {
     const [source, published] = await Promise.all([
-      readFile(join(root, "apps/portfolio-v2", filename)),
-      readFile(join(root, "docs/projects/portfolio-v2", filename)),
+      readFile(join(root, "apps/portfolio-v2", filename), "utf8"),
+      readFile(join(root, "docs/projects/portfolio-v2", filename), "utf8"),
     ]);
-    assert.deepEqual(published, source, `${filename} 静态副本不一致`);
+    assert.equal(
+      published,
+      source.replaceAll("__NBO_BUILD_VERSION__", version),
+      `${filename} 静态副本不是仅注入最终版本的源文件`,
+    );
   }
 
   const shortHtml = await readFile(join(root, "docs/p/index.html"), "utf8");
@@ -564,6 +724,14 @@ test("static portfolio export keeps style runtime byte parity and excludes priva
     .filter((name) => /\.(?:html|js|json|css)$/i.test(name))
     .map((name) => readFile(join(root, "docs/projects/portfolio-v2", name), "utf8")))).join("\n");
   assert.doesNotMatch(publicText, /\/Users\/|portfolio-style-transactions|portfolio-style-batches|slotIdentities/);
+  assert.doesNotMatch(publicText, /__NBO_BUILD_VERSION__/);
+
+  const [portfolioRuntime, styleExplorer] = await Promise.all([
+    readFile(join(root, "docs/projects/portfolio-v2/portfolio-runtime.js"), "utf8"),
+    readFile(join(root, "docs/projects/portfolio-v2/style-explorer.js"), "utf8"),
+  ]);
+  assert.match(portfolioRuntime, new RegExp(`style-library\\.js\\?v=${version}`));
+  assert.match(styleExplorer, new RegExp(`style-explorer-model\\.js\\?v=${version}`));
 });
 
 test("发布必须包含同编号的全套图片", () => {

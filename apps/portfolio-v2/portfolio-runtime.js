@@ -1,4 +1,4 @@
-import { buildStyleLibrary } from "./style-library.js";
+import { buildStyleLibrary } from "./style-library.js?v=__NBO_BUILD_VERSION__";
 
 const defaultWarn = (...args) => console.warn(...args);
 

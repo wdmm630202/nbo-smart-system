@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import {
   mkdir,
   mkdtemp,
@@ -9,9 +11,12 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { request as httpRequest } from "node:http";
+import { connect } from "node:net";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   buildPortfolioItems,
@@ -23,6 +28,126 @@ const styleStoreUrl = new URL("../tools/portfolio-style-store.mjs", import.meta.
 let sourceFixtureRoot = "";
 let validPhoto = "";
 let wrongRatioPhoto = "";
+
+function waitForManagerOutput(child, pattern, timeout = 15_000) {
+  return new Promise((resolve, reject) => {
+    let output = "";
+    const timer = setTimeout(() => reject(new Error(`等待风格管理接口超时：${output}`)), timeout);
+    const consume = (chunk) => {
+      output += chunk;
+      if (!pattern.test(output)) return;
+      clearTimeout(timer);
+      child.stdout.off("data", consume);
+      child.stderr.off("data", consume);
+      resolve(output);
+    };
+    child.stdout.on("data", consume);
+    child.stderr.on("data", consume);
+  });
+}
+
+async function startManagerFixture(t) {
+  const sandbox = await mkdtemp(join(tmpdir(), "nanbo-style-manager-api-"));
+  const draftRoot = join(sandbox, "drafts");
+  const photoRoot = join(sandbox, "photos");
+  const additionsPath = join(sandbox, "catalog-additions.json");
+  const catalogPath = join(sandbox, "style-catalog.json");
+  const assignmentsPath = join(sandbox, "style-slot-assignments.json");
+  const [catalog, assignments] = await Promise.all([
+    readFile(new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url), "utf8").then(JSON.parse),
+    readFile(new URL("../apps/portfolio-v2/style-slot-assignments.json", import.meta.url), "utf8").then(JSON.parse),
+  ]);
+  assignments.assignments["ST-IN-01-01"].slots[0].assetId = 137;
+  assignments.assignments["ST-IN-01-02"].slots[0].assetId = 137;
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+    writeFile(additionsPath, `${JSON.stringify({ schemaVersion: 1, themes: [], photos: [] }, null, 2)}\n`),
+    writeFile(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`),
+    writeFile(assignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
+  ]);
+
+  const child = spawn(process.execPath, [fileURLToPath(new URL("../tools/portfolio-manager-server.mjs", import.meta.url))], {
+    env: {
+      ...process.env,
+      NANBO_PORTFOLIO_PORT: "0",
+      NANBO_PORTFOLIO_FIXTURE_ROOT: sandbox,
+      NANBO_PORTFOLIO_DRAFT_ROOT: draftRoot,
+      NANBO_PORTFOLIO_ADDITIONS_PATH: additionsPath,
+      NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT: photoRoot,
+      NANBO_PORTFOLIO_STYLE_ROOT: sandbox,
+      NANBO_PORTFOLIO_STYLE_CATALOG_PATH: catalogPath,
+      NANBO_PORTFOLIO_STYLE_ASSIGNMENTS_PATH: assignmentsPath,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  t.after(async () => {
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      await once(child, "exit");
+    }
+    await rm(sandbox, { recursive: true, force: true });
+  });
+  const output = await waitForManagerOutput(child, /南铂客片管理台：/);
+  const selectedPort = output.match(/南铂客片管理台：http:\/\/127\.0\.0\.1:(\d+)\//)?.[1];
+  assert.ok(selectedPort && selectedPort !== "0", `管理台未使用系统分配的随机端口：${output}`);
+  const url = `http://127.0.0.1:${selectedPort}/`;
+  const session = await (await fetch(new URL("api/session", url))).json();
+  return {
+    additionsPath,
+    assignmentsPath,
+    catalogPath,
+    child,
+    exactOrigin: new URL(url).origin,
+    photoRoot,
+    sandbox,
+    token: session.token,
+    url,
+    postJson(path, body, headers = {}) {
+      return fetch(new URL(path, url), {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          "content-type": "application/json",
+          origin: new URL(url).origin,
+          "x-nanbo-token": session.token,
+          ...headers,
+        },
+      });
+    },
+  };
+}
+
+function responseFromNodeRequest(options, writeRequest = (request) => request.end()) {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(options, (response) => {
+      const chunks = [];
+      response.on("data", (chunk) => chunks.push(chunk));
+      response.on("end", () => {
+        const text = Buffer.concat(chunks).toString("utf8");
+        resolve({
+          body: text ? JSON.parse(text) : null,
+          status: response.statusCode,
+        });
+      });
+    });
+    request.on("error", reject);
+    writeRequest(request);
+  });
+}
+
+function allObjectKeys(value, keys = new Set()) {
+  if (!value || typeof value !== "object") return keys;
+  if (Array.isArray(value)) {
+    for (const item of value) allObjectKeys(item, keys);
+    return keys;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    keys.add(key);
+    allObjectKeys(child, keys);
+  }
+  return keys;
+}
 
 async function loadStyleStoreModule() {
   try {
@@ -892,4 +1017,305 @@ test("transaction recovery cannot target a legacy photo asset", async (t) => {
 
   await assert.rejects(() => fixture.store.read(), /事务|资产|越界/);
   assert.equal(await readFile(legacyFull, "utf8"), "legacy recovery guard\n");
+});
+
+test("style mutation routes reject missing tokens, missing origins, and foreign origins", { timeout: 30_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const missingToken = await fetch(new URL("api/style-slots/undo?slot=ST-IN-01-01-P01", server.url), {
+    method: "POST",
+    headers: { origin: server.exactOrigin },
+  });
+  assert.equal(missingToken.status, 403);
+  assert.equal((await missingToken.json()).code, "AUTH_REQUIRED");
+
+  const missingOrigin = await fetch(new URL("api/style-slots/meta", server.url), {
+    method: "POST",
+    body: JSON.stringify({ slotId: "ST-IN-01-01-P01", poseLabel: "正面站姿" }),
+    headers: { "content-type": "application/json", "x-nanbo-token": server.token },
+  });
+  assert.equal(missingOrigin.status, 403);
+  assert.equal((await missingOrigin.json()).code, "ORIGIN_FORBIDDEN");
+
+  const foreignOrigin = await fetch(new URL("api/styles/layout", server.url), {
+    method: "POST",
+    body: JSON.stringify({
+      styleId: "ST-IN-01-01",
+      orderedSlotIds: [],
+      coverSlotId: "",
+      maturity: "reference",
+    }),
+    headers: {
+      "content-type": "application/json",
+      origin: "https://evil.example",
+      "x-nanbo-token": server.token,
+    },
+  });
+  assert.equal(foreignOrigin.status, 403);
+  assert.equal((await foreignOrigin.json()).code, "ORIGIN_FORBIDDEN");
+});
+
+test("style library GET exposes the complete safe management view without private fields", { timeout: 30_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const response = await fetch(new URL("api/style-library", server.url));
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.deepEqual(Object.keys(payload).sort(), ["counts", "families", "ok", "pendingCount", "styles", "version"]);
+  assert.deepEqual(payload.counts, {
+    assets: 158,
+    indoor: 66,
+    outdoor: 66,
+    publishedStyles: 132,
+    slots: 1188,
+    styles: 132,
+  });
+  assert.equal(payload.families.length, 12);
+  assert.equal(payload.styles.length, 132);
+  assert.equal(payload.styles.every((style) => style.slots.length === 9 && typeof style.maturity === "string"), true);
+  assert.equal(payload.pendingCount, 0);
+  assert.match(payload.version, /^style-[0-9a-f]{12}$/);
+
+  const forbiddenKeys = new Set([
+    "approvedForPublicUse",
+    "authorization",
+    "backupDir",
+    "full",
+    "fullUrl",
+    "inputPath",
+    "log",
+    "originalName",
+    "path",
+    "thumb",
+    "thumbUrl",
+    "token",
+    "transactionDir",
+  ]);
+  const exposedKeys = allObjectKeys(payload);
+  assert.deepEqual([...forbiddenKeys].filter((key) => exposedKeys.has(key)), []);
+  assert.doesNotMatch(JSON.stringify(payload), new RegExp(server.sandbox.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(JSON.stringify(payload), /\/Users\/|portfolio-style-transactions|selectedName/);
+});
+
+test("asset reference lookup returns every affected style and stable slot", { timeout: 30_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const assignments = JSON.parse(await readFile(server.assignmentsPath, "utf8"));
+  const expectedSlotIds = [];
+  const expectedStyleIds = [];
+  for (const [styleId, layout] of Object.entries(assignments.assignments)) {
+    layout.slots.forEach((slot, index) => {
+      if (slot.assetId !== 137) return;
+      expectedSlotIds.push(`${styleId}-P${String(index + 1).padStart(2, "0")}`);
+      expectedStyleIds.push(styleId);
+    });
+  }
+
+  const response = await fetch(new URL("api/assets/references?id=137", server.url));
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.assetId, 137);
+  assert.deepEqual(payload.slotIds, expectedSlotIds);
+  assert.deepEqual(payload.styleIds, [...new Set(expectedStyleIds)]);
+  assert.equal(payload.count, expectedSlotIds.length);
+  assert.ok(payload.count > 1);
+  assert.equal(payload.slotIds.every((slotId) => /^ST-(IN|OUT)-/.test(slotId)), true);
+});
+
+test("style API rejects ambiguous IDs and JSON fields with stable error codes", { timeout: 30_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  for (const query of ["id=0137", "id=1e2", "id=137&id=138", "assetId=137"]) {
+    const response = await fetch(new URL(`api/assets/references?${query}`, server.url));
+    assert.equal(response.status, 400, query);
+    assert.equal((await response.json()).code, "INVALID_ASSET_ID", query);
+  }
+  const missingAsset = await fetch(new URL("api/assets/references?id=9999", server.url));
+  assert.equal(missingAsset.status, 404);
+  assert.equal((await missingAsset.json()).code, "ASSET_NOT_FOUND");
+
+  const invalidSlot = await server.postJson("api/style-slots/meta", {
+    slotId: "ST-IN-1-1-P1",
+    poseLabel: "正面站姿",
+  });
+  assert.equal(invalidSlot.status, 400);
+  assert.equal((await invalidSlot.json()).code, "INVALID_SLOT_ID");
+
+  const extraField = await server.postJson("api/styles/meta", {
+    styleId: "ST-IN-01-01",
+    label: "职业形象",
+    audience: "职场男士",
+    description: "干净利落",
+    visibility: "published",
+    localPath: "/tmp/private.jpg",
+  });
+  assert.equal(extraField.status, 400);
+  const extraFieldPayload = await extraField.json();
+  assert.equal(extraFieldPayload.code, "STYLE_VALIDATION_FAILED");
+  assert.doesNotMatch(JSON.stringify(extraFieldPayload), /Error:|\bat\s+.*\.mjs:/);
+});
+
+test("style mutation endpoints update only the isolated manifests and preserve copy-on-write references", { timeout: 60_000 }, async (t) => {
+  const productionCatalogPath = new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url);
+  const productionAssignmentsPath = new URL("../apps/portfolio-v2/style-slot-assignments.json", import.meta.url);
+  const productionBefore = await Promise.all([
+    readFile(productionCatalogPath),
+    readFile(productionAssignmentsPath),
+  ]);
+  const server = await startManagerFixture(t);
+  const initialLibrary = await (await fetch(new URL("api/style-library", server.url))).json();
+  const initialStyle = initialLibrary.styles.find(({ id }) => id === "ST-IN-01-01");
+
+  const slotMeta = await server.postJson("api/style-slots/meta", {
+    slotId: "ST-IN-01-01-P01",
+    poseLabel: "正面站姿",
+  });
+  assert.equal(slotMeta.status, 200);
+  assert.deepEqual((await slotMeta.json()).result, { slotId: "ST-IN-01-01-P01", poseLabel: "正面站姿" });
+
+  const styleMeta = await server.postJson("api/styles/meta", {
+    styleId: "ST-IN-01-01",
+    label: "职业形象测试",
+    audience: "需要正式头像的男士",
+    description: "以稳定目光呈现清晰职业状态",
+    visibility: "hidden",
+  });
+  assert.equal(styleMeta.status, 200);
+  assert.equal((await styleMeta.json()).result.visibility, "hidden");
+
+  const orderedSlotIds = initialStyle.slots.map(({ id }) => id).reverse();
+  const layout = await server.postJson("api/styles/layout", {
+    styleId: initialStyle.id,
+    orderedSlotIds,
+    coverSlotId: orderedSlotIds[0],
+    maturity: "updating",
+  });
+  assert.equal(layout.status, 200);
+  assert.deepEqual((await layout.json()).result, {
+    styleId: initialStyle.id,
+    coverPosition: 1,
+    maturity: "updating",
+  });
+
+  const image = await readFile(validPhoto);
+  const replacement = await fetch(new URL("api/style-slots/replace?slot=ST-IN-01-01-P01", server.url), {
+    method: "POST",
+    body: image,
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": encodeURIComponent("/Users/customer/private/客户王先生.jpg"),
+      "x-nanbo-token": server.token,
+    },
+  });
+  assert.equal(replacement.status, 200);
+  const replacementPayload = await replacement.json();
+  assert.deepEqual(replacementPayload.result, {
+    assetId: 159,
+    code: "NB-159",
+    slotId: "ST-IN-01-01-P01",
+  });
+  assert.doesNotMatch(JSON.stringify(replacementPayload), /\/Users\/customer|originalName|private/);
+
+  const references = await (await fetch(new URL("api/assets/references?id=159", server.url))).json();
+  assert.deepEqual(references, {
+    assetId: 159,
+    slotIds: ["ST-IN-01-01-P01"],
+    styleIds: ["ST-IN-01-01"],
+    count: 1,
+  });
+  const undo = await server.postJson("api/style-slots/undo?slot=ST-IN-01-01-P01", null);
+  assert.equal(undo.status, 200);
+  assert.equal((await undo.json()).result.restoredAssetId, initialStyle.slots.at(-1).assetId);
+
+  const after = await (await fetch(new URL("api/style-library", server.url))).json();
+  const updatedStyle = after.styles.find(({ id }) => id === initialStyle.id);
+  assert.equal(updatedStyle.label, "职业形象测试");
+  assert.equal(updatedStyle.visibility, "hidden");
+  assert.equal(updatedStyle.maturity, "updating");
+  assert.equal(updatedStyle.slots[0].poseLabel, initialStyle.slots.at(-1).poseLabel);
+  assert.deepEqual(await Promise.all([
+    readFile(productionCatalogPath),
+    readFile(productionAssignmentsPath),
+  ]), productionBefore);
+});
+
+test("raw style uploads enforce Content-Length, clean temporary files, and release the shared busy lock after abort", { timeout: 60_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const oversized = await responseFromNodeRequest({
+    headers: {
+      "content-length": String((50 * 1024 * 1024) + 1),
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "oversized.jpg",
+      "x-nanbo-token": server.token,
+    },
+    method: "POST",
+    path: "/api/style-slots/replace?slot=ST-IN-01-01-P01",
+    host: "127.0.0.1",
+    port: Number(new URL(server.url).port),
+  });
+  assert.equal(oversized.status, 413);
+  assert.equal(oversized.body.code, "PAYLOAD_TOO_LARGE");
+
+  const uploadsBefore = new Set((await readdir(tmpdir())).filter((name) => name.startsWith("nanbo-upload-")));
+  const invalidImage = await fetch(new URL("api/style-slots/replace?slot=ST-IN-01-01-P01", server.url), {
+    method: "POST",
+    body: "not an image",
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "invalid.jpg",
+      "x-nanbo-token": server.token,
+    },
+  });
+  assert.notEqual(invalidImage.status, 200);
+  const uploadsAfter = (await readdir(tmpdir())).filter((name) => name.startsWith("nanbo-upload-") && !uploadsBefore.has(name));
+  assert.deepEqual(uploadsAfter, []);
+
+  const slowRequest = connect(Number(new URL(server.url).port), "127.0.0.1");
+  const slowClosed = once(slowRequest, "close");
+  await once(slowRequest, "connect");
+  slowRequest.write([
+    "POST /api/style-slots/replace?slot=ST-IN-01-01-P01 HTTP/1.1",
+    `Host: 127.0.0.1:${new URL(server.url).port}`,
+    `Origin: ${server.exactOrigin}`,
+    `X-Nanbo-Token: ${server.token}`,
+    "X-File-Name: aborted.jpg",
+    "Content-Type: image/jpeg",
+    "Content-Length: 1024",
+    "Connection: close",
+    "",
+    "abc",
+  ].join("\r\n"));
+  let busy;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    busy = await server.postJson("api/style-slots/meta", {
+      slotId: "ST-IN-01-01-P01",
+      poseLabel: "忙锁测试",
+    });
+    if (busy.status === 409) break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.equal(busy.status, 409);
+  assert.deepEqual(await busy.json(), {
+    ok: false,
+    code: "MUTATION_BUSY",
+    error: "管理台正在执行其他修改，请稍后重试",
+  });
+  const publishBusy = await fetch(new URL("api/publish", server.url), {
+    method: "POST",
+    headers: { origin: server.exactOrigin, "x-nanbo-token": server.token },
+  });
+  assert.equal(publishBusy.status, 409);
+  assert.equal((await publishBusy.json()).code, "MUTATION_BUSY");
+  slowRequest.destroy();
+  await slowClosed;
+
+  let afterAbort;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    afterAbort = await server.postJson("api/style-slots/meta", {
+      slotId: "ST-IN-01-01-P01",
+      poseLabel: "中断后可继续",
+    });
+    if (afterAbort.status !== 409) break;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.equal(afterAbort.status, 200);
 });

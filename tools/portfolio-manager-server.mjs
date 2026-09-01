@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { readFile, realpath, rm, stat } from "node:fs/promises";
@@ -43,6 +43,15 @@ const sharedPortfolioRoot = join(root, "apps/portfolio");
 const configuredDraftRoot = process.env.NANBO_PORTFOLIO_DRAFT_ROOT || draftRoot;
 const additionsPath = process.env.NANBO_PORTFOLIO_ADDITIONS_PATH || join(root, "apps/portfolio-v2/catalog-additions.json");
 const publicPhotoRoot = process.env.NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT || sourcePhotoRoot;
+const hasConfiguredStyleRoot = Boolean(process.env.NANBO_PORTFOLIO_STYLE_ROOT);
+const configuredStyleRoot = process.env.NANBO_PORTFOLIO_STYLE_ROOT || root;
+const styleAdditionsPath = hasConfiguredStyleRoot
+  ? additionsPath
+  : join(root, "apps/portfolio-v2/catalog-additions.json");
+const stylePhotoRoot = hasConfiguredStyleRoot ? publicPhotoRoot : sourcePhotoRoot;
+const styleCatalogPath = process.env.NANBO_PORTFOLIO_STYLE_CATALOG_PATH || join(root, "apps/portfolio-v2/style-catalog.json");
+const styleAssignmentsPath = process.env.NANBO_PORTFOLIO_STYLE_ASSIGNMENTS_PATH || join(root, "apps/portfolio-v2/style-slot-assignments.json");
+const configuredFixtureRoot = process.env.NANBO_PORTFOLIO_FIXTURE_ROOT || "";
 const draftStore = createDraftStore({ rootDir: configuredDraftRoot, legacyMaxId: portfolioCatalog.photoCount });
 const publicationOptions = {
   store: draftStore,
@@ -57,6 +66,8 @@ const sessionToken = randomBytes(24).toString("hex");
 const uploadLimit = 50 * 1024 * 1024;
 let activeMutation = "";
 let serverReady = false;
+let styleStore = null;
+const styleStoreModuleUrl = new URL("./portfolio-style-store.mjs", import.meta.url);
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -83,6 +94,13 @@ const publishExactPaths = new Set([
   "docs/i/index.html",
 ]);
 const publicationMetadata = "apps/portfolio-v2/catalog-additions.json";
+const styleMutationPaths = new Set([
+  "/api/style-slots/replace",
+  "/api/style-slots/undo",
+  "/api/style-slots/meta",
+  "/api/styles/layout",
+  "/api/styles/meta",
+]);
 
 function allowedLocalHosts() {
   return new Set([`${host}:${activePort}`, `localhost:${activePort}`]);
@@ -97,12 +115,23 @@ function json(response, status, body) {
   response.end(`${JSON.stringify(body)}\n`);
 }
 
+function apiError(code, message, status = 400) {
+  const error = new Error(message);
+  error.apiCode = code;
+  error.status = status;
+  return error;
+}
+
 function errorJson(response, error, status = 400) {
-  json(response, status, { ok: false, error: error instanceof Error ? error.message : String(error) });
+  const code = typeof error?.apiCode === "string"
+    ? error.apiCode
+    : (status >= 500 ? "INTERNAL_ERROR" : "BAD_REQUEST");
+  const message = error instanceof Error ? error.message : String(error);
+  json(response, status, { ok: false, code, error: message });
 }
 
 function beginMutation(label) {
-  if (activeMutation) throw new Error(`正在${activeMutation}，请等当前操作完成`);
+  if (activeMutation) throw apiError("MUTATION_BUSY", "管理台正在执行其他修改，请稍后重试", 409);
   activeMutation = label;
 }
 
@@ -152,14 +181,34 @@ function notFound(response) {
 }
 
 async function readBody(request) {
+  const declaredLength = request.headers["content-length"];
+  if (declaredLength !== undefined) {
+    const rawLength = String(declaredLength);
+    if (!/^(?:0|[1-9]\d*)$/.test(rawLength) || !Number.isSafeInteger(Number(rawLength))) {
+      throw apiError("INVALID_CONTENT_LENGTH", "请求长度无效");
+    }
+    if (Number(rawLength) > uploadLimit) {
+      throw apiError("PAYLOAD_TOO_LARGE", "图片超过 50 MB，请先导出精修 JPG", 413);
+    }
+  }
   const chunks = [];
   let size = 0;
-  for await (const chunk of request) {
-    size += chunk.length;
-    if (size > uploadLimit) throw new Error("图片超过 50 MB，请先导出精修 JPG");
-    chunks.push(chunk);
+  try {
+    for await (const chunk of request) {
+      size += chunk.length;
+      if (size > uploadLimit) {
+        throw apiError("PAYLOAD_TOO_LARGE", "图片超过 50 MB，请先导出精修 JPG", 413);
+      }
+      chunks.push(chunk);
+    }
+  } catch (error) {
+    if (error?.apiCode) throw error;
+    if (request.aborted || new Set(["ABORT_ERR", "ECONNRESET"]).has(error?.code)) {
+      throw apiError("REQUEST_ABORTED", "上传已中断");
+    }
+    throw error;
   }
-  if (!size) throw new Error("请先选择要替换的图片");
+  if (!size) throw apiError("EMPTY_BODY", "请先选择要替换的图片");
   return Buffer.concat(chunks);
 }
 
@@ -168,7 +217,7 @@ async function readJsonBody(request) {
   try {
     return JSON.parse(content.toString("utf8"));
   } catch {
-    throw new Error("提交的数据不是有效 JSON");
+    throw apiError("INVALID_JSON", "提交的数据不是有效 JSON");
   }
 }
 
@@ -298,6 +347,256 @@ async function catalogPayload() {
     onlineUrl: onlinePortfolioUrl,
     version,
   };
+}
+
+async function initializeStyleStore() {
+  let createPortfolioStyleStore;
+  try {
+    ({ createPortfolioStyleStore } = await import(styleStoreModuleUrl.href));
+  } catch (error) {
+    const isolatedLegacyFixture = requestedPort === 0
+      && Boolean(process.env.NANBO_PORTFOLIO_DRAFT_ROOT)
+      && Boolean(process.env.NANBO_PORTFOLIO_ADDITIONS_PATH)
+      && Boolean(process.env.NANBO_PORTFOLIO_PUBLIC_PHOTO_ROOT)
+      && !hasConfiguredStyleRoot;
+    if (isolatedLegacyFixture && error?.code === "ERR_MODULE_NOT_FOUND" && error?.url === styleStoreModuleUrl.href) {
+      return null;
+    }
+    throw error;
+  }
+  const store = createPortfolioStyleStore({
+    rootDir: configuredStyleRoot,
+    photoRoot: stylePhotoRoot,
+    additionsPath: styleAdditionsPath,
+    catalogPath: styleCatalogPath,
+    assignmentsPath: styleAssignmentsPath,
+  });
+  await store.read();
+  return store;
+}
+
+function requireStyleStore() {
+  if (!styleStore) throw apiError("STYLE_LIBRARY_UNAVAILABLE", "风格库尚未完成安全检查", 503);
+  return styleStore;
+}
+
+function styleVersion(state) {
+  const hash = createHash("sha256");
+  hash.update(JSON.stringify({
+    additions: state.additions,
+    assignments: state.assignments,
+    catalog: state.catalog,
+  }));
+  return `style-${hash.digest("hex").slice(0, 12)}`;
+}
+
+function safeStyleFamily(family) {
+  return {
+    id: family.id,
+    scene: family.scene,
+    label: family.label,
+    description: family.description,
+    order: family.order,
+  };
+}
+
+function safeManagedStyle(style) {
+  return {
+    id: style.id,
+    familyId: style.familyId,
+    scene: style.scene,
+    label: style.label,
+    audience: style.audience,
+    description: style.description,
+    order: style.order,
+    visibility: style.visibility,
+    maturity: style.maturity,
+    coverSlotId: style.slots.find(({ isCover }) => isCover)?.id || "",
+    slots: style.slots.map((slot) => ({
+      id: slot.id,
+      styleId: slot.styleId,
+      position: slot.position,
+      assetId: slot.assetId,
+      poseLabel: slot.poseLabel,
+      source: slot.source,
+      updatedAt: slot.updatedAt,
+      isCover: slot.isCover,
+    })),
+  };
+}
+
+async function styleLibraryPayload() {
+  let state;
+  try {
+    state = await requireStyleStore().read();
+  } catch (error) {
+    if (error?.apiCode) throw error;
+    throw apiError("STYLE_LIBRARY_UNAVAILABLE", "风格库暂时无法读取，请稍后重试", 500);
+  }
+  return {
+    counts: { ...state.counts },
+    families: state.families.map(safeStyleFamily),
+    styles: state.styles.map(safeManagedStyle),
+    pendingCount: state.slots.filter(({ source }) => source === "upload").length,
+    version: styleVersion(state),
+  };
+}
+
+function exactQueryValue(url, name, code, message) {
+  const keys = [...url.searchParams.keys()];
+  const values = url.searchParams.getAll(name);
+  if (keys.length !== 1 || keys[0] !== name || values.length !== 1 || !values[0]) {
+    throw apiError(code, message);
+  }
+  return values[0];
+}
+
+function assertNoQuery(url, code, message) {
+  if ([...url.searchParams.keys()].length) throw apiError(code, message);
+}
+
+function strictAssetId(url) {
+  const value = exactQueryValue(url, "id", "INVALID_ASSET_ID", "资产编号无效");
+  if (!/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) {
+    throw apiError("INVALID_ASSET_ID", "资产编号无效");
+  }
+  return Number(value);
+}
+
+function requireStyleId(value) {
+  if (typeof value !== "string" || !/^ST-(?:IN|OUT)-0[1-6]-(?:0[1-9]|1[01])$/.test(value)) {
+    throw apiError("INVALID_STYLE_ID", "风格编号无效");
+  }
+  return value;
+}
+
+function requireStyleSlotId(value) {
+  if (typeof value !== "string" || !/^ST-(?:IN|OUT)-0[1-6]-(?:0[1-9]|1[01])-P0[1-9]$/.test(value)) {
+    throw apiError("INVALID_SLOT_ID", "照片位编号无效");
+  }
+  return value;
+}
+
+async function assetReferencesPayload(url) {
+  const assetId = strictAssetId(url);
+  let state;
+  try {
+    state = await requireStyleStore().read();
+  } catch (error) {
+    if (error?.apiCode) throw error;
+    throw apiError("STYLE_LIBRARY_UNAVAILABLE", "风格库暂时无法读取，请稍后重试", 500);
+  }
+  if (!state.assetById[assetId]) throw apiError("ASSET_NOT_FOUND", "资产不存在", 404);
+  const affected = state.slots.filter((slot) => slot.assetId === assetId);
+  return {
+    assetId,
+    slotIds: affected.map(({ id }) => id),
+    styleIds: [...new Set(affected.map(({ styleId }) => styleId))],
+    count: affected.length,
+  };
+}
+
+function requireExactStyleSession(request) {
+  if (request.headers["x-nanbo-token"] !== sessionToken) {
+    throw apiError("AUTH_REQUIRED", "管理台会话已过期，请刷新页面后重试", 403);
+  }
+  const allowedOrigins = new Set([`http://${host}:${activePort}`, `http://localhost:${activePort}`]);
+  if (!allowedOrigins.has(String(request.headers.origin || ""))) {
+    throw apiError("ORIGIN_FORBIDDEN", "为保护本地客片，已拒绝其他网页发起的操作", 403);
+  }
+}
+
+function styleOperationError(error) {
+  if (error?.apiCode) return error;
+  const message = error instanceof Error ? error.message : String(error);
+  if (/ffprobe failed|Invalid data found|moov atom/i.test(message)) {
+    return apiError("INVALID_IMAGE", "上传的文件不是可读取的 JPG、PNG 或 WebP 图片");
+  }
+  if (/不存在|没有更早|必须|格式无效|不允许字段|缺少字段|只支持|图片只有|图片比例|可见性|成熟度/.test(message)) {
+    return apiError("STYLE_VALIDATION_FAILED", message);
+  }
+  return apiError("STYLE_OPERATION_FAILED", "风格操作未完成，请稍后重试", 500);
+}
+
+async function runStyleMutation(response, label, operation) {
+  beginMutation(label);
+  try {
+    const result = await operation();
+    json(response, 200, { ok: true, result });
+  } catch (error) {
+    throw styleOperationError(error);
+  } finally {
+    finishMutation();
+  }
+}
+
+function decodedStyleUploadName(request) {
+  const rawName = request.headers["x-file-name"];
+  if (typeof rawName !== "string" || !rawName) throw apiError("INVALID_FILE_NAME", "缺少图片文件名");
+  let decoded;
+  try {
+    decoded = decodeURIComponent(rawName);
+  } catch {
+    throw apiError("INVALID_FILE_NAME", "图片文件名无效");
+  }
+  const name = decoded.replaceAll("\\", "/").split("/").at(-1)?.trim() || "";
+  if (!name || Array.from(name).length > 255) throw apiError("INVALID_FILE_NAME", "图片文件名无效");
+  return name;
+}
+
+async function replaceStyleSlotRequest(request, response, url) {
+  await runStyleMutation(response, "替换风格照片位", async () => {
+    const slotId = requireStyleSlotId(exactQueryValue(url, "slot", "INVALID_SLOT_ID", "照片位编号无效"));
+    const originalName = decodedStyleUploadName(request);
+    const extension = extname(originalName).toLowerCase();
+    const contentType = String(request.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+    if (!allowedPhotoTypes.has(contentType) && !allowedPhotoExtensions.has(extension)) {
+      throw apiError("UNSUPPORTED_MEDIA_TYPE", "只支持 JPG、PNG 或 WebP 图片", 415);
+    }
+    const buffer = await readBody(request);
+    const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".upload");
+    try {
+      return await requireStyleStore().replaceSlot({ slotId, inputPath: temporary.path, originalName });
+    } finally {
+      await rm(temporary.directory, { recursive: true, force: true });
+    }
+  });
+}
+
+async function undoStyleSlotRequest(response, url) {
+  await runStyleMutation(response, "恢复风格照片位", () => {
+    const slotId = requireStyleSlotId(exactQueryValue(url, "slot", "INVALID_SLOT_ID", "照片位编号无效"));
+    return requireStyleStore().undoSlot(slotId);
+  });
+}
+
+async function updateStyleSlotMetaRequest(request, response, url) {
+  await runStyleMutation(response, "保存照片位资料", async () => {
+    assertNoQuery(url, "INVALID_SLOT_ID", "照片位接口不接受查询参数");
+    const input = await readJsonBody(request);
+    requireStyleSlotId(input?.slotId);
+    return requireStyleStore().updateSlotMeta(input);
+  });
+}
+
+async function updateStyleLayoutRequest(request, response, url) {
+  await runStyleMutation(response, "保存风格布局", async () => {
+    assertNoQuery(url, "INVALID_STYLE_ID", "风格布局接口不接受查询参数");
+    const input = await readJsonBody(request);
+    requireStyleId(input?.styleId);
+    if (Array.isArray(input?.orderedSlotIds)) input.orderedSlotIds.forEach(requireStyleSlotId);
+    if (input?.coverSlotId !== undefined) requireStyleSlotId(input.coverSlotId);
+    return requireStyleStore().updateLayout(input);
+  });
+}
+
+async function updateStyleMetaRequest(request, response, url) {
+  await runStyleMutation(response, "保存风格资料", async () => {
+    assertNoQuery(url, "INVALID_STYLE_ID", "风格资料接口不接受查询参数");
+    const input = await readJsonBody(request);
+    requireStyleId(input?.styleId);
+    return requireStyleStore().updateStyleMeta(input);
+  });
 }
 
 function numericDraftId(url) {
@@ -738,8 +1037,19 @@ async function route(request, response) {
       error.status = 503;
       throw error;
     }
+    if (request.method === "POST" && styleMutationPaths.has(url.pathname)) {
+      requireExactStyleSession(request);
+    }
     if (request.method === "GET" && url.pathname === "/api/session") {
       json(response, 200, { ok: true, token: sessionToken });
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/api/style-library") {
+      json(response, 200, { ok: true, ...(await styleLibraryPayload()) });
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/api/assets/references") {
+      json(response, 200, await assetReferencesPayload(url));
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/catalog") {
@@ -756,6 +1066,26 @@ async function route(request, response) {
     }
     if (request.method === "POST" && url.pathname === "/api/undo") {
       await undoPhotoRequest(request, response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/style-slots/replace") {
+      await replaceStyleSlotRequest(request, response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/style-slots/undo") {
+      await undoStyleSlotRequest(response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/style-slots/meta") {
+      await updateStyleSlotMetaRequest(request, response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/styles/layout") {
+      await updateStyleLayoutRequest(request, response, url);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/styles/meta") {
+      await updateStyleMetaRequest(request, response, url);
       return;
     }
     if (request.method === "POST" && url.pathname === "/api/drafts/upload") {
@@ -873,8 +1203,18 @@ server.listen(requestedPort, host, async () => {
   try {
     // 只有成功绑定端口的单一进程才允许检查事务目录。第二次双击会先走
     // EADDRINUSE，不会把第一个进程的正在换图误当成崩溃恢复。
+    const isolatedFixture = requestedPort === 0
+      && configuredFixtureRoot
+      && [
+        configuredDraftRoot,
+        styleAdditionsPath,
+        stylePhotoRoot,
+        configuredStyleRoot,
+        styleCatalogPath,
+        styleAssignmentsPath,
+      ].every((path) => isPathInside(configuredFixtureRoot, path));
     const [recoveredPhotoTransactions, recoveredPublicationTransactions] = await Promise.all([
-      recoverIncompletePhotoTransactions(),
+      isolatedFixture ? Promise.resolve([]) : recoverIncompletePhotoTransactions(),
       recoverIncompletePublicationTransactions(publicationOptions),
     ]);
     if (recoveredPhotoTransactions.length) {
@@ -883,6 +1223,7 @@ server.listen(requestedPort, host, async () => {
     if (recoveredPublicationTransactions.length) {
       console.log(`已自动恢复中断的客片公开：${recoveredPublicationTransactions.join("、")}`);
     }
+    styleStore = await initializeStyleStore();
     serverReady = true;
     console.log(`南铂客片管理台：${url}`);
     console.log("保持这个窗口开启；结束时可直接关闭窗口。");

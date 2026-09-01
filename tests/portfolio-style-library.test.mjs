@@ -178,10 +178,17 @@ test("seed keeps 11 family covers distinct in sequence and CLI audits 132 local 
     }
   }
 
-  const { stdout } = await execFileAsync(process.execPath, ["tools/seed-portfolio-style-library.mjs"], {
+  const productionAssignmentsPath = resolve(repositoryRoot, "apps/portfolio-v2/style-slot-assignments.json");
+  const assignmentsBeforeAudit = await readFile(productionAssignmentsPath);
+  const { stdout } = await execFileAsync(process.execPath, ["tools/seed-portfolio-style-library.mjs", "--audit-only"], {
     cwd: repositoryRoot,
   });
   assert.match(stdout, /132 styles · 1188 slots · 158 assets/);
+  assert.deepEqual(
+    await readFile(productionAssignmentsPath),
+    assignmentsBeforeAudit,
+    "cover audit must not overwrite reviewed production assignments",
+  );
   const report = JSON.parse(await readFile(resolve(repositoryRoot, ".local/portfolio-style-seed-report.json"), "utf8"));
   assert.deepEqual([report.styles, report.slots, report.assets], [132, 1188, 158]);
   const audit = await readFile(resolve(repositoryRoot, ".local/portfolio-style-cover-audit.html"), "utf8");

@@ -34,7 +34,7 @@ function contentType(pathname) {
   return "application/octet-stream";
 }
 
-async function runChrome(url, width, extraFlags = []) {
+async function runChrome(url, width, extraFlags = [], height = 1000) {
   const profileDir = await mkdtemp(join(tmpdir(), "nbo-style-chrome-"));
   const child = spawn(chromePath, [
     "--headless=new",
@@ -92,15 +92,15 @@ async function runChrome(url, width, extraFlags = []) {
     const { sessionId } = await command("Target.attachToTarget", { targetId, flatten: true });
     await command("Emulation.setDeviceMetricsOverride", {
       width,
-      height: 1000,
+      height,
       deviceScaleFactor: 1,
       mobile: width < 700,
       screenWidth: width,
-      screenHeight: 1000,
+      screenHeight: height,
     }, sessionId);
     await command("Page.navigate", { url }, sessionId);
     let metricsText = "";
-    for (let attempt = 0; attempt < 80 && !metricsText; attempt += 1) {
+    for (let attempt = 0; attempt < 160 && !metricsText; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const evaluation = await command("Runtime.evaluate", {
         expression: 'document.querySelector("#style-explorer-metrics")?.textContent || ""',
@@ -119,6 +119,108 @@ async function runChrome(url, width, extraFlags = []) {
     child.kill("SIGTERM");
     await new Promise((resolve) => child.once("close", resolve));
     await rm(profileDir, { recursive: true, force: true });
+  }
+}
+
+async function measureStyleResourceLoading() {
+  const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    const reportStyleAcceptanceError = (error) => {
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({ probeError: String(error?.stack || error) });
+    };
+    window.addEventListener("error", (event) => reportStyleAcceptanceError(event.error || event.message));
+    window.addEventListener("unhandledrejection", (event) => reportStyleAcceptanceError(event.reason));
+    window.addEventListener("load", () => window.setTimeout(async () => {
+      const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      const waitFor = async (condition) => {
+        for (let attempt = 0; attempt < 60; attempt += 1) {
+          if (condition()) return true;
+          await wait(50);
+        }
+        return false;
+      };
+      const pathname = (value) => {
+        try { return new URL(value, location.href).pathname; } catch { return ""; }
+      };
+      const requestLog = () => fetch("/__request-log", { cache: "no-store" }).then((response) => response.json());
+      const fullPattern = new RegExp("^/portfolio/assets/photos/full/photo-[0-9]{3}[.]jpg$");
+      const imagePattern = new RegExp("[.](?:webp|jpe?g|png)$", "i");
+
+      await waitFor(() => document.querySelectorAll("#style-card-grid .portrait-style-card").length === 11);
+      await wait(180);
+      const initialCards = [...document.querySelectorAll("#style-card-grid .portrait-style-card")];
+      const initialPoseCards = document.querySelectorAll("#style-album-grid .style-pose-card").length;
+      const initialStyleSources = new Set(initialCards.map((card) => pathname(card.querySelector("img")?.src)).filter(Boolean));
+      const coverThumb = pathname(initialCards[0]?.querySelector("img")?.src);
+      const initialLog = await requestLog();
+
+      initialCards[0]?.querySelector(".portrait-style-card-open")?.click();
+      await waitFor(() => document.querySelectorAll("#style-album-grid .style-pose-card").length === 9);
+      await wait(180);
+      const poseCards = [...document.querySelectorAll("#style-album-grid .style-pose-card")];
+      const poseSources = new Set(poseCards.map((card) => pathname(card.querySelector("img")?.src)).filter(Boolean));
+      const albumLog = await requestLog();
+
+      poseCards[0]?.querySelector(".pose-open")?.click();
+      await waitFor(() => Boolean(document.querySelector("#viewer")?.open && document.querySelector("#viewer-image")?.src));
+      await wait(180);
+      const viewerLog = await requestLog();
+      const initialStyleThumbRequests = initialLog.filter((path) => initialStyleSources.has(path)).length;
+      const newAlbumThumbRequests = albumLog.slice(initialLog.length).filter((path) => poseSources.has(path)).length;
+      const viewerFullRequests = viewerLog.slice(albumLog.length).filter((path) => fullPattern.test(path)).length;
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
+        viewport: window.innerWidth + "x" + window.innerHeight,
+        initialStyleCards: initialCards.length,
+        initialPoseCards,
+        initialStyleThumbRequests,
+        initialFullRequests: initialLog.filter((path) => fullPattern.test(path)).length,
+        albumPoseCards: poseCards.length,
+        newAlbumThumbRequests,
+        albumFullRequests: albumLog.filter((path) => fullPattern.test(path)).length,
+        viewerFullRequests,
+        coverThumbNetworkRequests: viewerLog.filter((path) => path === coverThumb).length,
+        totalImageRequests: viewerLog.filter((path) => imagePattern.test(path)).length,
+      });
+    }, 180));
+  </script>`;
+  const page = sourceHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace("</body>", `${probe}</body>`);
+  const requests = [];
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/__request-log") {
+        response.writeHead(200, { "Cache-Control": "no-store", "Content-Type": "application/json" });
+        response.end(JSON.stringify(requests));
+        return;
+      }
+      requests.push(url.pathname);
+      if (url.pathname === "/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      const asset = await readFile(new URL(`../apps${url.pathname}`, import.meta.url));
+      response.writeHead(200, {
+        "Cache-Control": "public, max-age=3600",
+        "Content-Type": contentType(url.pathname),
+      });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(`http://127.0.0.1:${port}/portfolio-v2/index.html?v=resource-acceptance`, 390, [], 844);
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 }
 
@@ -1692,4 +1794,23 @@ test("reduced-motion keeps feedback without a long moving transition", { skip: !
   assert.ok(metrics.albumAnimationDurations.length > 0, "相册没有可验证的温和状态反馈");
   assert.ok(metrics.albumAnimationDurations.every((duration) => duration <= .02),
     `减少动态后相册仍使用大幅位移：${metrics.albumAnimationDurations}`);
+});
+
+test("style explorer requests only the visible family, opened album, and current full image", { skip: !hasChrome }, async (context) => {
+  const metrics = await measureStyleResourceLoading();
+  context.diagnostic(`style resource counts ${JSON.stringify(metrics)}`);
+
+  assert.equal(metrics.probeError, undefined, metrics.probeError);
+  assert.equal(metrics.viewport, "390x844");
+  assert.equal(metrics.initialStyleCards, 11);
+  assert.equal(metrics.initialPoseCards, 0);
+  assert.ok(metrics.initialStyleThumbRequests <= 11, `首屏请求了 ${metrics.initialStyleThumbRequests} 张风格封面`);
+  assert.equal(metrics.initialFullRequests, 0, "首屏不应请求高清图");
+  assert.equal(metrics.albumPoseCards, 9);
+  assert.ok(metrics.newAlbumThumbRequests <= 9, `打开相册新请求了 ${metrics.newAlbumThumbRequests} 张缩略图`);
+  assert.equal(metrics.albumFullRequests, 0, "打开相册不应请求高清图");
+  assert.ok(metrics.viewerFullRequests >= 1 && metrics.viewerFullRequests <= 2,
+    `查看器高清图请求应为当前图加最多一张相邻图，实际 ${metrics.viewerFullRequests}`);
+  assert.equal(metrics.coverThumbNetworkRequests, 1, "封面进入相册后没有复用浏览器缓存");
+  assert.ok(metrics.totalImageRequests < 40, `浏览一个风格实际请求 ${metrics.totalImageRequests} 张图，疑似预载全库`);
 });

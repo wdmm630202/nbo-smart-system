@@ -132,18 +132,29 @@ async function runCli() {
   const catalogPath = join(root, "apps/portfolio-v2/style-catalog.json");
   const assignmentsPath = join(root, "apps/portfolio-v2/style-slot-assignments.json");
   const localDirectory = join(root, ".local");
+  const auditOnly = process.argv.includes("--audit-only");
   const catalog = normalizeStyleCatalog(JSON.parse(await readFile(catalogPath, "utf8")));
   const assets = publicAssets();
-  const seeded = buildSeedAssignments({ catalog, assets });
-  const document = { schemaVersion: seeded.schemaVersion, assignments: seeded.assignments };
   await mkdir(localDirectory, { recursive: true });
-  await writeFile(assignmentsPath, `${JSON.stringify(document, null, 2)}\n`);
-  const persistedCatalog = normalizeStyleCatalog(JSON.parse(await readFile(catalogPath, "utf8")));
-  const persistedAssignments = JSON.parse(await readFile(assignmentsPath, "utf8"));
-  normalizeStyleAssignments(persistedAssignments, persistedCatalog, new Map(assets.map((asset) => [asset.id, asset])));
-  await writeFile(join(localDirectory, "portfolio-style-seed-report.json"), `${JSON.stringify(seeded.report, null, 2)}\n`);
-  await writeFile(join(localDirectory, "portfolio-style-cover-audit.html"), buildCoverAuditHtml({ catalog, assignments: seeded.assignments, assets }));
-  console.log(`${seeded.report.styles} styles · ${seeded.report.slots} slots · ${seeded.report.assets} assets`);
+  const document = auditOnly
+    ? JSON.parse(await readFile(assignmentsPath, "utf8"))
+    : (() => {
+      const seeded = buildSeedAssignments({ catalog, assets });
+      return { schemaVersion: seeded.schemaVersion, assignments: seeded.assignments };
+    })();
+  if (!auditOnly) await writeFile(assignmentsPath, `${JSON.stringify(document, null, 2)}\n`);
+  const persistedAssignments = normalizeStyleAssignments(
+    document,
+    catalog,
+    new Map(assets.map((asset) => [asset.id, asset])),
+  ).assignments;
+  const report = buildSeedReport(catalog, persistedAssignments, assets);
+  await writeFile(join(localDirectory, "portfolio-style-seed-report.json"), `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(
+    join(localDirectory, "portfolio-style-cover-audit.html"),
+    buildCoverAuditHtml({ catalog, assignments: persistedAssignments, assets }),
+  );
+  console.log(`${report.styles} styles · ${report.slots} slots · ${report.assets} assets`);
 }
 
 if (process.argv[1] === toolPath) {

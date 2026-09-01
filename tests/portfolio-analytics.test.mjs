@@ -117,7 +117,8 @@ async function measureMobileFooter() {
     const brandSubtitleRect = rect(".footer-brand small");
     const detailRect = rect(".wechat-contact-details");
     const qrFrameRect = rect(".wechat-qr-frame");
-    const qrRect = rect(".wechat-qr-frame img");
+    const qrImage = document.querySelector(".wechat-qr-frame img");
+    const qrRect = qrImage.getBoundingClientRect();
     const signatureLeftRect = rect(".footer-signature > span");
     const signatureRightRect = rect(".footer-signature > small");
     const signatureRect = rect(".footer-signature");
@@ -176,6 +177,9 @@ async function measureMobileFooter() {
       qrFrameCenter: qrFrameRect.left + (qrFrameRect.width / 2),
       qrWidth: qrRect.width,
       qrHeight: qrRect.height,
+      qrDeclaredWidth: Number(qrImage.getAttribute("width")),
+      qrSourcePath: new URL(qrImage.currentSrc || qrImage.src, location.href).pathname,
+      qrTouchCallout: getComputedStyle(qrImage).getPropertyValue("-webkit-touch-callout") || "unsupported",
       signatureLeft: signatureLeftRect.left,
       signatureRight: signatureRightRect.right,
       signatureRightCenter: signatureRightRect.left + (signatureRightRect.width / 2),
@@ -231,7 +235,7 @@ async function measureMobileFooter() {
     });
   </script>`;
   const server = createServer((request, response) => {
-    if (request.url === "/wechat-contact-qr.png") {
+    if (new URL(request.url, "http://127.0.0.1").pathname === "/wechat-contact-qr.png") {
       response.writeHead(200, { "Content-Type": "image/png" });
       response.end(qr);
       return;
@@ -603,8 +607,13 @@ test("手机页脚的企业微信卡片不溢出屏幕", { skip: !(await exists(
 });
 
 test("企业微信二维码在手机上保持正方形", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {
-  const metrics = await measureMobileFooter();
+  const [metrics, css] = await Promise.all([measureMobileFooter(), read("apps/portfolio-v2/styles.css")]);
   assert.ok(Math.abs(metrics.qrWidth - metrics.qrHeight) <= 0.5, `二维码被拉伸为 ${metrics.qrWidth} × ${metrics.qrHeight}px`);
+  assert.equal(metrics.qrDeclaredWidth, 396, "页脚没有保留原企业微信二维码 PNG 尺寸声明");
+  assert.equal(metrics.qrSourcePath, "/wechat-contact-qr.png");
+  assert.notEqual(metrics.qrTouchCallout, "none", "手机长按识别被禁用");
+  assert.match(css, /\.wechat-qr-frame img \{[^}]*-webkit-touch-callout: default;/,
+    "企业微信二维码没有明确保留 iPhone 长按调用");
 });
 
 test("手机页脚收紧为不超过 300px 的紧凑框架", { skip: !(await exists(new URL(chromePath, "file://"))) }, async () => {

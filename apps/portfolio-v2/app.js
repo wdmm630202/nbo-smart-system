@@ -126,12 +126,14 @@ const viewerClose = document.querySelector("#viewer-close");
 const selectionBar = document.querySelector("#selection-bar");
 const selectionCount = document.querySelector("#selection-count");
 const navFavoriteCount = document.querySelector("#nav-favorite-count");
+const favoriteTab = document.querySelector("#favorite-tab");
 const selectionSheet = document.querySelector("#selection-sheet");
 const selectionCard = document.querySelector("#selection-card");
 const selectionGenerating = document.querySelector("#selection-generating");
 const selectionEditHint = document.querySelector("#selection-edit-hint");
 const selectedPoseGroups = document.querySelector("#selected-pose-groups");
 const legacySelectionHeading = document.querySelector("#legacy-selection-heading");
+const legacySelectionCount = document.querySelector("#legacy-selection-count");
 const selectedList = document.querySelector("#selected-list");
 const selectionSummary = document.querySelector("#selection-summary");
 const copyRequest = document.querySelector("#copy-request");
@@ -863,6 +865,10 @@ function updateSelectionUi({ persistLegacyFavorites = false } = {}) {
   selectionBar.hidden = count === 0;
   if (themeExperienceSelection) themeExperienceSelection.hidden = count === 0;
   if (themeExperienceSelectionCount) themeExperienceSelectionCount.textContent = String(count);
+  const demandLabel = count ? `查看 ${count} 项已选择的拍摄需求` : "查看已选择的拍摄需求";
+  selectionBar.setAttribute("aria-label", demandLabel);
+  themeExperienceSelection?.setAttribute("aria-label", demandLabel);
+  favoriteTab?.setAttribute("aria-label", demandLabel);
   document.body.classList.toggle("has-selection", count > 0);
   document.querySelectorAll("[data-favorite-id]").forEach((button) => updateLikeButton(button, Number(button.dataset.favoriteId)));
   updateViewerLike();
@@ -1194,8 +1200,8 @@ function renderSelectionSheet() {
     return;
   }
   renderSelectedPoseGroups();
-  const showsLegacySubgroup = stylePreferences.slotIds.size > 0 && items.length > 0;
-  legacySelectionHeading.hidden = !showsLegacySubgroup;
+  legacySelectionHeading.hidden = items.length === 0;
+  legacySelectionCount.textContent = String(items.length);
   selectedList.hidden = items.length === 0;
   selectionEditHint.hidden = items.length === 0;
   renderSelectedList(items);
@@ -1594,7 +1600,7 @@ viewerPoseChoice.addEventListener("click", toggleViewerPoseSelection);
 viewerLike.addEventListener("click", () => toggleFavorite(viewerItems[viewerIndex].id));
 selectionBar.addEventListener("click", openSelectionSheet);
 themeExperienceSelection?.addEventListener("click", openSelectionSheet);
-document.querySelector("#favorite-tab").addEventListener("click", openFavoritesOrGuide);
+favoriteTab.addEventListener("click", openFavoritesOrGuide);
 document.querySelector("#quick-favorites").addEventListener("click", openFavoritesOrGuide);
 document.querySelectorAll("[data-scene-link]").forEach((button) => {
   button.addEventListener("click", () => {

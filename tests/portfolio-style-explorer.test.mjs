@@ -856,6 +856,90 @@ async function measurePersistentPreferenceFlow(width = 390) {
   }
 }
 
+async function measureDemandEntryLabels(width = 390) {
+  const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
+  const prelude = `<script>
+    const demandLabelCases = [
+      { name: "pose", photos: [], slots: ["ST-IN-01-01-P03"] },
+      { name: "legacy", photos: [137], slots: [] },
+      { name: "mixed", photos: [137], slots: ["ST-IN-01-01-P03"] },
+    ];
+    const demandLabelIndex = Number(sessionStorage.getItem("demand-label-index") || "0");
+    const demandLabelFixture = demandLabelCases[demandLabelIndex];
+    localStorage.setItem("nanbo-favorite-photos", JSON.stringify(demandLabelFixture.photos));
+    localStorage.setItem("nanbo-favorite-styles", "[]");
+    localStorage.setItem("nanbo-selected-poses", JSON.stringify(demandLabelFixture.slots));
+  </script>`;
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    window.addEventListener("load", () => window.setTimeout(async () => {
+      const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      const normalize = (element) => element?.textContent.replace(/\\s+/g, " ").trim() || "";
+      const demandLabelCases = ["pose", "legacy", "mixed"];
+      const index = Number(sessionStorage.getItem("demand-label-index") || "0");
+      document.querySelector("#selection-bar")?.click();
+      await wait(100);
+      const legacyHeading = document.querySelector("#legacy-selection-heading");
+      const poseGroups = document.querySelector("#selected-pose-groups");
+      const selectionBar = document.querySelector("#selection-bar");
+      const themeEntry = document.querySelector("#theme-experience-selection");
+      const bottomEntry = document.querySelector("#favorite-tab");
+      const results = JSON.parse(sessionStorage.getItem("demand-label-results") || "[]");
+      results.push({
+        name: demandLabelCases[index],
+        selectionCount: document.querySelector("#selection-count")?.textContent || "",
+        selectionBarText: normalize(selectionBar),
+        selectionBarLabel: selectionBar?.getAttribute("aria-label") || "",
+        themeEntryText: normalize(themeEntry),
+        themeEntryLabel: themeEntry?.getAttribute("aria-label") || "",
+        bottomEntryText: normalize(bottomEntry),
+        bottomEntryLabel: bottomEntry?.getAttribute("aria-label") || "",
+        poseGroupsHidden: poseGroups?.hidden ?? true,
+        legacyHeadingHidden: legacyHeading?.hidden ?? true,
+        legacyHeadingText: normalize(legacyHeading),
+        legacyChipCount: document.querySelectorAll("#selected-list .selected-chip").length,
+      });
+      sessionStorage.setItem("demand-label-results", JSON.stringify(results));
+      if (index < demandLabelCases.length - 1) {
+        sessionStorage.setItem("demand-label-index", String(index + 1));
+        location.reload();
+        return;
+      }
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify(results);
+    }, 220));
+  </script>`;
+  const appScript = '<script type="module" src="app.js?v=__NBO_BUILD_VERSION__"></script>';
+  const page = sourceHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace(appScript, `${prelude}${appScript}`)
+    .replace("</body>", `${probe}</body>`);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      const asset = await readFile(new URL(`../apps${url.pathname}`, import.meta.url));
+      response.writeHead(200, { "Content-Type": contentType(url.pathname) });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(`http://127.0.0.1:${port}/portfolio-v2/index.html?v=demand-labels`, width);
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 async function loadExplorerModel(loadModule = () => import(explorerModelUrl)) {
   try {
     return await loadModule();
@@ -981,7 +1065,7 @@ test("style favorites and pose choices persist, stay synchronized, and lead the 
   assert.equal(metrics.poseGroupBeforeLegacy, true, "需求单没有先列姿势分组");
   assert.equal(metrics.poseGroupStyleId, metrics.styleId);
   assert.match(metrics.poseGroupText, /第 3 个拍摄参考/);
-  assert.equal(metrics.legacyHeadingText, "其他喜欢客片");
+  assert.match(metrics.legacyHeadingText, /^其他喜欢客片1 张$/);
   assert.match(metrics.summary, /南铂摄影拍摄需求/);
   assert.match(metrics.summary, /第 3 个拍摄参考/);
   assert.match(metrics.summary, /其他喜欢客片：NB-137/);
@@ -993,6 +1077,33 @@ test("style favorites and pose choices persist, stay synchronized, and lead the 
   }
   assert.equal(metrics.events.includes("photo_open"), false, "风格 viewer 被错记为旧客片打开");
   assert.equal(metrics.events.some((eventName) => /popular|hot/i.test(eventName)), false, "没有真实数据却造了热门事件");
+});
+
+test("pose-only, legacy-only, and mixed demand entries report selected items without inflating photo favorites", { skip: !hasChrome }, async () => {
+  const states = await measureDemandEntryLabels(390);
+  const expected = {
+    pose: { total: "1", posesHidden: false, legacyHidden: true, legacyCount: 0 },
+    legacy: { total: "1", posesHidden: true, legacyHidden: false, legacyCount: 1 },
+    mixed: { total: "2", posesHidden: false, legacyHidden: false, legacyCount: 1 },
+  };
+
+  assert.deepEqual(states.map(({ name }) => name), ["pose", "legacy", "mixed"]);
+  for (const state of states) {
+    const wanted = expected[state.name];
+    const accessibleLabel = `查看 ${wanted.total} 项已选择的拍摄需求`;
+    assert.equal(state.selectionCount, wanted.total, `${state.name} 底部需求条计数错误`);
+    assert.match(state.selectionBarText, new RegExp(`${wanted.total}\\s*项已选择`));
+    assert.match(state.themeEntryText, new RegExp(`${wanted.total}\\s*项已选择`));
+    assert.match(state.bottomEntryText, new RegExp(`${wanted.total}.*已选择`));
+    assert.equal(state.selectionBarLabel, accessibleLabel);
+    assert.equal(state.themeEntryLabel, accessibleLabel);
+    assert.equal(state.bottomEntryLabel, accessibleLabel);
+    assert.doesNotMatch(`${state.selectionBarText} ${state.themeEntryText} ${state.bottomEntryText}`, /张已喜欢|喜欢照片|♡\d+喜欢/);
+    assert.equal(state.poseGroupsHidden, wanted.posesHidden);
+    assert.equal(state.legacyHeadingHidden, wanted.legacyHidden);
+    assert.equal(state.legacyChipCount, wanted.legacyCount);
+    if (wanted.legacyCount) assert.match(state.legacyHeadingText, /其他喜欢客片.*1 张/);
+  }
 });
 
 test("explorer bootstrap classifies only its own missing model as a fallback", async (t) => {

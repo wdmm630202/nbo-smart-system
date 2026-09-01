@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import {
+  access,
   mkdir,
   mkdtemp,
   readFile,
@@ -25,6 +26,8 @@ import {
 import * as photoLib from "../tools/portfolio-photo-lib.mjs";
 
 const styleStoreUrl = new URL("../tools/portfolio-style-store.mjs", import.meta.url);
+const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const hasChrome = await access(chromePath).then(() => true, () => false);
 let sourceFixtureRoot = "";
 let validPhoto = "";
 let wrongRatioPhoto = "";
@@ -117,6 +120,113 @@ async function startManagerFixture(t) {
       });
     },
   };
+}
+
+async function startManagerBrowser(t, url, { width = 1280, reducedMotion = false } = {}) {
+  const profileDir = await mkdtemp(join(tmpdir(), "nanbo-manager-chrome-"));
+  const child = spawn(chromePath, [
+    "--headless=new",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    "--no-first-run",
+    "--remote-debugging-port=0",
+    `--user-data-dir=${profileDir}`,
+    "about:blank",
+  ], { stdio: ["ignore", "ignore", "pipe"] });
+  let stderr = "";
+  const debuggerUrl = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Chrome DevTools 启动超时：${stderr}`)), 10_000);
+    child.once("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+      const match = stderr.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+      if (!match) return;
+      clearTimeout(timeout);
+      resolve(match[1]);
+    });
+    child.once("close", (code) => {
+      clearTimeout(timeout);
+      reject(new Error(`Chrome 提前退出（${code}）：${stderr}`));
+    });
+  });
+
+  const socket = new WebSocket(debuggerUrl);
+  const pending = new Map();
+  let nextMessageId = 0;
+  await new Promise((resolve, reject) => {
+    socket.addEventListener("open", resolve, { once: true });
+    socket.addEventListener("error", reject, { once: true });
+  });
+  socket.addEventListener("message", ({ data }) => {
+    const message = JSON.parse(data);
+    if (!message.id || !pending.has(message.id)) return;
+    const waiting = pending.get(message.id);
+    pending.delete(message.id);
+    if (message.error) waiting.reject(new Error(`${message.error.message}: ${JSON.stringify(message.error.data || {})}`));
+    else waiting.resolve(message.result);
+  });
+  const command = (method, params = {}, sessionId = undefined) => new Promise((resolve, reject) => {
+    const id = ++nextMessageId;
+    pending.set(id, { resolve, reject });
+    socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
+  });
+  const { targetId } = await command("Target.createTarget", { url: "about:blank" });
+  const { sessionId } = await command("Target.attachToTarget", { targetId, flatten: true });
+  await command("Emulation.setDeviceMetricsOverride", {
+    width,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: width < 700,
+    screenWidth: width,
+    screenHeight: 900,
+  }, sessionId);
+  if (reducedMotion) {
+    await command("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+    }, sessionId);
+  }
+  await command("Page.navigate", { url }, sessionId);
+
+  const evaluate = async (expression) => {
+    const result = await command("Runtime.evaluate", {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+      userGesture: true,
+    }, sessionId);
+    if (result.exceptionDetails) {
+      throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text || "浏览器脚本执行失败");
+    }
+    return result.result?.value;
+  };
+  const waitFor = async (expression, timeout = 10_000) => {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeout) {
+      if (await evaluate(`Boolean(${expression})`)) return;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error(`等待浏览器状态超时：${expression}`);
+  };
+  const setFileInput = async (selector, path) => {
+    const documentTree = await command("DOM.getDocument", { depth: 1, pierce: true }, sessionId);
+    const selected = await command("DOM.querySelector", { nodeId: documentTree.root.nodeId, selector }, sessionId);
+    assert.ok(selected.nodeId, `找不到文件选择器 ${selector}`);
+    await command("DOM.setFileInputFiles", { files: [path], nodeId: selected.nodeId }, sessionId);
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new Event("change", { bubbles: true }))`);
+  };
+
+  t.after(async () => {
+    socket.close();
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      await once(child, "close");
+    }
+    await rm(profileDir, { recursive: true, force: true });
+  });
+  return { evaluate, setFileInput, waitFor };
 }
 
 function responseFromNodeRequest(options, writeRequest = (request) => request.end()) {
@@ -1319,4 +1429,325 @@ test("raw style uploads enforce Content-Length, clean temporary files, and relea
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   assert.equal(afterAbort.status, 200);
+});
+
+test("hierarchical manager mode renders 6 families, 11 styles, and 9 slots while preserving every mode selection", { skip: !hasChrome, timeout: 60_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const browser = await startManagerBrowser(t, server.url, { width: 390 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const publicSearch = document.querySelector("#search-input");
+    publicSearch.value = "NB-137";
+    publicSearch.dispatchEvent(new Event("input", { bubbles: true }));
+    const draftFilter = document.querySelector("#draft-status-filter");
+    draftFilter.value = "archived";
+    draftFilter.dispatchEvent(new Event("change", { bubbles: true }));
+    const stylesMode = document.querySelector('input[name="library-mode"][value="styles"]');
+    stylesMode.checked = true;
+    stylesMode.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.waitFor('[...document.querySelectorAll("#style-slot-grid [data-reference-count]")].every((node) => node.dataset.referenceCount)');
+
+  const initial = await browser.evaluate(`(() => {
+    const root = document.querySelector("#style-library-view");
+    const controls = [...root.querySelectorAll("button, input, select, textarea")]
+      .filter((control) => !control.hidden && getComputedStyle(control).display !== "none"
+        && getComputedStyle(control).visibility !== "hidden" && control.getBoundingClientRect().width > 2
+        && (!control.closest("dialog") || control.closest("dialog").open));
+    return {
+      rootVisible: !root.hidden,
+      publicHidden: document.querySelector("#public-library-view").hidden,
+      draftsHidden: document.querySelector("#draft-library-view").hidden,
+      familyCount: document.querySelectorAll("#style-family-list [data-style-family-id]").length,
+      styleCount: document.querySelectorAll("#style-list [data-style-id]").length,
+      slotCount: document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length,
+      stableSlotIds: [...document.querySelectorAll("#style-slot-grid [data-style-slot-id]")].every((card) => /^ST-IN-01-01-P0[1-9]$/.test(card.dataset.styleSlotId)),
+      assetCodes: [...document.querySelectorAll("#style-slot-grid [data-asset-code]")].every((node) => /^NB-\\d{3,}$/.test(node.dataset.assetCode)),
+      referenceCounts: [...document.querySelectorAll("#style-slot-grid [data-reference-count]")].every((node) => Number(node.dataset.referenceCount) >= 1),
+      slotSummary: document.querySelector("#style-slot-count")?.textContent,
+      uniqueSummary: document.querySelector("#style-unique-assets")?.textContent,
+      maturity: document.querySelector("#style-maturity-label")?.textContent,
+      allTargets44: controls.every((control) => control.getBoundingClientRect().height >= 44),
+      shortTargets: controls.filter((control) => control.getBoundingClientRect().height < 44)
+        .map((control) => control.tagName.toLowerCase() + "#" + control.id + "." + control.className + ":" + control.getBoundingClientRect().height),
+      horizontalOverflow: root.scrollWidth - root.clientWidth,
+    };
+  })()`);
+  assert.deepEqual({
+    rootVisible: initial.rootVisible,
+    publicHidden: initial.publicHidden,
+    draftsHidden: initial.draftsHidden,
+    familyCount: initial.familyCount,
+    styleCount: initial.styleCount,
+    slotCount: initial.slotCount,
+    stableSlotIds: initial.stableSlotIds,
+    assetCodes: initial.assetCodes,
+    referenceCounts: initial.referenceCounts,
+    slotSummary: initial.slotSummary,
+    uniqueSummary: initial.uniqueSummary,
+    maturity: initial.maturity,
+  }, {
+    rootVisible: true,
+    publicHidden: true,
+    draftsHidden: true,
+    familyCount: 6,
+    styleCount: 11,
+    slotCount: 9,
+    stableSlotIds: true,
+    assetCodes: true,
+    referenceCounts: true,
+    slotSummary: "9 个照片位",
+    uniqueSummary: "9 张独立资产",
+    maturity: "风格参考",
+  });
+  assert.equal(initial.allTargets44, true, initial.shortTargets.join("\n"));
+  assert.ok(initial.horizontalOverflow <= 1, `390px 风格管理横向溢出 ${initial.horizontalOverflow}px`);
+
+  const selection = await browser.evaluate(`(async () => {
+    const wait = () => new Promise((resolve) => setTimeout(resolve, 80));
+    const click = async (selector) => { document.querySelector(selector).click(); await wait(); };
+    await click('[data-style-scene="outdoor"]');
+    await click('[data-style-family-id="OUT-02"]');
+    await click('[data-style-id="ST-OUT-02-03"]');
+    const family = document.querySelector('[data-style-family-id="OUT-02"]');
+    family.focus();
+    family.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await wait();
+    const keyboardFamily = document.querySelector('#style-family-list [aria-selected="true"]');
+    const keyboardFamilyFocused = document.activeElement === keyboardFamily;
+    const publicMode = document.querySelector('input[name="library-mode"][value="public"]');
+    publicMode.checked = true;
+    publicMode.dispatchEvent(new Event("change", { bubbles: true }));
+    const draftsMode = document.querySelector('input[name="library-mode"][value="drafts"]');
+    draftsMode.checked = true;
+    draftsMode.dispatchEvent(new Event("change", { bubbles: true }));
+    const stylesMode = document.querySelector('input[name="library-mode"][value="styles"]');
+    stylesMode.checked = true;
+    stylesMode.dispatchEvent(new Event("change", { bubbles: true }));
+    await wait();
+    return {
+      search: document.querySelector("#search-input").value,
+      draftStatus: document.querySelector("#draft-status-filter").value,
+      scene: document.querySelector('#style-scene-list [aria-selected="true"]')?.dataset.styleScene,
+      family: keyboardFamily?.dataset.styleFamilyId,
+      familyFocused: keyboardFamilyFocused,
+      selectedStyle: document.querySelector('#style-list [aria-selected="true"]')?.dataset.styleId,
+      activeMode: document.querySelector('input[name="library-mode"]:checked')?.value,
+    };
+  })()`);
+  assert.deepEqual(selection, {
+    search: "NB-137",
+    draftStatus: "archived",
+    scene: "outdoor",
+    family: "OUT-03",
+    familyFocused: true,
+    selectedStyle: "ST-OUT-03-01",
+    activeMode: "styles",
+  });
+});
+
+test("style controller performs copy-on-write replacement, metadata, cover, preview, visibility, and undo without publishing", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const beforeReferences = await (await fetch(new URL("api/assets/references?id=137", server.url))).json();
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    window.__managerOpenedUrls = [];
+    window.open = (url) => { window.__managerOpenedUrls.push(String(url)); return null; };
+    const input = document.querySelector('input[name="library-mode"][value="styles"]');
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] .style-slot-replace").click()');
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open');
+  await browser.setFileInput("#style-slot-file", validPhoto);
+  await browser.waitFor('document.querySelector("#style-slot-confirm")?.disabled === false');
+  await browser.evaluate('document.querySelector("#style-slot-file").dispatchEvent(new Event("change", { bubbles: true }))');
+  await browser.waitFor('document.querySelector("#style-slot-confirm")?.disabled === false', 1_000);
+  const preview = await browser.evaluate(`(() => ({
+    current: document.querySelector("#style-slot-current-preview")?.getAttribute("src"),
+    candidate: document.querySelector("#style-slot-new-preview")?.getAttribute("src"),
+    explanation: document.querySelector("#style-copy-on-write-note p")?.textContent.replace(/\\s+/g, " ").trim(),
+  }))()`);
+  assert.match(preview.current, /\/media\/thumb\/137$/);
+  assert.match(preview.candidate, /^blob:/);
+  assert.equal(preview.explanation, "只替换当前照片位：新图会获得新的 NB 资产编号，其他复用位置不变。");
+
+  await browser.evaluate('document.querySelector("#style-slot-confirm").click()');
+  await browser.waitFor('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] [data-asset-code=\\"NB-159\\"]")');
+  const afterReferences = await (await fetch(new URL("api/assets/references?id=137", server.url))).json();
+  assert.equal(afterReferences.count, beforeReferences.count - 1);
+  assert.ok(afterReferences.slotIds.includes("ST-IN-01-02-P01"));
+  assert.ok(!afterReferences.slotIds.includes("ST-IN-01-01-P01"));
+
+  await browser.evaluate(`(() => {
+    const slot = document.querySelector('[data-style-slot-id="ST-IN-01-01-P01"]');
+    const pose = slot.querySelector(".style-slot-pose");
+    pose.value = "正面站姿·已复核";
+    slot.querySelector(".style-slot-save").click();
+  })()`);
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("姿势标签已保存")');
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P02\\"] .style-slot-cover").click()');
+  await browser.waitFor('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P02\\"]")?.classList.contains("is-cover")');
+  await browser.evaluate(`(() => {
+    const maturity = document.querySelector("#style-maturity");
+    maturity.value = "updating";
+    maturity.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelector("#style-maturity-label")?.textContent === "正在完善"');
+
+  await browser.evaluate(`(() => {
+    document.querySelector("#style-name").value = "职业形象·后台复核";
+    document.querySelector("#style-audience").value = "需要正式头像的男士";
+    document.querySelector("#style-description").value = "干净正装与稳定目光";
+    document.querySelector("#style-visibility").value = "hidden";
+    document.querySelector("#style-copy-editor").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  })()`);
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("风格资料已保存")');
+  const saved = await browser.evaluate(`(() => ({
+    selectedStyle: document.querySelector('#style-list [aria-selected="true"]')?.dataset.styleId,
+    hiddenBadge: document.querySelector('[data-style-id="ST-IN-01-01"]')?.textContent.includes("已隐藏"),
+    slotCount: document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length,
+    poseLabel: document.querySelector('[data-style-slot-id="ST-IN-01-01-P01"] .style-slot-pose')?.value,
+    coverCount: document.querySelectorAll("#style-slot-grid .is-cover").length,
+    coverId: document.querySelector("#style-slot-grid .is-cover")?.dataset.styleSlotId,
+    publishDisabled: document.querySelector("#publish-button").disabled,
+  }))()`);
+  assert.deepEqual(saved, {
+    selectedStyle: "ST-IN-01-01",
+    hiddenBadge: true,
+    slotCount: 9,
+    poseLabel: "正面站姿·已复核",
+    coverCount: 1,
+    coverId: "ST-IN-01-01-P02",
+    publishDisabled: true,
+  });
+
+  await browser.evaluate('document.querySelector("#style-preview-button").click()');
+  const opened = await browser.evaluate("window.__managerOpenedUrls");
+  assert.deepEqual(opened, ["/preview/?scene=indoor&family=IN-01&style=ST-IN-01-01"]);
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] .style-slot-undo").click()');
+  await browser.waitFor('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] [data-asset-code=\\"NB-137\\"]")');
+  const finalLibrary = await (await fetch(new URL("api/style-library", server.url))).json();
+  const finalStyle = finalLibrary.styles.find(({ id }) => id === "ST-IN-01-01");
+  assert.equal(finalStyle.visibility, "hidden");
+  assert.equal(finalStyle.slots.length, 9);
+  assert.equal(finalStyle.slots[0].poseLabel, "正面站姿·已复核");
+  assert.equal(finalStyle.slots[1].isCover, true);
+});
+
+test("global NB replacement lists all references, recommends one slot, and cancel touches no file or manifest", { skip: !hasChrome, timeout: 60_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const expected = await (await fetch(new URL("api/assets/references?id=137", server.url))).json();
+  const before = await Promise.all([
+    readFile(server.additionsPath),
+    readFile(server.assignmentsPath),
+    readFile(server.catalogPath),
+    readdir(join(server.photoRoot, "full")),
+    readdir(join(server.photoRoot, "thumbs")),
+  ]);
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    window.__managerMutationRequests = [];
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      if ((init.method || "GET") !== "GET") window.__managerMutationRequests.push(url);
+      return originalFetch(input, init);
+    };
+    document.querySelector('[data-id="137"]').click();
+  })()`);
+  await browser.waitFor('document.querySelector("#photo-dialog")?.open');
+  await browser.setFileInput("#photo-file", validPhoto);
+  await browser.waitFor('document.querySelector("#replace-button")?.disabled === false');
+  await browser.evaluate('document.querySelector("#replace-button").click()');
+  await browser.waitFor('document.querySelector("#global-reference-dialog")?.open');
+  const warning = await browser.evaluate(`(() => ({
+    referenceRows: [...document.querySelectorAll("#global-reference-list [data-reference-slot]")].map((row) => ({
+      slotId: row.dataset.referenceSlot,
+      styleId: row.dataset.referenceStyle,
+      text: row.textContent.replace(/\\s+/g, " ").trim(),
+    })),
+    recommended: document.querySelector("#global-replace-one")?.textContent.replace(/\\s+/g, " ").trim(),
+    mutationRequests: [...window.__managerMutationRequests],
+  }))()`);
+  assert.equal(warning.referenceRows.length, expected.count);
+  assert.deepEqual(warning.referenceRows.map(({ slotId }) => slotId), expected.slotIds);
+  assert.equal(warning.referenceRows.every(({ slotId, styleId, text }) => text.includes(slotId) && text.includes(styleId)), true);
+  assert.equal(warning.recommended, "只替换当前照片位（推荐）");
+  assert.deepEqual(warning.mutationRequests, []);
+
+  await browser.evaluate('document.querySelector("#global-replace-all-start").click()');
+  await browser.waitFor('document.querySelector("#global-replace-all-confirm")?.hidden === false');
+  assert.deepEqual(await browser.evaluate("window.__managerMutationRequests"), []);
+  await browser.evaluate('document.querySelector("#global-reference-cancel").click()');
+  await browser.waitFor('document.querySelector("#global-reference-dialog")?.open === false');
+
+  const after = await Promise.all([
+    readFile(server.additionsPath),
+    readFile(server.assignmentsPath),
+    readFile(server.catalogPath),
+    readdir(join(server.photoRoot, "full")),
+    readdir(join(server.photoRoot, "thumbs")),
+  ]);
+  assert.deepEqual(after, before);
+  assert.deepEqual(await browser.evaluate("window.__managerMutationRequests"), []);
+
+  const targetSlotId = expected.slotIds.at(-1);
+  const targetStyleId = targetSlotId.replace(/-P0[1-9]$/, "");
+  await browser.evaluate('document.querySelector("#replace-button").click()');
+  await browser.waitFor('document.querySelector("#global-reference-dialog")?.open');
+  await browser.evaluate(`(() => {
+    const target = document.querySelector('input[name="global-slot-target"][value="${targetSlotId}"]');
+    target.checked = true;
+    document.querySelector("#global-replace-one").click();
+  })()`);
+  await browser.waitFor(`document.querySelector('input[name="library-mode"][value="styles"]')?.checked
+    && document.querySelector("#style-library-view")?.dataset.selectedStyle === "${targetStyleId}"
+    && document.querySelector('[data-style-slot-id="${targetSlotId}"] [data-asset-code="NB-159"]')`);
+  const afterSingleSlot = await (await fetch(new URL("api/assets/references?id=137", server.url))).json();
+  assert.equal(afterSingleSlot.count, expected.count - 1);
+  assert.ok(!afterSingleSlot.slotIds.includes(targetSlotId));
+  assert.equal((await (await fetch(new URL("api/assets/references?id=159", server.url))).json()).slotIds[0], targetSlotId);
+});
+
+test("style manager fits 320px, 390px, and desktop with reduced-motion feedback", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  for (const width of [320, 390, 1280]) {
+    const browser = await startManagerBrowser(t, server.url, { width, reducedMotion: width === 390 });
+    await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+    await browser.evaluate(`(() => {
+      const input = document.querySelector('input[name="library-mode"][value="styles"]');
+      input.checked = true;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    })()`);
+    await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+    const metrics = await browser.evaluate(`(() => {
+      const root = document.querySelector("#style-library-view");
+      const visibleTargets = [...root.querySelectorAll("button, select, input:not([type=file]), textarea")]
+        .filter((control) => {
+          const style = getComputedStyle(control);
+          const rect = control.getBoundingClientRect();
+          return !control.hidden && style.display !== "none" && style.visibility !== "hidden" && rect.width > 2
+            && (!control.closest("dialog") || control.closest("dialog").open);
+        });
+      const durations = visibleTargets.flatMap((control) => getComputedStyle(control).transitionDuration
+        .split(",").map((value) => Number.parseFloat(value) * (value.includes("ms") ? .001 : 1)));
+      return {
+        rootOverflow: root.scrollWidth - root.clientWidth,
+        documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+        allTargets44: visibleTargets.every((control) => control.getBoundingClientRect().height >= 44),
+        shortTargets: visibleTargets.filter((control) => control.getBoundingClientRect().height < 44)
+          .map((control) => control.tagName.toLowerCase() + "#" + control.id + "." + control.className + ":" + control.getBoundingClientRect().height),
+        maxTransition: Math.max(0, ...durations),
+      };
+    })()`);
+    assert.ok(metrics.rootOverflow <= 1, `${width}px 风格工作区溢出 ${metrics.rootOverflow}px`);
+    assert.ok(metrics.documentOverflow <= 1, `${width}px 页面溢出 ${metrics.documentOverflow}px`);
+    assert.equal(metrics.allTargets44, true, `${width}px 存在小于 44px 的可操作控件\n${metrics.shortTargets.join("\n")}`);
+    if (width === 390) assert.ok(metrics.maxTransition <= 0.01, `reduced-motion 过渡过长 ${metrics.maxTransition}s`);
+  }
 });

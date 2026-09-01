@@ -11,6 +11,7 @@ import {
   stageActionForDraft,
   uploadDraftFilesSequentially,
 } from "./draft-ui-state.js";
+import { createStyleMode } from "./style-mode.js";
 
 const $ = (selector) => document.querySelector(selector);
 const elements = {
@@ -31,7 +32,7 @@ const elements = {
   deployMessage: $("#deploy-message"), deploySteps: [...document.querySelectorAll("#deploy-steps li")],
   deployElapsed: $("#deploy-elapsed"), deployOnlineLink: $("#deploy-online-link"), toast: $("#toast"),
   addPhotoButton: $("#add-photo-button"), libraryMode: $("#library-mode"), libraryDescription: $("#library-description"),
-  publicLibraryView: $("#public-library-view"), draftLibraryView: $("#draft-library-view"), draftUploadPanel: $("#draft-upload-panel"),
+  publicLibraryView: $("#public-library-view"), draftLibraryView: $("#draft-library-view"), styleLibraryView: $("#style-library-view"), draftUploadPanel: $("#draft-upload-panel"),
   draftUpload: $("#draft-upload"), uploadResults: $("#upload-results"), draftStatusFilter: $("#draft-status-filter"),
   draftCount: $("#draft-count"), draftGrid: $("#draft-grid"), draftEmpty: $("#draft-empty"), draftMetadata: $("#draft-metadata"),
   draftMetadataForm: $("#draft-metadata-form"), draftPreview: $("#draft-preview"), draftStatusBadge: $("#draft-status-badge"),
@@ -42,6 +43,10 @@ const elements = {
   stageDraftButton: $("#stage-draft-button"), newThemeButton: $("#new-theme-button"), newThemeForm: $("#new-theme-form"),
   newThemeId: $("#new-theme-id"), newThemeLabel: $("#new-theme-label"), newThemeScene: $("#new-theme-scene"),
   newThemeDescription: $("#new-theme-description"), newThemeFeedback: $("#new-theme-feedback"), saveThemeButton: $("#save-theme-button"),
+  globalReferenceDialog: $("#global-reference-dialog"), globalReferenceList: $("#global-reference-list"),
+  globalReferenceCancel: $("#global-reference-cancel"), globalReplaceOne: $("#global-replace-one"),
+  globalReplaceAllStart: $("#global-replace-all-start"), globalReplaceAllConfirm: $("#global-replace-all-confirm"),
+  globalReplaceAllFinal: $("#global-replace-all-final"),
 };
 
 const state = {
@@ -51,8 +56,16 @@ const state = {
   toastTimer: 0, deployTimer: 0,
 };
 
+const styleMode = createStyleMode({
+  root: elements.styleLibraryView,
+  requestJson,
+  showToast,
+  openPreview,
+});
+
 function setMutationBusy(busy) {
   state.mutationBusy = busy;
+  styleMode.setBusy(busy);
   elements.photoFile.disabled = busy;
   elements.undoButton.disabled = busy;
   elements.replaceButton.disabled = busy || !state.candidateValid;
@@ -195,20 +208,29 @@ function renderGrid() {
 }
 
 function setLibraryMode(mode, { focusUpload = false } = {}) {
-  state.libraryMode = mode === "drafts" ? "drafts" : "public";
+  state.libraryMode = ["public", "drafts", "styles"].includes(mode) ? mode : "public";
   for (const input of elements.libraryMode.querySelectorAll('input[name="library-mode"]')) {
     input.checked = input.value === state.libraryMode;
   }
   const showingDrafts = state.libraryMode === "drafts";
-  elements.publicLibraryView.hidden = showingDrafts;
+  const showingStyles = state.libraryMode === "styles";
+  elements.publicLibraryView.hidden = showingDrafts || showingStyles;
   elements.draftLibraryView.hidden = !showingDrafts;
-  elements.libraryDescription.textContent = showingDrafts
+  elements.styleLibraryView.hidden = !showingStyles;
+  elements.libraryDescription.textContent = showingStyles
+    ? "按场景、感觉大类和风格管理 9 个稳定照片位；保存后仍需单独同步。"
+    : (showingDrafts
     ? "草稿只保存在本机，可按状态整理、授权和准备公开。"
-    : "查看已公开客片，或切换到仅本机可见的草稿。";
+    : "查看已公开客片，或切换到仅本机可见的草稿。");
   if (state.catalog) {
-    elements.resultCount.textContent = showingDrafts
+    elements.resultCount.textContent = showingStyles
+      ? "132"
+      : (showingDrafts
       ? String(filteredDrafts().length)
-      : `${filteredItems().length} / ${state.catalog.items.length}`;
+      : `${filteredItems().length} / ${state.catalog.items.length}`);
+  }
+  if (showingStyles) {
+    styleMode.activate().catch((error) => showToast(error.message, "error"));
   }
   if (showingDrafts && focusUpload) elements.draftUploadPanel.scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -588,7 +610,47 @@ async function refreshData() {
   renderDraftClassificationOptions(); renderDrafts(); setLibraryMode(state.libraryMode);
 }
 
-async function replaceSelectedPhoto() {
+function renderGlobalReferences(references) {
+  elements.globalReferenceList.querySelectorAll("label").forEach((label) => label.remove());
+  const rows = references.slotIds.map((slotId, index) => {
+    const styleId = slotId.replace(/-P0[1-9]$/, "");
+    const label = document.createElement("label");
+    label.dataset.referenceSlot = slotId;
+    label.dataset.referenceStyle = styleId;
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "global-slot-target";
+    input.value = slotId;
+    input.checked = index === 0;
+    const marker = document.createElement("span");
+    marker.setAttribute("aria-hidden", "true");
+    const copy = document.createElement("span");
+    const style = document.createElement("strong");
+    style.textContent = styleId;
+    const slot = document.createElement("small");
+    slot.textContent = slotId;
+    copy.append(style, slot);
+    label.append(input, marker, copy);
+    return label;
+  });
+  elements.globalReferenceList.append(...rows);
+}
+
+function closeGlobalReferenceDialog() {
+  if (state.mutationBusy) return;
+  if (elements.globalReferenceDialog.open) elements.globalReferenceDialog.close();
+  elements.globalReplaceAllConfirm.hidden = true;
+  elements.replaceButton.focus({ preventScroll: true });
+}
+
+function openGlobalReferenceDialog(references) {
+  renderGlobalReferences(references);
+  elements.globalReplaceAllConfirm.hidden = true;
+  elements.globalReferenceDialog.showModal();
+  elements.globalReplaceOne.focus({ preventScroll: true });
+}
+
+async function executeGlobalReplacement() {
   if (state.mutationBusy || !state.candidate || !state.candidateValid || !state.selectedId) return;
   const id = state.selectedId;
   const candidate = state.candidate;
@@ -602,6 +664,59 @@ async function replaceSelectedPhoto() {
     showToast(`NB-${String(id).padStart(3, "0")} 已在本地替换，请先预览`, "success");
   } catch (error) { setFileFeedback(error.message, "error"); }
   finally { setMutationBusy(false); }
+}
+
+async function replaceSelectedPhoto() {
+  if (state.mutationBusy || !state.candidate || !state.candidateValid || !state.selectedId) return;
+  setMutationBusy(true);
+  setFileFeedback("正在查看这张 NB 资产被哪些风格复用…", "working");
+  try {
+    const references = await requestJson(`/api/assets/references?id=${state.selectedId}`);
+    if (references.count > 1) {
+      setMutationBusy(false);
+      setFileFeedback(`这张照片被 ${references.count} 个风格照片位复用，请选择影响范围。`);
+      openGlobalReferenceDialog(references);
+      return;
+    }
+    setMutationBusy(false);
+    await executeGlobalReplacement();
+  } catch (error) {
+    setFileFeedback(error.message, "error");
+  } finally {
+    setMutationBusy(false);
+  }
+}
+
+async function replaceOneReferencedSlot() {
+  const slotId = elements.globalReferenceList.querySelector('input[name="global-slot-target"]:checked')?.value;
+  if (!slotId || !state.candidate || state.mutationBusy) return;
+  const candidate = state.candidate;
+  setMutationBusy(true);
+  try {
+    await styleMode.replaceSlot(slotId, candidate);
+    await refreshData();
+    setMutationBusy(false);
+    if (elements.globalReferenceDialog.open) elements.globalReferenceDialog.close();
+    closeDialog(elements.photoDialog);
+    resetCandidate();
+    setLibraryMode("styles");
+  } catch (error) {
+    showToast(error.message, "error");
+  } finally {
+    setMutationBusy(false);
+  }
+}
+
+function beginReplaceAllReferences() {
+  elements.globalReplaceAllConfirm.hidden = false;
+  elements.globalReplaceAllFinal.focus({ preventScroll: true });
+}
+
+async function confirmReplaceAllReferences() {
+  if (state.mutationBusy) return;
+  if (elements.globalReferenceDialog.open) elements.globalReferenceDialog.close();
+  elements.globalReplaceAllConfirm.hidden = true;
+  await executeGlobalReplacement();
 }
 
 async function undoSelectedPhoto() {
@@ -618,7 +733,13 @@ async function undoSelectedPhoto() {
   finally { setMutationBusy(false); }
 }
 
-function openPreview() { if (state.catalog) window.open(`/preview/?v=${encodeURIComponent(state.catalog.version)}`, "_blank", "noopener,noreferrer"); }
+function openPreview(exactPath = "") {
+  if (typeof exactPath === "string" && exactPath.startsWith("/preview/?scene=")) {
+    window.open(exactPath, "_blank", "noopener,noreferrer");
+    return;
+  }
+  if (state.catalog) window.open(`/preview/?v=${encodeURIComponent(state.catalog.version)}`, "_blank", "noopener,noreferrer");
+}
 function openPublishDialog() {
   const publication = publicationControlState(state.status); if (!publication.hasPendingPublication) return;
   elements.publishCount.hidden = publication.pendingCount === 0;
@@ -713,6 +834,11 @@ elements.dropZone.addEventListener("drop", (event) => { event.preventDefault(); 
 elements.previewButton.addEventListener("click", openPreview); $("#confirm-preview-button").addEventListener("click", openPreview);
 elements.publishButton.addEventListener("click", openPublishDialog); elements.publishApproval.addEventListener("change", () => { elements.publishConfirm.disabled = !elements.publishApproval.checked; });
 elements.publishConfirm.addEventListener("click", publishPhotos); elements.replaceButton.addEventListener("click", replaceSelectedPhoto); elements.undoButton.addEventListener("click", undoSelectedPhoto);
+elements.globalReplaceOne.addEventListener("click", replaceOneReferencedSlot);
+elements.globalReplaceAllStart.addEventListener("click", beginReplaceAllReferences);
+elements.globalReplaceAllFinal.addEventListener("click", confirmReplaceAllReferences);
+elements.globalReferenceCancel.addEventListener("click", closeGlobalReferenceDialog);
+$("#global-reference-close").addEventListener("click", closeGlobalReferenceDialog);
 elements.chooseAnotherButton.addEventListener("click", () => { if (!state.mutationBusy) elements.photoFile.click(); }); $("#photo-dialog-close").addEventListener("click", () => closeDialog(elements.photoDialog));
 $("#publish-dialog-close").addEventListener("click", () => closeDialog(elements.publishDialog)); $("#publish-cancel").addEventListener("click", () => closeDialog(elements.publishDialog));
 $("#retry-button").addEventListener("click", initialize); $("#clear-filters").addEventListener("click", () => {
@@ -721,5 +847,7 @@ $("#retry-button").addEventListener("click", initialize); $("#clear-filters").ad
 });
 [elements.photoDialog, elements.publishDialog].forEach((dialog) => dialog.addEventListener("click", (event) => { if (event.target === dialog) closeDialog(dialog); }));
 elements.photoDialog.addEventListener("cancel", (event) => { if (state.mutationBusy) event.preventDefault(); });
+elements.globalReferenceDialog.addEventListener("click", (event) => { if (event.target === elements.globalReferenceDialog) closeGlobalReferenceDialog(); });
+elements.globalReferenceDialog.addEventListener("cancel", (event) => { event.preventDefault(); closeGlobalReferenceDialog(); });
 
 initialize();

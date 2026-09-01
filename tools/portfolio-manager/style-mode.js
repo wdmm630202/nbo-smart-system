@@ -95,6 +95,8 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     replaceSlotId: "",
     replaceFile: null,
     replaceUrl: "",
+    replaceCandidate: null,
+    replaceGeneration: 0,
     replaceValid: false,
     replaceOpener: null,
   };
@@ -448,8 +450,26 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     }
   }
 
+  function revokeReplaceCandidate(candidate) {
+    if (!candidate || candidate.revoked) return;
+    candidate.revoked = true;
+    URL.revokeObjectURL(candidate.objectUrl);
+  }
+
+  function isCurrentReplaceCandidate(candidate) {
+    return Boolean(candidate
+      && !candidate.revoked
+      && state.replaceCandidate === candidate
+      && state.replaceGeneration === candidate.generation
+      && state.replaceSlotId === candidate.slotId
+      && elements.replaceDialog.open
+      && state.replaceUrl === candidate.objectUrl);
+  }
+
   function resetReplaceCandidate() {
-    if (state.replaceUrl) URL.revokeObjectURL(state.replaceUrl);
+    state.replaceGeneration += 1;
+    revokeReplaceCandidate(state.replaceCandidate);
+    state.replaceCandidate = null;
     state.replaceUrl = "";
     state.replaceFile = null;
     state.replaceValid = false;
@@ -461,9 +481,9 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   }
 
   function openReplaceDialog(slot, opener) {
+    resetReplaceCandidate();
     state.replaceSlotId = slot.id;
     state.replaceOpener = opener || documentObject.activeElement;
-    resetReplaceCandidate();
     elements.replaceTitle.textContent = `只替换 ${slot.id}`;
     elements.replaceCurrent.src = `/media/thumb/${slot.assetId}`;
     elements.replaceCurrent.alt = `${slot.id} 当前图片`;
@@ -476,11 +496,35 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     if (state.busy) return;
     if (elements.replaceDialog.open) elements.replaceDialog.close();
     resetReplaceCandidate();
+    state.replaceSlotId = "";
     state.replaceOpener?.focus?.({ preventScroll: true });
     state.replaceOpener = null;
   }
 
-  function acceptReplaceFile(file) {
+  function inspectReplaceCandidate(candidate) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => {
+        if (!isCurrentReplaceCandidate(candidate)) {
+          revokeReplaceCandidate(candidate);
+          resolve(null);
+          return;
+        }
+        resolve({ width: image.naturalWidth, height: image.naturalHeight, error: false });
+      };
+      image.onerror = () => {
+        if (!isCurrentReplaceCandidate(candidate)) {
+          revokeReplaceCandidate(candidate);
+          resolve(null);
+          return;
+        }
+        resolve({ width: 0, height: 0, error: true });
+      };
+      image.src = candidate.objectUrl;
+    });
+  }
+
+  async function acceptReplaceFile(file) {
     resetReplaceCandidate();
     if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       showToast("只支持 JPG、PNG 或 WebP 图片", "error");
@@ -490,29 +534,47 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
       showToast("图片超过 50 MB，请先导出精修 JPG", "error");
       return;
     }
+    if (!elements.replaceDialog.open || !state.replaceSlotId) return;
     const objectUrl = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      const ratioOkay = Math.abs(image.naturalWidth / image.naturalHeight - 0.75) <= 0.005;
-      const sizeOkay = image.naturalWidth >= 900 && image.naturalHeight >= 1200;
-      if (!ratioOkay || !sizeOkay) {
-        URL.revokeObjectURL(objectUrl);
-        showToast(!sizeOkay ? "请使用至少 900×1200 的精修图" : "请先裁成 3:4，系统不会自动裁人", "error");
-        return;
-      }
-      state.replaceUrl = objectUrl;
-      state.replaceFile = file;
-      state.replaceValid = true;
-      elements.replaceNew.src = objectUrl;
-      elements.replaceNew.hidden = false;
-      elements.replaceNewLabel.textContent = `${image.naturalWidth}×${image.naturalHeight}`;
-      elements.replaceConfirm.disabled = state.busy;
+    const candidate = {
+      generation: state.replaceGeneration,
+      objectUrl,
+      revoked: false,
+      slotId: state.replaceSlotId,
     };
-    image.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
+    state.replaceCandidate = candidate;
+    state.replaceUrl = objectUrl;
+    if (!isCurrentReplaceCandidate(candidate)) {
+      revokeReplaceCandidate(candidate);
+      return;
+    }
+    const result = await inspectReplaceCandidate(candidate);
+    if (!result || !isCurrentReplaceCandidate(candidate)) {
+      revokeReplaceCandidate(candidate);
+      return;
+    }
+    if (result.error) {
+      revokeReplaceCandidate(candidate);
+      state.replaceCandidate = null;
+      state.replaceUrl = "";
       showToast("这张图片无法读取，请重新导出 JPG", "error");
-    };
-    image.src = objectUrl;
+      return;
+    }
+    const ratioOkay = Math.abs(result.width / result.height - 0.75) <= 0.005;
+    const sizeOkay = result.width >= 900 && result.height >= 1200;
+    if (!ratioOkay || !sizeOkay) {
+      revokeReplaceCandidate(candidate);
+      state.replaceCandidate = null;
+      state.replaceUrl = "";
+      showToast(!sizeOkay ? "请使用至少 900×1200 的精修图" : "请先裁成 3:4，系统不会自动裁人", "error");
+      return;
+    }
+    state.replaceFile = file;
+    state.replaceValid = true;
+    elements.replaceNew.src = objectUrl;
+    elements.replaceNew.hidden = false;
+    elements.replaceNewLabel.textContent = `${result.width}×${result.height}`;
+    elements.replaceConfirm.disabled = state.busy;
   }
 
   async function replaceSlot(slotId, file) {
@@ -545,7 +607,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   }
 
   async function confirmReplace() {
-    if (!state.replaceValid || !state.replaceFile || !state.replaceSlotId) return;
+    if (!state.replaceValid || !state.replaceFile || !state.replaceSlotId || !isCurrentReplaceCandidate(state.replaceCandidate)) return;
     try {
       await replaceSlot(state.replaceSlotId, state.replaceFile);
       closeReplaceDialog();

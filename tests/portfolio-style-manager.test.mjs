@@ -30,7 +30,52 @@ const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 const hasChrome = await access(chromePath).then(() => true, () => false);
 let sourceFixtureRoot = "";
 let validPhoto = "";
+let newerValidPhoto = "";
 let wrongRatioPhoto = "";
+
+const deferredStyleImageScript = `(() => {
+  const originalCreateObjectUrl = URL.createObjectURL.bind(URL);
+  const originalRevokeObjectUrl = URL.revokeObjectURL.bind(URL);
+  window.__styleImageProbes = [];
+  window.__styleCreatedObjectUrls = [];
+  window.__styleRevokedObjectUrls = [];
+  URL.createObjectURL = (value) => {
+    const objectUrl = originalCreateObjectUrl(value);
+    window.__styleCreatedObjectUrls.push(objectUrl);
+    return objectUrl;
+  };
+  URL.revokeObjectURL = (value) => {
+    window.__styleRevokedObjectUrls.push(String(value));
+    originalRevokeObjectUrl(value);
+  };
+  window.Image = class DeferredStyleImage {
+    constructor() {
+      this.onload = null;
+      this.onerror = null;
+      this.naturalWidth = 0;
+      this.naturalHeight = 0;
+      this._src = "";
+    }
+    set src(value) {
+      this._src = String(value);
+      window.__styleImageProbes.push(this);
+    }
+    get src() {
+      return this._src;
+    }
+  };
+  window.__finishStyleImageProbe = (index, { width = 900, height = 1200, error = false } = {}) => {
+    const probe = window.__styleImageProbes[index];
+    if (!probe) throw new Error("missing deferred style image probe " + index);
+    if (error) {
+      probe.onerror?.(new Event("error"));
+      return;
+    }
+    probe.naturalWidth = width;
+    probe.naturalHeight = height;
+    probe.onload?.(new Event("load"));
+  };
+})()`;
 
 function waitForManagerOutput(child, pattern, timeout = 15_000) {
   return new Promise((resolve, reject) => {
@@ -122,7 +167,7 @@ async function startManagerFixture(t) {
   };
 }
 
-async function startManagerBrowser(t, url, { width = 1280, reducedMotion = false } = {}) {
+async function startManagerBrowser(t, url, { width = 1280, reducedMotion = false, beforeLoadScript = "" } = {}) {
   const profileDir = await mkdtemp(join(tmpdir(), "nanbo-manager-chrome-"));
   const child = spawn(chromePath, [
     "--headless=new",
@@ -175,6 +220,7 @@ async function startManagerBrowser(t, url, { width = 1280, reducedMotion = false
   });
   const { targetId } = await command("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await command("Target.attachToTarget", { targetId, flatten: true });
+  await command("Page.enable", {}, sessionId);
   await command("Emulation.setDeviceMetricsOverride", {
     width,
     height: 900,
@@ -187,6 +233,9 @@ async function startManagerBrowser(t, url, { width = 1280, reducedMotion = false
     await command("Emulation.setEmulatedMedia", {
       features: [{ name: "prefers-reduced-motion", value: "reduce" }],
     }, sessionId);
+  }
+  if (beforeLoadScript) {
+    await command("Page.addScriptToEvaluateOnNewDocument", { source: beforeLoadScript }, sessionId);
   }
   await command("Page.navigate", { url }, sessionId);
 
@@ -227,6 +276,22 @@ async function startManagerBrowser(t, url, { width = 1280, reducedMotion = false
     await rm(profileDir, { recursive: true, force: true });
   });
   return { evaluate, setFileInput, waitFor };
+}
+
+async function startDeferredStyleManager(t) {
+  const server = await startManagerFixture(t);
+  const browser = await startManagerBrowser(t, server.url, {
+    width: 1280,
+    beforeLoadScript: deferredStyleImageScript,
+  });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const input = document.querySelector('input[name="library-mode"][value="styles"]');
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  return { browser, server };
 }
 
 function responseFromNodeRequest(options, writeRequest = (request) => request.end()) {
@@ -283,8 +348,10 @@ async function generateJpeg(path, size, color, metadata = "") {
 test.before(async () => {
   sourceFixtureRoot = await mkdtemp(join(tmpdir(), "nanbo-style-source-"));
   validPhoto = join(sourceFixtureRoot, "valid-private.jpg");
+  newerValidPhoto = join(sourceFixtureRoot, "newer-private.jpg");
   wrongRatioPhoto = join(sourceFixtureRoot, "wrong-ratio.jpg");
   await generateJpeg(validPhoto, "900x1200", "0x6b4f3f", "NANBO_PRIVATE_TEST");
+  await generateJpeg(newerValidPhoto, "1200x1600", "0x45586f", "NANBO_NEWER_PRIVATE_TEST");
   await generateJpeg(wrongRatioPhoto, "1600x1200", "0x45586f");
 });
 
@@ -1544,6 +1611,105 @@ test("hierarchical manager mode renders 6 families, 11 styles, and 9 slots while
     familyFocused: true,
     selectedStyle: "ST-OUT-03-01",
     activeMode: "styles",
+  });
+});
+
+test("stale single-slot load cannot cross into a newly opened slot", { skip: !hasChrome, timeout: 60_000 }, async (t) => {
+  const { browser } = await startDeferredStyleManager(t);
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] .style-slot-replace").click()');
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open');
+  await browser.setFileInput("#style-slot-file", validPhoto);
+  await browser.waitFor("window.__styleImageProbes.length === 1");
+  const staleUrl = await browser.evaluate("window.__styleCreatedObjectUrls[0]");
+
+  await browser.evaluate(`(() => {
+    document.querySelector("#style-slot-cancel").click();
+    document.querySelector('[data-style-slot-id="ST-IN-01-01-P02"] .style-slot-replace').click();
+    window.__finishStyleImageProbe(0, { width: 900, height: 1200 });
+  })()`);
+  await browser.evaluate("new Promise((resolve) => setTimeout(resolve, 0))");
+
+  const state = await browser.evaluate(`(() => ({
+    title: document.querySelector("#style-slot-replace-title")?.textContent,
+    inputFiles: document.querySelector("#style-slot-file")?.files.length,
+    confirmDisabled: document.querySelector("#style-slot-confirm")?.disabled,
+    previewHidden: document.querySelector("#style-slot-new-preview")?.hidden,
+    previewSrc: document.querySelector("#style-slot-new-preview")?.getAttribute("src"),
+    revokedStaleUrl: window.__styleRevokedObjectUrls.filter((url) => url === ${JSON.stringify(staleUrl)}).length,
+  }))()`);
+  assert.deepEqual(state, {
+    title: "只替换 ST-IN-01-01-P02",
+    inputFiles: 0,
+    confirmDisabled: true,
+    previewHidden: true,
+    previewSrc: null,
+    revokedStaleUrl: 1,
+  });
+});
+
+test("stale single-slot load cannot overwrite a newer candidate in the same slot", { skip: !hasChrome, timeout: 60_000 }, async (t) => {
+  const { browser } = await startDeferredStyleManager(t);
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] .style-slot-replace").click()');
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open');
+  await browser.setFileInput("#style-slot-file", validPhoto);
+  await browser.waitFor("window.__styleImageProbes.length === 1");
+  await browser.setFileInput("#style-slot-file", newerValidPhoto);
+  await browser.waitFor("window.__styleImageProbes.length === 2");
+  const urls = await browser.evaluate("[...window.__styleCreatedObjectUrls]");
+
+  await browser.evaluate("window.__finishStyleImageProbe(1, { width: 1200, height: 1600 })");
+  await browser.evaluate("new Promise((resolve) => setTimeout(resolve, 0))");
+  await browser.evaluate("window.__finishStyleImageProbe(0, { width: 900, height: 1200 })");
+  await browser.evaluate("new Promise((resolve) => setTimeout(resolve, 0))");
+
+  const state = await browser.evaluate(`(() => ({
+    label: document.querySelector("#style-slot-new-label")?.textContent,
+    previewSrc: document.querySelector("#style-slot-new-preview")?.getAttribute("src"),
+    confirmDisabled: document.querySelector("#style-slot-confirm")?.disabled,
+    revokedOld: window.__styleRevokedObjectUrls.filter((url) => url === ${JSON.stringify(urls[0])}).length,
+    revokedNew: window.__styleRevokedObjectUrls.filter((url) => url === ${JSON.stringify(urls[1])}).length,
+  }))()`);
+  assert.deepEqual(state, {
+    label: "1200×1600",
+    previewSrc: urls[1],
+    confirmDisabled: false,
+    revokedOld: 1,
+    revokedNew: 0,
+  });
+});
+
+test("stale single-slot error after close only revokes its own URL", { skip: !hasChrome, timeout: 60_000 }, async (t) => {
+  const { browser } = await startDeferredStyleManager(t);
+  const toastBefore = await browser.evaluate('document.querySelector("#toast")?.textContent');
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] .style-slot-replace").click()');
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open');
+  await browser.setFileInput("#style-slot-file", validPhoto);
+  await browser.waitFor("window.__styleImageProbes.length === 1");
+  const staleUrl = await browser.evaluate("window.__styleCreatedObjectUrls[0]");
+
+  await browser.evaluate(`(() => {
+    document.querySelector("#style-slot-cancel").click();
+    window.__finishStyleImageProbe(0, { error: true });
+  })()`);
+  await browser.evaluate("new Promise((resolve) => setTimeout(resolve, 0))");
+
+  const state = await browser.evaluate(`(() => ({
+    dialogOpen: document.querySelector("#style-slot-replace-dialog")?.open,
+    inputFiles: document.querySelector("#style-slot-file")?.files.length,
+    confirmDisabled: document.querySelector("#style-slot-confirm")?.disabled,
+    previewHidden: document.querySelector("#style-slot-new-preview")?.hidden,
+    previewSrc: document.querySelector("#style-slot-new-preview")?.getAttribute("src"),
+    toast: document.querySelector("#toast")?.textContent,
+    revokedStaleUrl: window.__styleRevokedObjectUrls.filter((url) => url === ${JSON.stringify(staleUrl)}).length,
+  }))()`);
+  assert.deepEqual(state, {
+    dialogOpen: false,
+    inputFiles: 0,
+    confirmDisabled: true,
+    previewHidden: true,
+    previewSrc: null,
+    toast: toastBefore,
+    revokedStaleUrl: 1,
   });
 });
 

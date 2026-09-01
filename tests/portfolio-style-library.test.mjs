@@ -77,6 +77,7 @@ const resourceEffectContract = new Map([
   ["ST-IN-03-07", ["奶油", "确认"]], ["ST-IN-03-08", ["夏日", "确认"]], ["ST-IN-03-09", ["居家", "确认"]],
   ["ST-IN-03-10", ["苹果", "确认"]], ["ST-IN-03-11", ["校园", "确认"]],
   ["ST-IN-04-01", ["拳击", "确认"]], ["ST-IN-04-04", ["网球", "确认"]], ["ST-IN-04-06", ["皮衣", "确认"]],
+  ["ST-IN-04-05", ["战术", "到店确认"]],
   ["ST-IN-04-07", ["西装", "确认"]], ["ST-IN-04-08", ["湿发", "确认"]], ["ST-IN-04-09", ["机能", "确认"]],
   ["ST-IN-04-10", ["高街", "确认"]], ["ST-IN-04-11", ["朋克", "确认"]],
   ["ST-IN-05-01", ["复古", "确认"]], ["ST-IN-05-04", ["国风", "确认"]], ["ST-IN-05-05", ["武侠", "确认"]],
@@ -88,6 +89,7 @@ const resourceEffectContract = new Map([
   ["ST-OUT-01-07", ["港风", "确认"]], ["ST-OUT-01-08", ["涂鸦", "确认"]], ["ST-OUT-01-10", ["彩色", "确认"]], ["ST-OUT-01-11", ["咖啡", "不承诺"]],
   ["ST-OUT-02-01", ["霓虹", "确认"]], ["ST-OUT-02-02", ["城市夜景", "确认"]], ["ST-OUT-02-03", ["天台", "确认"]],
   ["ST-OUT-02-04", ["港风", "确认"]], ["ST-OUT-02-05", ["雨后", "确认"]], ["ST-OUT-02-06", ["隧道", "确认"]],
+  ["ST-OUT-02-07", ["暗调", "到店确认"]],
   ["ST-OUT-02-08", ["夜市", "确认"]], ["ST-OUT-02-09", ["车灯", "确认"]], ["ST-OUT-02-10", ["酒吧", "确认"]], ["ST-OUT-02-11", ["闪光灯", "确认"]],
   ["ST-OUT-03-01", ["绿意", "确认"]], ["ST-OUT-03-02", ["风感", "不承诺"]], ["ST-OUT-03-03", ["场地", "确认"]],
   ["ST-OUT-03-04", ["草地", "确认"]], ["ST-OUT-03-05", ["山野", "确认"]], ["ST-OUT-03-06", ["湖边", "确认"]],
@@ -173,7 +175,7 @@ test("all hand-reviewed resource and effect styles keep their mechanism and avai
     assert.ok(description.includes(mechanism), `${styleId} must include mechanism ${mechanism}`);
     assert.ok(description.includes(boundary), `${styleId} must include boundary ${boundary}`);
   }
-  assert.equal(resourceEffectContract.size, 106);
+  assert.equal(resourceEffectContract.size, 108);
 });
 
 test("style slot ids are stable and one based", async () => {

@@ -560,7 +560,7 @@
       "scene": "indoor",
       "label": "战术硬汉",
       "audience": "喜欢冷静、坚决视觉气场的男士",
-      "description": "以硬朗线条和沉稳表情，塑造有行动感的人物状态",
+      "description": "以战术造型的硬朗服装、可用道具和沉稳表情建立行动感，服装与道具资源需到店确认。",
       "legacyThemeIds": [],
       "order": 5,
       "visibility": "published"
@@ -1140,7 +1140,7 @@
       "scene": "outdoor",
       "label": "暗系情绪",
       "audience": "偏好低调冷静人物表达的男士",
-      "description": "压低画面情绪强度，突出轮廓与眼神的细微变化",
+      "description": "以暗调灯光压低环境亮度，配合后期影调突出眼神变化，灯光与后期效果需到店确认。",
       "legacyThemeIds": [
         "city-night"
       ],

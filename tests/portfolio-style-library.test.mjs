@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
+import { buildPortfolioItems, portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
 import {
   fixtureAssets,
   fixtureAssignments,
@@ -34,6 +34,14 @@ async function loadProductionCatalog() {
     return JSON.parse(await readFile(new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url), "utf8"));
   } catch (error) {
     assert.fail(`production style catalog is unavailable: ${error.message}`);
+  }
+}
+
+async function loadSeedModule() {
+  try {
+    return await import("../tools/seed-portfolio-style-library.mjs");
+  } catch (error) {
+    assert.fail(`portfolio style seed behavior is unavailable: ${error.message}`);
   }
 }
 
@@ -126,6 +134,27 @@ test("production catalog has 66 indoor and 66 outdoor styles in six-by-eleven fa
     for (const family of families) assert.equal(catalog.styles.filter((style) => style.familyId === family.id).length, 11);
   }
   assert.ok(catalog.styles.every((style) => style.audience.length >= 6 && style.description.length >= 6));
+});
+
+test("seed creates 1188 valid slot references without copying assets", async () => {
+  const { buildSeedAssignments } = await loadSeedModule();
+  assert.equal(typeof buildSeedAssignments, "function", "seed module must export buildSeedAssignments");
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = normalizeStyleCatalog(await loadProductionCatalog());
+  const assets = buildPortfolioItems(portfolioCatalog);
+  const seeded = buildSeedAssignments({ catalog, assets });
+
+  assert.equal(Object.keys(seeded.assignments).length, 132);
+  assert.equal(Object.values(seeded.assignments).flatMap((entry) => entry.slots).length, 1188);
+  for (const style of catalog.styles) {
+    const slots = seeded.assignments[style.id].slots;
+    const ids = slots.map(({ assetId }) => assetId);
+    assert.equal(ids.length, 9);
+    assert.equal(new Set(ids).size, 9);
+    assert.ok(ids.every((id) => assets.find((asset) => asset.id === id)?.scene === style.scene));
+    assert.ok(slots.every(({ source }) => source === "seed"));
+  }
+  assert.equal(new Set(Object.values(seeded.assignments).flatMap((entry) => entry.slots.map(({ assetId }) => assetId))).size, 158);
 });
 
 test("production catalog matches every approved family and style identity", async () => {

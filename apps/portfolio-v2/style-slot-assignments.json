@@ -1,0 +1,8057 @@
+{
+  "schemaVersion": 1,
+  "assignments": {
+    "ST-IN-01-01": {
+      "slots": [
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 11,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 93,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 139,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 147,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 157,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 73,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-02": {
+      "slots": [
+        {
+          "assetId": 28,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 30,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 32,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 34,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 36,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 52,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 64,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 66,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 68,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-03": {
+      "slots": [
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 11,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 93,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 139,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 147,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 157,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 73,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 99,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 65,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-04": {
+      "slots": [
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 20,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 24,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 26,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 28,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 30,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 32,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-05": {
+      "slots": [
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 70,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 74,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 11,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 93,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-06": {
+      "slots": [
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 20,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 24,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 26,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 28,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 30,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 32,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 34,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 36,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-07": {
+      "slots": [
+        {
+          "assetId": 73,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 99,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 21,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 65,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 119,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 13,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 95,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 123,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 143,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-08": {
+      "slots": [
+        {
+          "assetId": 2,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 20,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 24,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-09": {
+      "slots": [
+        {
+          "assetId": 18,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 22,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 40,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 92,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 31,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 90,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-10": {
+      "slots": [
+        {
+          "assetId": 128,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 130,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 132,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 134,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 136,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 138,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 140,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 142,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-01-11": {
+      "slots": [
+        {
+          "assetId": 63,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 67,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 69,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 71,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 75,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 83,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 89,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 97,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 101,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-01": {
+      "slots": [
+        {
+          "assetId": 132,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 136,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 142,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 146,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-02": {
+      "slots": [
+        {
+          "assetId": 83,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 89,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 91,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 97,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 101,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 103,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 117,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 121,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 125,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-03": {
+      "slots": [
+        {
+          "assetId": 140,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 142,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-04": {
+      "slots": [
+        {
+          "assetId": 91,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 97,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 101,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 103,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 121,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 125,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 131,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 133,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 135,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-05": {
+      "slots": [
+        {
+          "assetId": 146,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 72,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-06": {
+      "slots": [
+        {
+          "assetId": 101,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 103,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 121,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 125,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 131,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 133,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 135,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 141,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 149,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-07": {
+      "slots": [
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 93,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 29,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 33,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 67,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-08": {
+      "slots": [
+        {
+          "assetId": 117,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 121,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 125,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 131,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 135,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 141,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 145,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 149,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 151,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-09": {
+      "slots": [
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 11,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 139,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-10": {
+      "slots": [
+        {
+          "assetId": 75,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 83,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 89,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 91,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 97,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 101,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 103,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 117,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 121,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-02-11": {
+      "slots": [
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 146,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-01": {
+      "slots": [
+        {
+          "assetId": 64,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 66,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 142,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-02": {
+      "slots": [
+        {
+          "assetId": 151,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 153,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 155,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 2,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 6,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-03": {
+      "slots": [
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 11,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 93,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 139,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 147,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-04": {
+      "slots": [
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 18,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 20,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 22,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 24,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-05": {
+      "slots": [
+        {
+          "assetId": 93,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 139,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 147,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 157,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 73,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 99,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 21,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 65,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 119,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-06": {
+      "slots": [
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 6,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 18,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 20,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-07": {
+      "slots": [
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 142,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 11,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-08": {
+      "slots": [
+        {
+          "assetId": 145,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 149,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 151,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 153,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 155,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 2,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 6,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-09": {
+      "slots": [
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 65,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 63,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 141,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 64,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-10": {
+      "slots": [
+        {
+          "assetId": 100,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 102,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 104,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 116,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 118,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 120,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 122,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 124,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-03-11": {
+      "slots": [
+        {
+          "assetId": 15,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 17,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 19,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 23,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 25,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 27,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 29,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 33,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 35,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-01": {
+      "slots": [
+        {
+          "assetId": 116,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 118,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 120,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 122,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 124,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 126,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 128,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 130,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 132,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-02": {
+      "slots": [
+        {
+          "assetId": 35,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 39,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 63,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 67,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 69,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 71,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 75,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 83,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 89,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-03": {
+      "slots": [
+        {
+          "assetId": 98,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 100,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 102,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 104,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 116,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 118,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 120,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 124,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-04": {
+      "slots": [
+        {
+          "assetId": 19,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 23,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 25,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 27,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 29,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 33,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 35,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 39,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 63,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-05": {
+      "slots": [
+        {
+          "assetId": 102,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 104,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 116,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 118,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 120,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 122,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 124,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 126,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-06": {
+      "slots": [
+        {
+          "assetId": 33,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 35,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 39,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 63,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 67,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 69,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 71,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 75,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 83,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-07": {
+      "slots": [
+        {
+          "assetId": 100,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 98,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 102,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 104,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 116,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 118,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 120,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 122,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-08": {
+      "slots": [
+        {
+          "assetId": 67,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 69,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 71,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 75,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 83,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 89,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 91,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 97,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 101,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-09": {
+      "slots": [
+        {
+          "assetId": 134,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 136,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 138,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 140,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 142,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 146,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-10": {
+      "slots": [
+        {
+          "assetId": 139,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 147,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 157,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 73,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 99,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 21,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 65,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 119,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 13,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-04-11": {
+      "slots": [
+        {
+          "assetId": 22,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 24,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 26,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 28,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 30,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 32,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 34,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 36,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 40,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-01": {
+      "slots": [
+        {
+          "assetId": 35,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 32,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 36,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-02": {
+      "slots": [
+        {
+          "assetId": 2,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 6,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 18,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-03": {
+      "slots": [
+        {
+          "assetId": 36,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-04": {
+      "slots": [
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 6,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 18,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 20,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-05": {
+      "slots": [
+        {
+          "assetId": 104,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-06": {
+      "slots": [
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 16,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 18,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 20,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 22,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 24,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 26,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-07": {
+      "slots": [
+        {
+          "assetId": 93,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 139,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 147,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 157,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 73,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 99,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 21,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 65,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 119,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-08": {
+      "slots": [
+        {
+          "assetId": 135,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 141,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 145,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 149,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 151,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 153,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 155,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 2,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-09": {
+      "slots": [
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-10": {
+      "slots": [
+        {
+          "assetId": 96,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 98,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 100,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 102,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 104,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 116,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 118,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 120,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-05-11": {
+      "slots": [
+        {
+          "assetId": 15,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 17,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 19,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 23,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 25,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 27,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 29,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 33,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 39,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-01": {
+      "slots": [
+        {
+          "assetId": 143,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 83,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 131,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 84,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 132,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-02": {
+      "slots": [
+        {
+          "assetId": 149,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 151,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 153,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 155,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 6,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-03": {
+      "slots": [
+        {
+          "assetId": 131,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 84,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 132,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-04": {
+      "slots": [
+        {
+          "assetId": 121,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 125,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 131,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 133,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 141,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 145,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 149,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 151,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 153,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-05": {
+      "slots": [
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 156,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 129,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 3,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 75,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 4,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 76,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 130,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-06": {
+      "slots": [
+        {
+          "assetId": 151,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 153,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 155,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 2,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 6,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 8,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 10,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 12,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 14,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-07": {
+      "slots": [
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 23,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 24,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 137,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 115,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 127,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 107,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 51,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-08": {
+      "slots": [
+        {
+          "assetId": 117,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 121,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 125,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 131,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 133,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 135,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 141,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 145,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 149,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-09": {
+      "slots": [
+        {
+          "assetId": 144,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 146,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 148,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 150,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 152,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 154,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 158,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 81,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 7,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-10": {
+      "slots": [
+        {
+          "assetId": 1,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 3,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 5,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 9,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 15,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 17,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 23,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 25,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 29,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-IN-06-11": {
+      "slots": [
+        {
+          "assetId": 76,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 82,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 84,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 92,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 94,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 96,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 100,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 104,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 108,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-01": {
+      "slots": [
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-02": {
+      "slots": [
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-03": {
+      "slots": [
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-04": {
+      "slots": [
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-05": {
+      "slots": [
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-06": {
+      "slots": [
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-07": {
+      "slots": [
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-08": {
+      "slots": [
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-09": {
+      "slots": [
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-10": {
+      "slots": [
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-01-11": {
+      "slots": [
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-01": {
+      "slots": [
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-02": {
+      "slots": [
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-03": {
+      "slots": [
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-04": {
+      "slots": [
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-05": {
+      "slots": [
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-06": {
+      "slots": [
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-07": {
+      "slots": [
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-08": {
+      "slots": [
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-09": {
+      "slots": [
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-10": {
+      "slots": [
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-02-11": {
+      "slots": [
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-01": {
+      "slots": [
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-02": {
+      "slots": [
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-03": {
+      "slots": [
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-04": {
+      "slots": [
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-05": {
+      "slots": [
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-06": {
+      "slots": [
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-07": {
+      "slots": [
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-08": {
+      "slots": [
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-09": {
+      "slots": [
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-10": {
+      "slots": [
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-03-11": {
+      "slots": [
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-01": {
+      "slots": [
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-02": {
+      "slots": [
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-03": {
+      "slots": [
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-04": {
+      "slots": [
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-05": {
+      "slots": [
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-06": {
+      "slots": [
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-07": {
+      "slots": [
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-08": {
+      "slots": [
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-09": {
+      "slots": [
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-10": {
+      "slots": [
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-04-11": {
+      "slots": [
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-01": {
+      "slots": [
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-02": {
+      "slots": [
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-03": {
+      "slots": [
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-04": {
+      "slots": [
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-05": {
+      "slots": [
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-06": {
+      "slots": [
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-07": {
+      "slots": [
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-08": {
+      "slots": [
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-09": {
+      "slots": [
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-10": {
+      "slots": [
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-05-11": {
+      "slots": [
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-01": {
+      "slots": [
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-02": {
+      "slots": [
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 41,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 43,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-03": {
+      "slots": [
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-04": {
+      "slots": [
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 88,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 106,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-05": {
+      "slots": [
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 44,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 46,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-06": {
+      "slots": [
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-07": {
+      "slots": [
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 45,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 49,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 85,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 105,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-08": {
+      "slots": [
+        {
+          "assetId": 110,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 112,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 114,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 57,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 37,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 111,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 77,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 59,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-09": {
+      "slots": [
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 50,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 60,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 62,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 80,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 86,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-10": {
+      "slots": [
+        {
+          "assetId": 47,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 53,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 55,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 61,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 79,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 87,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    },
+    "ST-OUT-06-11": {
+      "slots": [
+        {
+          "assetId": 113,
+          "poseLabel": "拍摄参考 01",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 109,
+          "poseLabel": "拍摄参考 02",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 38,
+          "poseLabel": "拍摄参考 03",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 42,
+          "poseLabel": "拍摄参考 04",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 48,
+          "poseLabel": "拍摄参考 05",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 54,
+          "poseLabel": "拍摄参考 06",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 56,
+          "poseLabel": "拍摄参考 07",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 58,
+          "poseLabel": "拍摄参考 08",
+          "source": "seed",
+          "updatedAt": null
+        },
+        {
+          "assetId": 78,
+          "poseLabel": "拍摄参考 09",
+          "source": "seed",
+          "updatedAt": null
+        }
+      ],
+      "coverPosition": 1,
+      "maturity": "reference",
+      "updatedAt": null
+    }
+  }
+}

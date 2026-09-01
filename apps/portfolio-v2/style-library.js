@@ -229,7 +229,12 @@ export function normalizeStyleAssignments(value, catalog, assetMap) {
 export function buildStyleLibrary({ catalog, assignments, assets }) {
   if (!Array.isArray(assets)) throw new Error("公共资产列表格式无效");
   const normalizedCatalog = normalizeStyleCatalog(catalog);
-  const assetMap = new Map(assets.map((asset) => [asset?.id, asset]));
+  for (const asset of assets) {
+    assertRecord(asset, "公共资产");
+    if (!Number.isInteger(asset.id)) throw new Error("公共资产编号无效");
+    validateAsset(asset, asset.id);
+  }
+  const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
   if (assetMap.size !== assets.length) throw new Error("公共资产编号重复或无效");
   const normalizedAssignments = normalizeStyleAssignments(assignments, normalizedCatalog, assetMap);
   const slots = normalizedCatalog.styles.flatMap((style) =>

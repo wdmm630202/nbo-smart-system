@@ -50,6 +50,20 @@ test("style catalog rejects unknown fields and invalid cardinality", async () =>
   );
 });
 
+test("family records reject unknown fields", async () => {
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = fixtureStyleCatalog();
+  catalog.families[0].extra = true;
+  assert.throws(() => normalizeStyleCatalog(catalog), /不允许字段/);
+});
+
+test("style records reject unknown fields", async () => {
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = fixtureStyleCatalog();
+  catalog.styles[0].extra = true;
+  assert.throws(() => normalizeStyleCatalog(catalog), /不允许字段/);
+});
+
 test("assignments require nine unique same-scene public assets", async () => {
   const { normalizeStyleAssignments } = await loadPublicContract();
   const catalog = fixtureStyleCatalog();
@@ -66,6 +80,22 @@ test("assignments require nine unique same-scene public assets", async () => {
   const wrongScene = fixtureAssignments();
   wrongScene.assignments["ST-IN-01-01"].slots[0].assetId = 10;
   assert.throws(() => normalizeStyleAssignments(wrongScene, catalog, assetMap), /场景/);
+});
+
+test("assignment records reject unknown fields", async () => {
+  const { normalizeStyleAssignments } = await loadPublicContract();
+  const assignments = fixtureAssignments();
+  assignments.assignments["ST-IN-01-01"].extra = true;
+  const assetMap = new Map(fixtureAssets().map((asset) => [asset.id, asset]));
+  assert.throws(() => normalizeStyleAssignments(assignments, fixtureStyleCatalog(), assetMap), /不允许字段/);
+});
+
+test("slot records reject unknown fields", async () => {
+  const { normalizeStyleAssignments } = await loadPublicContract();
+  const assignments = fixtureAssignments();
+  assignments.assignments["ST-IN-01-01"].slots[0].extra = true;
+  const assetMap = new Map(fixtureAssets().map((asset) => [asset.id, asset]));
+  assert.throws(() => normalizeStyleAssignments(assignments, fixtureStyleCatalog(), assetMap), /不允许字段/);
 });
 
 test("featured styles are eight unique valid style ids", async () => {
@@ -117,4 +147,16 @@ test("library builder returns stable slots and complete counts", async () => {
     updatedAt: null,
     isCover: true,
   });
+});
+
+test("library builder rejects malformed unreferenced assets", async () => {
+  const { buildStyleLibrary } = await loadPublicContract();
+  assert.throws(() => buildStyleLibrary({
+    catalog: fixtureStyleCatalog(),
+    assignments: fixtureAssignments(),
+    assets: [
+      ...fixtureAssets(),
+      { id: 999, scene: "private", theme: "", thumb: "", full: "" },
+    ],
+  }), /公共资产 999 场景字段格式无效/);
 });

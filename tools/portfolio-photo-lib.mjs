@@ -49,6 +49,15 @@ export function slotCode(id) {
   return `NB-${String(id).padStart(3, "0")}`;
 }
 
+export function assertPublicAssetCode(code) {
+  const match = typeof code === "string" ? code.match(/^NB-(\d{3,})$/) : null;
+  const numericId = match ? Number(match[1]) : NaN;
+  if (!Number.isSafeInteger(numericId) || numericId < 1 || slotCode(numericId) !== code) {
+    throw new Error("公开资产编号必须是 NB-001 或更大的规范编号");
+  }
+  return numericId;
+}
+
 export function slotFilename(id) {
   return `photo-${String(id).padStart(3, "0")}`;
 }
@@ -435,7 +444,7 @@ export function validateChangedPhotoBundles(sourceFiles) {
   const bySlot = new Map();
   const errors = [];
   for (const path of sourceFiles) {
-    const match = path.match(/^apps\/portfolio\/assets\/photos\/(full|thumbs|featured)\/photo-(\d{3})\.(jpg|webp)$/);
+    const match = path.match(/^apps\/portfolio\/assets\/photos\/(full|thumbs|featured)\/photo-(\d{3,})\.(jpg|webp)$/);
     if (!match) {
       errors.push(`无法识别客片改动 ${path}`);
       continue;

@@ -71,31 +71,60 @@ export function createStyleExplorer({
   const familyTabs = requiredElement(root, "#style-family-tabs");
   const cardGrid = requiredElement(root, "#style-card-grid");
   const album = requiredElement(root, "#style-album");
-  const favoriteStyleIds = new Set();
   let state = createExplorerState(library, new URLSearchParams(windowObject?.location?.search || ""));
   let destroyed = false;
 
   const styleById = new Map(library.styles.map((style) => [style.id, style]));
 
-  function createTab({ label, selected, dataset, onClick }) {
+  function focusRenderedTab(id) {
+    const tab = documentObject.getElementById(id);
+    if (tab && root.contains(tab)) tab.focus({ preventScroll: true });
+  }
+
+  function moveTabSelection(event, tablist) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+    const currentIndex = tabs.indexOf(event.currentTarget);
+    if (currentIndex < 0 || !tabs.length) return;
+    event.preventDefault();
+    let nextIndex = currentIndex;
+    if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = tabs.length - 1;
+    else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    else nextIndex = (currentIndex + 1) % tabs.length;
+    const nextId = tabs[nextIndex].id;
+    tabs[nextIndex].click();
+    focusRenderedTab(nextId);
+  }
+
+  function createTab({ id, label, selected, dataset, tablist, onClick }) {
     const button = documentObject.createElement("button");
+    button.id = id;
     button.type = "button";
     button.className = "style-filter-tab";
     button.setAttribute("role", "tab");
     button.setAttribute("aria-selected", String(selected));
+    button.setAttribute("aria-controls", "style-card-grid");
     button.tabIndex = selected ? 0 : -1;
     Object.assign(button.dataset, dataset);
     button.textContent = label;
     bindPressFeedback(button);
-    button.addEventListener("click", onClick);
+    button.addEventListener("click", () => {
+      const restoreFocus = documentObject.activeElement === button;
+      onClick();
+      if (restoreFocus) focusRenderedTab(id);
+    });
+    button.addEventListener("keydown", (event) => moveTabSelection(event, tablist));
     return button;
   }
 
   function renderSceneTabs() {
     sceneTabs.replaceChildren(...["indoor", "outdoor"].map((scene) => createTab({
+      id: `style-scene-tab-${scene}`,
       label: `${sceneLabels[scene]} ${library.counts?.[scene] || library.styles.filter((style) => style.scene === scene).length}`,
       selected: state.scene === scene,
       dataset: { scene },
+      tablist: sceneTabs,
       onClick: () => {
         if (state.scene === scene) return;
         state = reduceExplorer(state, { type: "scene", scene }, library);
@@ -110,9 +139,11 @@ export function createStyleExplorer({
   function renderFamilyTabs() {
     const families = sorted(library.families.filter((family) => family.scene === state.scene));
     familyTabs.replaceChildren(...families.map((family) => createTab({
+      id: `style-family-tab-${family.id}`,
       label: family.label,
       selected: state.familyId === family.id,
       dataset: { familyId: family.id },
+      tablist: familyTabs,
       onClick: () => {
         if (state.familyId === family.id) return;
         state = reduceExplorer(state, { type: "family", familyId: family.id }, library);
@@ -152,7 +183,7 @@ export function createStyleExplorer({
     const open = documentObject.createElement("button");
     open.className = "portrait-style-card-open";
     open.type = "button";
-    open.setAttribute("aria-label", `查看${style.label}的9个拍摄参考`);
+    open.setAttribute("aria-label", `查看${style.label}，${style.audience}，9个拍摄参考`);
     bindPressFeedback(open);
 
     const imageWrap = documentObject.createElement("span");
@@ -182,38 +213,12 @@ export function createStyleExplorer({
     divider.setAttribute("aria-hidden", "true");
     const audience = documentObject.createElement("small");
     audience.textContent = style.audience;
+    audience.title = style.audience;
     copy.append(title, divider, audience);
     open.append(imageWrap, scene, copy);
     open.addEventListener("click", () => openStyle(style.id));
 
-    const like = documentObject.createElement("button");
-    like.className = "portrait-style-like";
-    like.type = "button";
-    like.dataset.styleFavoriteId = style.id;
-    like.setAttribute("aria-label", `收藏${style.label}`);
-    like.setAttribute("aria-pressed", "false");
-    like.textContent = "♡";
-    bindPressFeedback(like);
-    like.addEventListener("click", () => {
-      const selected = !favoriteStyleIds.has(style.id);
-      if (selected) favoriteStyleIds.add(style.id);
-      else favoriteStyleIds.delete(style.id);
-      like.setAttribute("aria-pressed", String(selected));
-      like.setAttribute("aria-label", `${selected ? "取消收藏" : "收藏"}${style.label}`);
-      like.textContent = selected ? "♥" : "♡";
-      onTrack(selected ? "style_favorite_add" : "style_favorite_remove", {
-        scene: style.scene,
-        targetId: style.id,
-        targetLabel: style.label,
-      });
-      onSelectionChange(state, { type: "style-favorite", styleId: style.id, selected });
-    });
-
-    article.append(open, like);
-    if (favoriteStyleIds.has(style.id)) {
-      like.setAttribute("aria-pressed", "true");
-      like.textContent = "♥";
-    }
+    article.append(open);
     image.src = versionPhoto(cover.asset.thumb);
     return article;
   }
@@ -224,6 +229,7 @@ export function createStyleExplorer({
       style.familyId === state.familyId && style.visibility === "published"
     )));
     cardGrid.setAttribute("aria-label", `${sceneLabels[state.scene]}·${library.families.find((family) => family.id === state.familyId)?.label || ""}风格`);
+    cardGrid.setAttribute("aria-labelledby", `style-scene-tab-${state.scene} style-family-tab-${state.familyId}`);
     cardGrid.replaceChildren(...activeStyles.map(renderStyleCard));
   }
 

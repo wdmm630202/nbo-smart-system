@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, readFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import { fixtureStyleCatalog } from "./helpers/portfolio-style-fixtures.mjs";
@@ -23,32 +25,95 @@ function contentType(pathname) {
 }
 
 async function runChrome(url, width, extraFlags = []) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(chromePath, [
-      "--headless=new",
-      "--disable-gpu",
-      "--hide-scrollbars",
-      "--no-first-run",
-      `--window-size=${width},1000`,
-      "--virtual-time-budget=1400",
-      ...extraFlags,
-      "--dump-dom",
-      url,
-    ]);
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => { stdout += chunk; });
-    child.stderr.on("data", (chunk) => { stderr += chunk; });
-    child.on("error", reject);
+  const profileDir = await mkdtemp(join(tmpdir(), "nbo-style-chrome-"));
+  const child = spawn(chromePath, [
+    "--headless=new",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    "--no-first-run",
+    "--remote-debugging-port=0",
+    `--user-data-dir=${profileDir}`,
+    ...extraFlags,
+    "about:blank",
+  ]);
+  let stderr = "";
+  const debuggerUrl = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Chrome DevTools 启动超时: ${stderr}`)), 8000);
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+      const match = stderr.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+      if (!match) return;
+      clearTimeout(timeout);
+      resolve(match[1]);
+    });
     child.on("close", (code) => {
-      if (code === 0) resolve(stdout);
-      else reject(new Error(`Chrome 退出码 ${code}: ${stderr}`));
+      clearTimeout(timeout);
+      reject(new Error(`Chrome 提前退出（${code}）: ${stderr}`));
     });
   });
+
+  const socket = new WebSocket(debuggerUrl);
+  const pending = new Map();
+  let nextMessageId = 0;
+  await new Promise((resolve, reject) => {
+    socket.addEventListener("open", resolve, { once: true });
+    socket.addEventListener("error", reject, { once: true });
+  });
+  socket.addEventListener("message", ({ data }) => {
+    const message = JSON.parse(data);
+    if (!message.id || !pending.has(message.id)) return;
+    const { resolve, reject } = pending.get(message.id);
+    pending.delete(message.id);
+    if (message.error) reject(new Error(`${message.error.message}: ${JSON.stringify(message.error.data || {})}`));
+    else resolve(message.result);
+  });
+  const command = (method, params = {}, sessionId = undefined) => new Promise((resolve, reject) => {
+    const id = ++nextMessageId;
+    pending.set(id, { resolve, reject });
+    socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
+  });
+
+  try {
+    const { targetId } = await command("Target.createTarget", { url: "about:blank" });
+    const { sessionId } = await command("Target.attachToTarget", { targetId, flatten: true });
+    await command("Emulation.setDeviceMetricsOverride", {
+      width,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: width < 700,
+      screenWidth: width,
+      screenHeight: 1000,
+    }, sessionId);
+    await command("Page.navigate", { url }, sessionId);
+    let metricsText = "";
+    for (let attempt = 0; attempt < 80 && !metricsText; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const evaluation = await command("Runtime.evaluate", {
+        expression: 'document.querySelector("#style-explorer-metrics")?.textContent || ""',
+        returnByValue: true,
+      }, sessionId);
+      metricsText = evaluation.result?.value || "";
+    }
+    if (!metricsText) throw new Error("Chrome 页面没有在时限内产出风格浏览器指标");
+    const evaluation = await command("Runtime.evaluate", {
+      expression: "document.documentElement.outerHTML",
+      returnByValue: true,
+    }, sessionId);
+    return evaluation.result?.value || "";
+  } finally {
+    socket.close();
+    child.kill("SIGTERM");
+    await new Promise((resolve) => child.once("close", resolve));
+    await rm(profileDir, { recursive: true, force: true });
+  }
 }
 
-async function measureCustomerStyleExplorer(width, { reducedMotion = false } = {}) {
-  const cacheKey = `${width}:${reducedMotion}`;
+async function measureCustomerStyleExplorer(width, { reducedMotion = false, highContrast = false } = {}) {
+  const cacheKey = `${width}:${reducedMotion}:${highContrast}`;
   if (browserMeasurements.has(cacheKey)) return browserMeasurements.get(cacheKey);
 
   const measurement = (async () => {
@@ -66,15 +131,29 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false } = {
         const firstImageWrap = firstCard?.querySelector(".portrait-style-card-image");
         const firstImage = images[0];
         const firstOpen = firstCard?.querySelector(".portrait-style-card-open");
-        const firstLike = firstCard?.querySelector(".portrait-style-like");
+        const styleFavorites = [...(grid?.querySelectorAll(".portrait-style-like") || [])];
         const firstLabel = firstCard?.querySelector(".portrait-style-copy strong")?.textContent || "";
+        const firstAudience = firstCard?.querySelector(".portrait-style-copy small")?.textContent || "";
         const rootRect = root?.getBoundingClientRect();
         const gridRect = grid?.getBoundingClientRect();
         const cardRect = firstCard?.getBoundingClientRect();
         const imageRect = firstImageWrap?.getBoundingClientRect();
         const initialImageCount = images.filter((image) => image.getAttribute("src")).length;
         const initialOpenHeight = firstOpen?.getBoundingClientRect().height || 0;
-        const initialLikeRect = firstLike?.getBoundingClientRect();
+        const titleStyle = firstCard?.querySelector(".portrait-style-copy strong")
+          ? getComputedStyle(firstCard.querySelector(".portrait-style-copy strong")) : null;
+        const audienceStyle = firstCard?.querySelector(".portrait-style-copy small")
+          ? getComputedStyle(firstCard.querySelector(".portrait-style-copy small")) : null;
+        const sceneBadge = firstCard?.querySelector(".portrait-style-scene");
+        const sceneBadgeStyle = sceneBadge ? getComputedStyle(sceneBadge) : null;
+        const legacyLike = document.querySelector("#gallery-grid .like-button");
+        const legacyLikeStyle = legacyLike ? getComputedStyle(legacyLike) : null;
+        const titleFontSize = Number.parseFloat(titleStyle?.fontSize || "0");
+        const audienceFontSize = Number.parseFloat(audienceStyle?.fontSize || "0");
+        const sceneBadgeBackground = sceneBadgeStyle?.backgroundColor || "";
+        const sceneBadgeBorderWidth = Number.parseFloat(sceneBadgeStyle?.borderTopWidth || "0");
+        const legacyLikeBackground = legacyLikeStyle?.backgroundColor || "";
+        const legacyLikeBorderWidth = Number.parseFloat(legacyLikeStyle?.borderTopWidth || "0");
         const openStyle = firstOpen ? getComputedStyle(firstOpen) : null;
         const gridStyle = grid ? getComputedStyle(grid) : null;
         const initialTransitionDurations = (openStyle?.transitionDuration || "")
@@ -91,9 +170,44 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false } = {
         familyTabs[1]?.click();
         const nextCards = [...(grid?.querySelectorAll(".portrait-style-card") || [])];
         const nextImages = [...(grid?.querySelectorAll(".portrait-style-card-image img") || [])];
+        const nextCardCount = nextCards.length;
+        const nextImageCount = nextImages.filter((image) => image.getAttribute("src")).length;
         const oldSourcesCleared = oldImages.every((image) => !image.getAttribute("src"));
         const openedStyleId = nextCards[0]?.dataset.styleId || "";
         nextCards[0]?.querySelector(".portrait-style-card-open")?.click();
+        const openedStyleParam = new URL(location.href).searchParams.get("style") || "";
+        const openedView = root?.dataset.view || "";
+
+        const selectedFamily = document.querySelector('#style-family-tabs [role="tab"][aria-selected="true"]');
+        selectedFamily?.focus();
+        selectedFamily?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+        const familyAfterRight = document.querySelector('#style-family-tabs [role="tab"][aria-selected="true"]');
+        const familyRightFocused = document.activeElement === familyAfterRight;
+        const familyRightSelected = familyAfterRight?.dataset.familyId || "";
+        const familyRightTabStops = [...document.querySelectorAll('#style-family-tabs [role="tab"]')]
+          .filter((tab) => tab.tabIndex === 0).length;
+        familyAfterRight?.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
+        const familyAfterHome = document.querySelector('#style-family-tabs [role="tab"][aria-selected="true"]');
+        const familyHomeFocused = document.activeElement === familyAfterHome;
+        const familyHomeSelected = familyAfterHome?.dataset.familyId || "";
+        familyAfterHome?.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
+        const familyAfterEnd = document.querySelector('#style-family-tabs [role="tab"][aria-selected="true"]');
+        const familyEndFocused = document.activeElement === familyAfterEnd;
+        const familyEndSelected = familyAfterEnd?.dataset.familyId || "";
+        familyAfterEnd?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+        const familyAfterLeft = document.querySelector('#style-family-tabs [role="tab"][aria-selected="true"]');
+        const familyLeftFocused = document.activeElement === familyAfterLeft;
+        const familyLeftSelected = familyAfterLeft?.dataset.familyId || "";
+
+        const selectedScene = document.querySelector('#style-scene-tabs [role="tab"][aria-selected="true"]');
+        selectedScene?.focus();
+        selectedScene?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+        const sceneAfterRight = document.querySelector('#style-scene-tabs [role="tab"][aria-selected="true"]');
+        const sceneRightFocused = document.activeElement === sceneAfterRight;
+        const sceneRightSelected = sceneAfterRight?.dataset.scene || "";
+        const sceneRightTabStops = [...document.querySelectorAll('#style-scene-tabs [role="tab"]')]
+          .filter((tab) => tab.tabIndex === 0).length;
+        const panel = document.querySelector("#style-card-grid");
         const legacyDisclosure = document.querySelector("#legacy-gallery-disclosure");
         document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
           rootPresent: Boolean(root),
@@ -103,24 +217,51 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false } = {
           familyTabCount: familyTabs.length,
           activeSceneTabs: sceneTabs.filter((item) => item.getAttribute("aria-selected") === "true").length,
           activeFamilyTabs: familyTabs.filter((item) => item.getAttribute("aria-selected") === "true").length,
+          initialSceneTabStops: sceneTabs.filter((item) => item.tabIndex === 0).length,
+          initialFamilyTabStops: familyTabs.filter((item) => item.tabIndex === 0).length,
+          tabsControlPanel: [...sceneTabs, ...familyTabs].every((tab) => tab.getAttribute("aria-controls") === "style-card-grid"),
+          panelRole: panel?.getAttribute("role") || "",
+          panelLabelledBy: panel?.getAttribute("aria-labelledby") || "",
+          panelLabelExists: Boolean(panel?.getAttribute("aria-labelledby")
+            && panel.getAttribute("aria-labelledby").split(/\\s+/).every((id) => document.getElementById(id))),
+          familyRightFocused,
+          familyRightSelected,
+          familyRightTabStops,
+          familyHomeFocused,
+          familyHomeSelected,
+          familyEndFocused,
+          familyEndSelected,
+          familyLeftFocused,
+          familyLeftSelected,
+          sceneRightFocused,
+          sceneRightSelected,
+          sceneRightTabStops,
           featuredIds: featured.map((item) => item.dataset.styleId),
           featuredLabel: document.querySelector("#style-featured")?.getAttribute("aria-label") || "",
           featuredText: document.querySelector("#style-featured")?.textContent.replace(/\\s+/g, " ").trim() || "",
           explorerText: root?.textContent.replace(/\\s+/g, " ").trim() || "",
           cardCount: cards.length,
           imageCount: initialImageCount,
-          nextCardCount: nextCards.length,
-          nextImageCount: nextImages.filter((image) => image.getAttribute("src")).length,
+          nextCardCount,
+          nextImageCount,
           oldSourcesCleared,
           openedStyleId,
-          openedStyleParam: new URL(location.href).searchParams.get("style") || "",
-          openedView: root?.dataset.view || "",
+          openedStyleParam,
+          openedView,
           gridColumns: gridStyle?.gridTemplateColumns.split(" ").filter(Boolean).length || 0,
           cardRatio: cardRect ? cardRect.width / cardRect.height : 0,
           imageRatio: imageRect ? imageRect.width / imageRect.height : 0,
           openHeight: initialOpenHeight,
-          likeWidth: initialLikeRect?.width || 0,
-          likeHeight: initialLikeRect?.height || 0,
+          styleFavoriteCount: styleFavorites.length,
+          titleFontSize,
+          audienceFontSize,
+          cardAccessibleName: firstOpen?.getAttribute("aria-label") || "",
+          firstAudience,
+          highContrastMatches: matchMedia("(prefers-contrast: more)").matches,
+          sceneBadgeBackground,
+          sceneBadgeBorderWidth,
+          legacyLikeBackground,
+          legacyLikeBorderWidth,
           pressing,
           pressedTransform,
           transitionDurations: initialTransitionDurations,
@@ -131,6 +272,7 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false } = {
           legacyGalleryInsideDisclosure: Boolean(legacyDisclosure?.contains(document.querySelector("#gallery-grid"))),
           legacyThemeTargetPreserved: Boolean(document.querySelector('[data-theme-link="business-boss"]')),
           albumHookPresent: Boolean(document.querySelector("#style-album")),
+          viewportWidth: window.innerWidth,
           horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
           gridLeftInset: rootRect && gridRect ? gridRect.left - rootRect.left : null,
           gridRightInset: rootRect && gridRect ? rootRect.right - gridRect.right : null,
@@ -165,7 +307,10 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false } = {
       const output = await runChrome(
         `http://127.0.0.1:${port}/portfolio-v2/index.html?v=test`,
         width,
-        reducedMotion ? ["--force-prefers-reduced-motion"] : [],
+        [
+          ...(reducedMotion ? ["--force-prefers-reduced-motion"] : []),
+          ...(highContrast ? ["--force-high-contrast"] : []),
+        ],
       );
       const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
       return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
@@ -357,12 +502,34 @@ test("customer page renders the progressive explorer with only manual Nanbo pick
   assert.equal(metrics.familyTabCount, 6);
   assert.equal(metrics.activeSceneTabs, 1);
   assert.equal(metrics.activeFamilyTabs, 1);
+  assert.equal(metrics.initialSceneTabStops, 1, "场景页签必须只有一个 roving tab stop");
+  assert.equal(metrics.initialFamilyTabStops, 1, "感觉页签必须只有一个 roving tab stop");
   assert.deepEqual(metrics.featuredIds, catalog.featuredStyleIds, "南铂精选没有严格遵循 8 个手工指定 ID 及顺序");
   assert.equal(metrics.featuredLabel, "南铂精选");
   assert.doesNotMatch(metrics.featuredText, /热门|大家常选/);
   assert.equal(metrics.cardCount, 11, "首次只应渲染当前大类 11 张卡");
   assert.equal(metrics.imageCount, 11, "首次只应请求当前大类 11 张封面");
   assert.equal(metrics.albumHookPresent, true, "后续 9 张相册没有稳定挂载点");
+});
+
+test("scene and family tablists expose a labelled panel and retain focus through roving keyboard selection", { skip: !hasChrome }, async () => {
+  const metrics = await measureCustomerStyleExplorer(390);
+
+  assert.equal(metrics.tabsControlPanel, true, "页签没有通过 aria-controls 关联风格面板");
+  assert.equal(metrics.panelRole, "tabpanel");
+  assert.equal(metrics.panelLabelExists, true, `tabpanel 的 aria-labelledby 无效：${metrics.panelLabelledBy}`);
+  assert.equal(metrics.familyRightSelected, "IN-03", "ArrowRight 没有选择下一感觉方向");
+  assert.equal(metrics.familyRightFocused, true, "感觉方向切换后焦点丢失");
+  assert.equal(metrics.familyRightTabStops, 1, "感觉方向切换后出现多个 Tab 停靠点");
+  assert.equal(metrics.familyHomeSelected, "IN-01", "Home 没有选择第一个感觉方向");
+  assert.equal(metrics.familyHomeFocused, true, "Home 切换后焦点丢失");
+  assert.equal(metrics.familyEndSelected, "IN-06", "End 没有选择最后一个感觉方向");
+  assert.equal(metrics.familyEndFocused, true, "End 切换后焦点丢失");
+  assert.equal(metrics.familyLeftSelected, "IN-05", "ArrowLeft 没有选择上一感觉方向");
+  assert.equal(metrics.familyLeftFocused, true, "ArrowLeft 切换后焦点丢失");
+  assert.equal(metrics.sceneRightSelected, "outdoor", "场景 ArrowRight 没有选择下一项");
+  assert.equal(metrics.sceneRightFocused, true, "场景切换后焦点丢失");
+  assert.equal(metrics.sceneRightTabStops, 1, "场景切换后出现多个 Tab 停靠点");
 });
 
 test("compact style cards keep computed 2:3 card and 3:4 image geometry across phone and desktop", { skip: !hasChrome }, async () => {
@@ -378,6 +545,8 @@ test("compact style cards keep computed 2:3 card and 3:4 image geometry across p
     assert.ok(metrics.gridLeftInset >= 0 && metrics.gridRightInset >= 0, `${label}风格网格越出内容边界：${metrics.gridLeftInset}px / ${metrics.gridRightInset}px`);
     assert.ok(metrics.cardClipOverflow <= .5, `${label}卡片被网格裁切 ${metrics.cardClipOverflow}px`);
   }
+  assert.equal(phone.viewportWidth, 390, "手机几何测试没有运行在真实 390px CSS viewport");
+  assert.equal(desktop.viewportWidth, 1100, "桌面几何测试没有运行在真实 1100px CSS viewport");
   assert.equal(phone.gridColumns, 2, "390px 应为两列");
   assert.equal(desktop.gridColumns, 3, "桌面应为三列");
 });
@@ -386,7 +555,7 @@ test("style controls respond on press, clear stale images on family change, and 
   const metrics = await measureCustomerStyleExplorer(390);
 
   assert.ok(metrics.openHeight >= 44, `整卡按钮触控高度不足：${metrics.openHeight}px`);
-  assert.ok(metrics.likeWidth >= 44 && metrics.likeHeight >= 44, `收藏按钮触控尺寸不足：${metrics.likeWidth} × ${metrics.likeHeight}px`);
+  assert.equal(metrics.styleFavoriteCount, 0, "Task 8 持久化与需求卡接入前，不得展示会刷新丢失的风格收藏爱心");
   assert.equal(metrics.pressing, true, "pointerdown 当帧没有标记按下状态");
   assert.notEqual(metrics.pressedTransform, "none", "按下状态没有可见反馈");
   assert.ok(metrics.transitionDurations.some((duration) => duration >= .16 && duration <= .22), `非手势反馈不在 160–220ms：${metrics.transitionDurations}`);
@@ -398,6 +567,32 @@ test("style controls respond on press, clear stale images on family change, and 
   assert.equal(metrics.nextImageCount, 11);
   assert.equal(metrics.openedStyleParam, metrics.openedStyleId, "点击整张卡片没有打开对应稳定风格 ID");
   assert.equal(metrics.openedView, "album");
+});
+
+test("phone card titles and audience labels remain readable at 390px and 320px", { skip: !hasChrome }, async () => {
+  const [regularPhone, compactPhone] = await Promise.all([
+    measureCustomerStyleExplorer(390),
+    measureCustomerStyleExplorer(320),
+  ]);
+
+  for (const [label, metrics] of [["390px", regularPhone], ["320px", compactPhone]]) {
+    assert.equal(metrics.viewportWidth, Number.parseInt(label, 10), `${label} 字号测试的 CSS viewport 不准确`);
+    assert.ok(metrics.titleFontSize >= 12, `${label} 风格标题字号过小：${metrics.titleFontSize}px`);
+    assert.ok(metrics.audienceFontSize >= 11, `${label} 适合人群字号过小：${metrics.audienceFontSize}px`);
+    assert.match(metrics.cardAccessibleName, new RegExp(metrics.firstLabel), `${label} 卡片名称缺少风格标题`);
+    assert.match(metrics.cardAccessibleName, new RegExp(metrics.firstAudience), `${label} 截断的人群说明没有保留在可访问名称中`);
+    assert.ok(metrics.horizontalOverflow <= 0, `${label} 提高字号后出现横向溢出`);
+  }
+});
+
+test("high contrast gives photo overlay controls near-solid backgrounds and explicit borders", { skip: !hasChrome }, async () => {
+  const metrics = await measureCustomerStyleExplorer(390, { highContrast: true });
+
+  assert.equal(metrics.highContrastMatches, true, "测试浏览器没有进入 prefers-contrast: more");
+  assert.doesNotMatch(metrics.sceneBadgeBackground, /rgba\([^)]*,\s*0(?:\.|\))/i, `场景标签背景仍透明：${metrics.sceneBadgeBackground}`);
+  assert.ok(metrics.sceneBadgeBorderWidth >= 2, `场景标签边框不足：${metrics.sceneBadgeBorderWidth}px`);
+  assert.doesNotMatch(metrics.legacyLikeBackground, /rgba\([^)]*,\s*0(?:\.|\))/i, `旧照片爱心背景仍透明：${metrics.legacyLikeBackground}`);
+  assert.ok(metrics.legacyLikeBorderWidth >= 2, `旧照片爱心边框不足：${metrics.legacyLikeBorderWidth}px`);
 });
 
 test("customer wording is honest and the 158-photo gallery remains available behind its disclosure", { skip: !hasChrome }, async () => {

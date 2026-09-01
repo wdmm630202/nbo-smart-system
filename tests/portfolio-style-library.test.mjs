@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   fixtureAssets,
@@ -27,8 +28,31 @@ async function loadPublicContract() {
   }
 }
 
+async function loadProductionCatalog() {
+  try {
+    return JSON.parse(await readFile(new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url), "utf8"));
+  } catch (error) {
+    assert.fail(`production style catalog is unavailable: ${error.message}`);
+  }
+}
+
 test("style library exposes its public contract", async () => {
   await loadPublicContract();
+});
+
+test("production catalog has 66 indoor and 66 outdoor styles in six-by-eleven families", async () => {
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = normalizeStyleCatalog(await loadProductionCatalog());
+  assert.equal(catalog.families.length, 12);
+  assert.equal(catalog.styles.length, 132);
+  assert.equal(catalog.featuredStyleIds.length, 8);
+  for (const scene of ["indoor", "outdoor"]) {
+    const families = catalog.families.filter((family) => family.scene === scene);
+    assert.equal(families.length, 6);
+    assert.equal(catalog.styles.filter((style) => style.scene === scene).length, 66);
+    for (const family of families) assert.equal(catalog.styles.filter((style) => style.familyId === family.id).length, 11);
+  }
+  assert.ok(catalog.styles.every((style) => style.audience.length >= 6 && style.description.length >= 6));
 });
 
 test("style slot ids are stable and one based", async () => {

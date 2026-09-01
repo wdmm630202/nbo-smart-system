@@ -6,7 +6,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { fixtureStyleCatalog } from "./helpers/portfolio-style-fixtures.mjs";
+import { buildStyleLibrary } from "../apps/portfolio-v2/style-library.js";
+import {
+  fixtureAssets,
+  fixtureAssignments,
+  fixtureStyleCatalog,
+} from "./helpers/portfolio-style-fixtures.mjs";
 
 const explorerModelUrl = new URL("../apps/portfolio-v2/style-explorer-model.js", import.meta.url).href;
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -120,6 +125,7 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
     const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
     const probe = `<output id="style-explorer-metrics"></output><script>
       window.addEventListener("load", () => window.setTimeout(async () => {
+        const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
         const root = document.querySelector("#style-explorer");
         const grid = document.querySelector("#style-card-grid");
         const cards = [...(grid?.querySelectorAll(".portrait-style-card") || [])];
@@ -182,9 +188,155 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         const nextImageCount = nextImages.filter((image) => image.getAttribute("src")).length;
         const oldSourcesCleared = oldImages.every((image) => !image.getAttribute("src"));
         const openedStyleId = nextCards[0]?.dataset.styleId || "";
+        const returnScrollTarget = Math.min(420, Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
+        const originalScrollBehavior = document.documentElement.style.scrollBehavior;
+        document.documentElement.style.scrollBehavior = "auto";
+        window.scrollTo(0, returnScrollTarget);
+        document.documentElement.style.scrollBehavior = originalScrollBehavior;
+        const openedReturnScroll = window.scrollY;
         nextCards[0]?.querySelector(".portrait-style-card-open")?.click();
         const openedStyleParam = new URL(location.href).searchParams.get("style") || "";
         const openedView = root?.dataset.view || "";
+
+        const albumElement = document.querySelector("#style-album");
+        const albumPanel = albumElement?.querySelector(".style-album-panel");
+        const albumGrid = albumElement?.querySelector(".style-album-grid");
+        const poseCards = [...(albumGrid?.querySelectorAll(".pose-card") || [])];
+        const poseImages = [...(albumGrid?.querySelectorAll(".pose-open img") || [])];
+        const poseChoices = [...(albumGrid?.querySelectorAll(".pose-choice") || [])];
+        const albumPanelRect = albumPanel?.getBoundingClientRect();
+        const albumGridStyle = albumGrid ? getComputedStyle(albumGrid) : null;
+        const albumVisible = Boolean(albumElement && !albumElement.hidden && getComputedStyle(albumElement).display !== "none");
+        const albumFullSourceBeforeViewer = document.querySelector("#viewer-image")?.getAttribute("src") || "";
+        const albumSlotIds = poseCards.map((card) => card.dataset.slotId || "");
+        const albumImageSourceCount = poseImages.filter((image) => image.getAttribute("src")).length;
+        const albumLazyImageCount = poseImages.filter((image) => image.loading === "lazy" && image.decoding === "async").length;
+        const albumPoseChoiceCount = poseChoices.length;
+        const albumPoseOpenMinHeight = poseCards.length
+          ? Math.min(...poseCards.map((card) => card.querySelector(".pose-open")?.getBoundingClientRect().height || 0)) : 0;
+        const albumPoseChoiceMinHeight = poseChoices.length
+          ? Math.min(...poseChoices.map((button) => button.getBoundingClientRect().height || 0)) : 0;
+        const albumCardExtraSpaceMax = poseCards.length ? Math.max(...poseCards.map((card) => {
+          const cardHeight = card.getBoundingClientRect().height;
+          const openHeight = card.querySelector(".pose-open")?.getBoundingClientRect().height || 0;
+          const choiceHeight = card.querySelector(".pose-choice")?.getBoundingClientRect().height || 0;
+          return cardHeight - openHeight - choiceHeight;
+        })) : 0;
+        const albumHorizontalOverflow = albumElement ? albumElement.scrollWidth - albumElement.clientWidth : 0;
+        const albumGridColumns = albumGridStyle?.gridTemplateColumns.split(" ").filter(Boolean).length || 0;
+        const albumPanelInsideViewport = Boolean(albumPanelRect
+          && albumPanelRect.left >= 0 && albumPanelRect.right <= window.innerWidth + .5);
+        const albumAnimationDurations = (albumElement ? getComputedStyle(albumElement).animationDuration : "")
+          .split(",").filter(Boolean).map((value) => Number.parseFloat(value) * (value.includes("ms") ? .001 : 1));
+
+        poseCards[2]?.querySelector(".pose-open")?.click();
+        await wait(60);
+        const sharedViewerCount = document.querySelectorAll("#viewer").length;
+        const viewerElement = document.querySelector("#viewer");
+        const viewerPoseChoice = document.querySelector("#viewer-pose-choice");
+        const viewerLikeButton = document.querySelector("#viewer-like");
+        const styleViewerOpened = Boolean(viewerElement?.open);
+        const styleViewerCount = document.querySelector("#viewer-count")?.textContent.trim() || "";
+        const styleViewerHidesAssetCode = !/^NB-/i.test(document.querySelector("#viewer-code")?.textContent.trim() || "");
+        const styleViewerPoseChoiceVisible = Boolean(viewerPoseChoice && !viewerPoseChoice.hidden);
+        const styleViewerPoseSlotId = viewerPoseChoice?.dataset.slotId || "";
+        const styleViewerFavoriteVisible = Boolean(viewerLikeButton && !viewerLikeButton.hidden);
+        const viewerShell = document.querySelector("#viewer .viewer-shell");
+        const viewerActions = document.querySelector("#viewer .viewer-actions");
+        const viewerActionsRect = viewerActions?.getBoundingClientRect();
+        const viewerHorizontalOverflow = viewerShell ? viewerShell.scrollWidth - viewerShell.clientWidth : 0;
+        const viewerActionsInsideViewport = Boolean(viewerActionsRect
+          && viewerActionsRect.left >= 0 && viewerActionsRect.right <= window.innerWidth + .5);
+        const viewerControlHeights = [
+          document.querySelector("#viewer-close"),
+          viewerLikeButton,
+          viewerPoseChoice,
+        ].filter(Boolean).map((button) => button.getBoundingClientRect().height);
+        const viewerControlsAtLeast44 = viewerControlHeights.length === 3
+          && viewerControlHeights.every((height) => height >= 44);
+        const viewerInitialFocus = document.activeElement?.id || "";
+        const favoriteBefore = viewerLikeButton?.classList.contains("is-selected") || false;
+        viewerLikeButton?.click();
+        const favoriteAfter = viewerLikeButton?.classList.contains("is-selected") || false;
+        viewerLikeButton?.click();
+        const styleViewerFavoriteRoundTrip = favoriteBefore !== favoriteAfter
+          && viewerLikeButton?.classList.contains("is-selected") === favoriteBefore;
+        viewerPoseChoice?.click();
+        const task8PoseStorageUntouched = localStorage.getItem("nanbo-selected-poses") === null;
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+        const keyboardNextCount = document.querySelector("#viewer-count")?.textContent.trim() || "";
+        const keyboardNextSlotId = viewerPoseChoice?.dataset.slotId || "";
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+        const keyboardPreviousCount = document.querySelector("#viewer-count")?.textContent.trim() || "";
+        document.querySelector("#viewer-next")?.click();
+        const arrowNextCount = document.querySelector("#viewer-count")?.textContent.trim() || "";
+        document.querySelector("#viewer-prev")?.click();
+        const arrowPreviousCount = document.querySelector("#viewer-count")?.textContent.trim() || "";
+
+        const viewerStage = document.querySelector("#viewer-stage");
+        const viewerImage = document.querySelector("#viewer-image");
+        if (viewerStage) {
+          viewerStage.setPointerCapture = () => {};
+          viewerStage.releasePointerCapture = () => {};
+        }
+        const dragX = () => {
+          const transform = viewerImage ? getComputedStyle(viewerImage).transform : "none";
+          return transform === "none" ? 0 : new DOMMatrix(transform).m41;
+        };
+        const pointer = (type, pointerId, clientX, clientY = 360) => new PointerEvent(type, {
+          bubbles: true,
+          pointerId,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX,
+          clientY,
+        });
+        viewerStage?.dispatchEvent(pointer("pointerdown", 81, 300));
+        viewerStage?.dispatchEvent(pointer("pointermove", 81, 180));
+        const dragLeftX = dragX();
+        viewerStage?.dispatchEvent(pointer("pointermove", 81, 260));
+        const dragReversedX = dragX();
+        viewerStage?.dispatchEvent(pointer("pointercancel", 81, 260));
+        viewerStage?.dispatchEvent(pointer("pointerdown", 82, 100));
+        viewerStage?.dispatchEvent(pointer("pointermove", 82, 220));
+        const dragRightX = dragX();
+        viewerStage?.dispatchEvent(pointer("pointercancel", 82, 220));
+        viewerStage?.dispatchEvent(pointer("pointerdown", 83, 300));
+        viewerStage?.dispatchEvent(pointer("pointermove", 83, 180));
+        viewerStage?.dispatchEvent(pointer("pointerup", 83, 180));
+        await wait(30);
+        const swipeNextCount = document.querySelector("#viewer-count")?.textContent.trim() || "";
+
+        document.querySelector("#viewer-close")?.click();
+        await wait(100);
+        const closeReturnedAlbum = root?.dataset.view === "album" && !viewerElement?.open && !albumElement?.hidden;
+        const closeRestoredPoseFocus = document.activeElement?.closest?.(".pose-card")?.dataset.slotId || "";
+
+        poseCards[2]?.querySelector(".pose-open")?.click();
+        await wait(40);
+        history.back();
+        await wait(100);
+        const browserBackReturnedAlbum = root?.dataset.view === "album" && !viewerElement?.open && !albumElement?.hidden;
+
+        poseCards[2]?.querySelector(".pose-open")?.click();
+        await wait(40);
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        await wait(100);
+        const escapeReturnedAlbum = root?.dataset.view === "album" && !viewerElement?.open && !albumElement?.hidden;
+
+        window.scrollTo(0, 0);
+        albumElement?.querySelector("#style-album-close")?.click();
+        await wait(120);
+        const albumCloseReturnedStyles = root?.dataset.view === "styles" && albumElement?.hidden;
+        const restoredScrollY = window.scrollY;
+        const returnedCardFocused = document.activeElement
+          === document.querySelector('[data-style-id="' + openedStyleId + '"] .portrait-style-card-open');
+
+        document.querySelector("#gallery-grid .photo-button")?.click();
+        await wait(30);
+        const legacyViewerPoseChoiceHidden = Boolean(viewerPoseChoice?.hidden);
+        document.querySelector("#viewer-close")?.click();
 
         const selectedFamily = document.querySelector('#style-family-tabs [role="tab"][aria-selected="true"]');
         selectedFamily?.focus();
@@ -256,6 +408,50 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
           openedStyleId,
           openedStyleParam,
           openedView,
+          albumVisible,
+          albumSlotIds,
+          albumImageSourceCount,
+          albumLazyImageCount,
+          albumPoseChoiceCount,
+          albumPoseOpenMinHeight,
+          albumPoseChoiceMinHeight,
+          albumCardExtraSpaceMax,
+          albumFullSourceBeforeViewer,
+          albumHorizontalOverflow,
+          albumGridColumns,
+          albumPanelInsideViewport,
+          albumAnimationDurations,
+          sharedViewerCount,
+          styleViewerOpened,
+          styleViewerCount,
+          styleViewerHidesAssetCode,
+          styleViewerPoseChoiceVisible,
+          styleViewerPoseSlotId,
+          styleViewerFavoriteVisible,
+          viewerHorizontalOverflow,
+          viewerActionsInsideViewport,
+          viewerControlsAtLeast44,
+          viewerInitialFocus,
+          styleViewerFavoriteRoundTrip,
+          task8PoseStorageUntouched,
+          keyboardNextCount,
+          keyboardNextSlotId,
+          keyboardPreviousCount,
+          arrowNextCount,
+          arrowPreviousCount,
+          dragLeftX,
+          dragReversedX,
+          dragRightX,
+          swipeNextCount,
+          closeReturnedAlbum,
+          closeRestoredPoseFocus,
+          browserBackReturnedAlbum,
+          escapeReturnedAlbum,
+          albumCloseReturnedStyles,
+          openedReturnScroll,
+          restoredScrollY,
+          returnedCardFocused,
+          legacyViewerPoseChoiceHidden,
           gridColumns: gridStyle?.gridTemplateColumns.split(" ").filter(Boolean).length || 0,
           cardRatio: cardRect ? cardRect.width / cardRect.height : 0,
           imageRatio: imageRect ? imageRect.width / imageRect.height : 0,
@@ -353,7 +549,11 @@ async function loadExplorerModel(loadModule = () => import(explorerModelUrl)) {
 const explorer = await loadExplorerModel();
 
 function libraryFixture() {
-  return fixtureStyleCatalog();
+  return buildStyleLibrary({
+    catalog: fixtureStyleCatalog(),
+    assignments: fixtureAssignments(),
+    assets: fixtureAssets(),
+  });
 }
 
 test("explorer bootstrap classifies only its own missing model as a fallback", async (t) => {
@@ -407,6 +607,23 @@ test("explorer narrows 132 styles to one eleven-style family and restores return
   assert.deepEqual([album.view, album.returnScrollY], ["album", 812]);
   assert.deepEqual([viewer.view, viewer.poseIndex], ["viewer", 4]);
   assert.equal(back.view, "album");
+});
+
+test("an opened style exposes exactly nine ordered slots and stable URL state", () => {
+  const library = libraryFixture();
+  const style = library.styles[0];
+  assert.equal(style.slots.length, 9);
+  assert.deepEqual(style.slots.map((slot) => slot.position), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(new Set(style.slots.map((slot) => slot.id)).size, 9);
+
+  const album = explorer.reduceExplorer(
+    explorer.createExplorerState(library, {}),
+    { type: "open-style", styleId: style.id, scrollY: 512 },
+    library,
+  );
+  const params = explorer.serializeExplorerLocation(album);
+  assert.equal(params.get("style"), style.id);
+  assert.equal(params.has("pose"), false, "姿势序号不应进入稳定 URL");
 });
 
 test("explorer restores a coherent style URL and rejects invalid URL values to the indoor default", () => {
@@ -525,6 +742,81 @@ test("customer page renders the progressive explorer with only manual Nanbo pick
   assert.equal(metrics.albumHookPresent, true, "后续 9 张相册没有稳定挂载点");
 });
 
+test("an opened style exposes exactly nine ordered DOM slots and loads only their thumbnails", { skip: !hasChrome }, async () => {
+  const metrics = await measureCustomerStyleExplorer(390);
+  const expectedSlotIds = Array.from(
+    { length: 9 },
+    (_, index) => `${metrics.openedStyleId}-P${String(index + 1).padStart(2, "0")}`,
+  );
+
+  assert.equal(metrics.albumVisible, true, "打开风格后没有显示相册");
+  assert.deepEqual(metrics.albumSlotIds, expectedSlotIds, "9 个 data-slot-id 不稳定或被重排");
+  assert.equal(new Set(metrics.albumSlotIds).size, 9, "相册照片位不唯一");
+  assert.equal(metrics.albumImageSourceCount, 9, "打开相册应恰好挂载 9 张缩略图");
+  assert.equal(metrics.albumLazyImageCount, 9, "相册缩略图必须延迟、异步解码");
+  assert.equal(metrics.albumFullSourceBeforeViewer, "", "未打开查看器就请求了高清图");
+  assert.equal(metrics.albumPoseChoiceCount, 9, "每个稳定照片位都应保留 Task 8 姿势选择挂点");
+});
+
+test("the reused viewer preserves photo favorites and naturally returns through close, back, and Escape", { skip: !hasChrome }, async () => {
+  const metrics = await measureCustomerStyleExplorer(390);
+
+  assert.equal(metrics.sharedViewerCount, 1, "风格相册复制了第二套查看器");
+  assert.equal(metrics.styleViewerOpened, true);
+  assert.equal(metrics.styleViewerCount, "03 / 09");
+  assert.equal(metrics.styleViewerHidesAssetCode, true, "风格查看器不应显示 NB 内部资产编号");
+  assert.equal(metrics.styleViewerFavoriteVisible, true, "复用查看器丢失了旧资产收藏");
+  assert.equal(metrics.styleViewerFavoriteRoundTrip, true, "风格查看器没有复用旧资产收藏状态");
+  assert.equal(metrics.styleViewerPoseChoiceVisible, true, "风格 context 中没有显示独立姿势入口");
+  assert.equal(metrics.styleViewerPoseSlotId, metrics.albumSlotIds[2]);
+  assert.equal(metrics.legacyViewerPoseChoiceHidden, true, "旧图库查看器不应显示风格姿势入口");
+  assert.equal(metrics.task8PoseStorageUntouched, true, "Task 7 不得提前写入 Task 8 的持久姿势选择");
+  assert.equal(metrics.viewerInitialFocus, "viewer-close", "查看器打开后焦点没有进入关闭控件");
+  assert.equal(metrics.viewerControlsAtLeast44, true, "查看器主控件小于 44px");
+  assert.ok(metrics.viewerHorizontalOverflow <= 0, `390px 查看器横向溢出 ${metrics.viewerHorizontalOverflow}px`);
+  assert.equal(metrics.viewerActionsInsideViewport, true, "查看器底部操作越出 390px 视口");
+  assert.equal(metrics.closeReturnedAlbum, true, "关闭按钮没有返回相册");
+  assert.equal(metrics.browserBackReturnedAlbum, true, "浏览器返回没有关闭查看器并恢复相册");
+  assert.equal(metrics.escapeReturnedAlbum, true, "Escape 没有关闭查看器并恢复相册");
+  assert.equal(metrics.closeRestoredPoseFocus, metrics.albumSlotIds[2], "查看器关闭后没有返还原姿势卡焦点");
+  assert.equal(metrics.albumCloseReturnedStyles, true, "关闭相册没有返回风格列表");
+  assert.ok(Math.abs(metrics.restoredScrollY - metrics.openedReturnScroll) <= 2,
+    `相册返回没有恢复原卡片滚动位置：${metrics.openedReturnScroll} -> ${metrics.restoredScrollY}`);
+  assert.equal(metrics.returnedCardFocused, true, "返回列表后没有恢复原风格卡焦点");
+});
+
+test("viewer arrows and swipe stay directional, continuous, and interruptible", { skip: !hasChrome }, async () => {
+  const metrics = await measureCustomerStyleExplorer(390);
+
+  assert.equal(metrics.keyboardNextCount, "04 / 09", "ArrowRight 方向错误");
+  assert.equal(metrics.keyboardNextSlotId, metrics.albumSlotIds[3], "键盘移动没有同步稳定照片位");
+  assert.equal(metrics.keyboardPreviousCount, "03 / 09", "ArrowLeft 方向错误");
+  assert.equal(metrics.arrowNextCount, "04 / 09", "下一张按钮方向错误");
+  assert.equal(metrics.arrowPreviousCount, "03 / 09", "上一张按钮方向错误");
+  assert.ok(metrics.dragLeftX < -20, `向左拖动没有跟随手指：${metrics.dragLeftX}`);
+  assert.ok(metrics.dragReversedX < 0 && Math.abs(metrics.dragReversedX) < Math.abs(metrics.dragLeftX),
+    `拖动中途反向时画面不可中断重定向：${metrics.dragLeftX} -> ${metrics.dragReversedX}`);
+  assert.ok(metrics.dragRightX > 20, `向右拖动与画面方向不一致：${metrics.dragRightX}`);
+  assert.equal(metrics.swipeNextCount, "04 / 09", "向左滑动没有进入下一张");
+});
+
+test("album controls and panels fit 390px and desktop without overflow", { skip: !hasChrome }, async () => {
+  const [phone, desktop] = await Promise.all([
+    measureCustomerStyleExplorer(390),
+    measureCustomerStyleExplorer(1100),
+  ]);
+
+  for (const [label, metrics] of [["手机", phone], ["桌面", desktop]]) {
+    assert.equal(metrics.albumPanelInsideViewport, true, `${label}相册面板越出视口`);
+    assert.ok(metrics.albumHorizontalOverflow <= 0, `${label}相册横向溢出 ${metrics.albumHorizontalOverflow}px`);
+    assert.ok(metrics.albumPoseOpenMinHeight >= 44, `${label}照片入口不足 44px`);
+    assert.ok(metrics.albumPoseChoiceMinHeight >= 44, `${label}姿势入口不足 44px`);
+    assert.ok(metrics.albumCardExtraSpaceMax <= 3, `${label}相册卡被网格拉伸，产生 ${metrics.albumCardExtraSpaceMax}px 空白`);
+  }
+  assert.equal(phone.albumGridColumns, 2, "390px 相册应为两列");
+  assert.equal(desktop.albumGridColumns, 3, "桌面相册应为三列");
+});
+
 test("scene and family tablists expose a labelled panel and retain focus through roving keyboard selection", { skip: !hasChrome }, async () => {
   const metrics = await measureCustomerStyleExplorer(390);
 
@@ -628,4 +920,7 @@ test("reduced-motion keeps feedback without a long moving transition", { skip: !
   assert.equal(metrics.rootVisible, true, "减少动态测试页没有渲染风格浏览器");
   assert.ok(metrics.transitionDurations.length > 0, "没有可观察的交互反馈转场");
   assert.ok(metrics.transitionDurations.every((duration) => duration <= .02), `减少动态后仍存在长转场：${metrics.transitionDurations}`);
+  assert.ok(metrics.albumAnimationDurations.length > 0, "相册没有可验证的温和状态反馈");
+  assert.ok(metrics.albumAnimationDurations.every((duration) => duration <= .02),
+    `减少动态后相册仍使用大幅位移：${metrics.albumAnimationDurations}`);
 });

@@ -220,7 +220,20 @@
               <div class="style-family-tabs" id="style-family-tabs" role="tablist" aria-label="选择风格方向"></div>
             </div>
             <div class="style-card-grid" id="style-card-grid" role="tabpanel" aria-live="polite"></div>
-            <section class="style-album" id="style-album" aria-label="9 个拍摄参考" hidden></section>
+            <section class="style-album" id="style-album" aria-labelledby="style-album-title" tabindex="-1" hidden>
+              <article class="style-album-panel">
+                <header class="style-album-header">
+                  <button class="style-album-close" id="style-album-close" type="button" aria-label="返回风格列表">‹</button>
+                  <div class="style-album-heading">
+                    <p><span id="style-album-scene"></span> · 9 POSE REFERENCES</p>
+                    <h2 id="style-album-title">风格相册</h2>
+                    <span id="style-album-description"></span>
+                  </div>
+                  <span class="style-album-count" aria-hidden="true">09</span>
+                </header>
+                <div class="style-album-grid" id="style-album-grid"></div>
+              </article>
+            </section>
             <a class="style-explorer-legacy-link" href="#works">浏览全部真实客片 <span aria-hidden="true">↘</span></a>
           </section>
         </section>
@@ -391,7 +404,13 @@
             <img id="viewer-image" alt="" /><div class="viewer-loader" id="viewer-loader">高清加载中</div>
             <button class="viewer-arrow viewer-next" id="viewer-next" type="button" aria-label="下一张">›</button>
           </div>
-          <div class="viewer-bottom"><div><strong id="viewer-code"></strong><span id="viewer-count"></span></div><button id="viewer-like" type="button">♡ 加入喜欢</button></div>
+          <div class="viewer-bottom">
+            <div><strong id="viewer-code"></strong><span id="viewer-count"></span></div>
+            <div class="viewer-actions">
+              <button id="viewer-pose-choice" type="button" hidden>想拍这个姿势</button>
+              <button id="viewer-like" type="button">♡ 加入喜欢</button>
+            </div>
+          </div>
         </div>
       </dialog>
 

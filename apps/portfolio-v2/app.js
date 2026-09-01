@@ -67,13 +67,17 @@ const customerStyleLibrary = buildCustomerStyleLibrary({
   warn: (...args) => console.warn(...args),
 });
 const styleExplorerRoot = document.querySelector("[data-style-explorer]");
+let styleExplorerController = null;
 if (styleExplorerRoot && customerStyleLibrary) {
-  createStyleExplorer({
+  styleExplorerController = createStyleExplorer({
     root: styleExplorerRoot,
     library: customerStyleLibrary,
     versionPhoto,
     onTrack: trackProductEvent,
-    onOpenViewer: (index, items) => openViewer(index, items),
+    onOpenViewer: (index, items, context) => openViewer(index, items, context),
+    onSelectionChange: (_state, action) => {
+      if (action.type === "viewer-history-close") closeViewer({ fromHistory: true });
+    },
   });
 } else if (styleExplorerRoot) {
   styleExplorerRoot.hidden = true;
@@ -103,6 +107,8 @@ const viewerCategory = document.querySelector("#viewer-category");
 const viewerCode = document.querySelector("#viewer-code");
 const viewerCount = document.querySelector("#viewer-count");
 const viewerLike = document.querySelector("#viewer-like");
+const viewerPoseChoice = document.querySelector("#viewer-pose-choice");
+const viewerClose = document.querySelector("#viewer-close");
 const selectionBar = document.querySelector("#selection-bar");
 const selectionCount = document.querySelector("#selection-count");
 const navFavoriteCount = document.querySelector("#nav-favorite-count");
@@ -170,12 +176,19 @@ let filteredItems = [...galleryItems];
 let visibleCount = PAGE_SIZE;
 let viewerIndex = 0;
 let viewerItems = filteredItems;
+let viewerContext = {};
+let viewerHistoryClosing = false;
 let toastTimer;
 let dragStartX = 0;
 let dragStartY = 0;
 let dragDeltaX = 0;
 let dragDeltaY = 0;
 let dragging = false;
+let viewerPointerId = -1;
+let viewerGestureAxis = "";
+let viewerDragBaseX = 0;
+let viewerVelocitySamples = [];
+let viewerSettleAnimation = null;
 let selectionCardBlob = null;
 let selectionCardUrl = "";
 let generationId = 0;
@@ -823,16 +836,28 @@ function setPrimaryFavorite(id) {
 }
 
 function setViewer(index) {
+  if (!viewerItems.length) return;
   viewerIndex = (index + viewerItems.length) % viewerItems.length;
   const item = viewerItems[viewerIndex];
+  const style = viewerContext.styleId
+    ? customerStyleLibrary?.styles.find((entry) => entry.id === viewerContext.styleId)
+    : null;
+  const slotId = viewerContext.slotIds?.[viewerIndex] || "";
   viewerImage.dataset.loading = "true";
   viewerLoader.hidden = false;
   viewerLoader.textContent = "高清加载中";
-  viewerImage.alt = `${item.title}高清样片，编号${item.code}`;
+  viewerImage.alt = style
+    ? `${style.label}第${viewerIndex + 1}个拍摄参考`
+    : `${item.title}高清样片，编号${item.code}`;
   viewerImage.src = item.full;
-  viewerCategory.textContent = `${item.title} · NANBO PORTRAIT`;
-  viewerCode.textContent = item.code;
-  viewerCount.textContent = `${viewerIndex + 1} / ${viewerItems.length}`;
+  viewerCategory.textContent = style ? `${style.label} · POSE REFERENCE` : `${item.title} · NANBO PORTRAIT`;
+  viewerCode.textContent = style ? style.label : item.code;
+  viewerCount.textContent = style
+    ? `${String(viewerIndex + 1).padStart(2, "0")} / ${String(viewerItems.length).padStart(2, "0")}`
+    : `${viewerIndex + 1} / ${viewerItems.length}`;
+  viewerPoseChoice.hidden = !slotId;
+  if (slotId) viewerPoseChoice.dataset.slotId = slotId;
+  else delete viewerPoseChoice.dataset.slotId;
   updateViewerLike();
   trackProductEvent("photo_open", { targetId: item.code, targetLabel: item.title, theme: item.theme, scene: item.scene });
 }
@@ -845,19 +870,47 @@ function updateViewerLike() {
   viewerLike.textContent = selected ? "♥ 已加入喜欢" : "♡ 加入喜欢";
 }
 
-function openViewer(index, items = filteredItems) {
+function openViewer(index, items = filteredItems, context = {}) {
+  stopViewerSettle();
   viewerItems = items;
+  viewerContext = {
+    ...(typeof context.styleId === "string" ? { styleId: context.styleId } : {}),
+    ...(Array.isArray(context.slotIds) && context.slotIds.length === items.length
+      ? { slotIds: [...context.slotIds] }
+      : {}),
+  };
+  viewerHistoryClosing = false;
   setViewer(index);
   if (!viewer.open) viewer.showModal();
   document.body.classList.add("viewer-open");
+  window.requestAnimationFrame(() => viewerClose.focus({ preventScroll: true }));
 }
 
-function closeViewer() {
+function closeViewer({ fromHistory = false } = {}) {
+  if (viewerContext.styleId && !fromHistory) {
+    if (viewerHistoryClosing) return;
+    viewerHistoryClosing = true;
+    if (styleExplorerController?.requestCloseViewer()) return;
+    viewerHistoryClosing = false;
+  }
+  stopViewerSettle();
   if (viewer.open) viewer.close();
   document.body.classList.remove("viewer-open");
+  viewerImage.removeAttribute("src");
+  viewerImage.removeAttribute("style");
+  viewerLoader.hidden = true;
+  viewerPoseChoice.hidden = true;
+  delete viewerPoseChoice.dataset.slotId;
+  viewerContext = {};
+  viewerHistoryClosing = false;
 }
 
 function moveViewer(direction) {
+  if (viewerContext.styleId) {
+    const poseIndex = styleExplorerController?.movePose(direction);
+    if (Number.isInteger(poseIndex)) setViewer(poseIndex);
+    return;
+  }
   setViewer(viewerIndex + direction);
 }
 
@@ -1244,42 +1297,120 @@ viewerImage.addEventListener("error", () => {
   viewerLoader.textContent = "图片暂时加载失败，请切换下一张";
 });
 
+function viewerPresentationX() {
+  const transform = getComputedStyle(viewerImage).transform;
+  if (!transform || transform === "none") return 0;
+  try {
+    const Matrix = window.DOMMatrixReadOnly || window.WebKitCSSMatrix;
+    return Matrix ? new Matrix(transform).m41 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function stopViewerSettle() {
+  if (!viewerSettleAnimation) return viewerPresentationX();
+  const position = viewerPresentationX();
+  const opacity = getComputedStyle(viewerImage).opacity;
+  viewerSettleAnimation.cancel();
+  viewerSettleAnimation = null;
+  viewerImage.style.transform = `translate3d(${position}px,0,0)`;
+  viewerImage.style.opacity = opacity;
+  return position;
+}
+
+function settleViewerPresentation() {
+  const position = viewerPresentationX();
+  const opacity = Number.parseFloat(getComputedStyle(viewerImage).opacity || "1");
+  viewerImage.style.transform = "";
+  viewerImage.style.opacity = "";
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || !viewerImage.animate) return;
+  viewerSettleAnimation = viewerImage.animate([
+    { transform: `translate3d(${position}px,0,0)`, opacity },
+    { transform: "translate3d(0,0,0)", opacity: 1 },
+  ], {
+    duration: 180,
+    easing: "cubic-bezier(.2,.8,.2,1)",
+  });
+  viewerSettleAnimation.addEventListener("finish", () => { viewerSettleAnimation = null; }, { once: true });
+  viewerSettleAnimation.addEventListener("cancel", () => { viewerSettleAnimation = null; }, { once: true });
+}
+
+function rubberbandViewerOffset(offset) {
+  const dimension = Math.max(1, viewerStage.clientWidth);
+  return (offset * dimension * .55) / (dimension + .55 * Math.abs(offset));
+}
+
 viewerStage.addEventListener("pointerdown", (event) => {
-  if (event.pointerType === "mouse" && event.button !== 0) return;
+  if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
   if (event.target.closest("button")) return;
+  viewerDragBaseX = stopViewerSettle();
   dragging = true;
+  viewerPointerId = event.pointerId;
+  viewerGestureAxis = "";
   dragStartX = event.clientX;
   dragStartY = event.clientY;
   dragDeltaX = 0;
   dragDeltaY = 0;
+  viewerVelocitySamples = [{ time: performance.now(), position: viewerDragBaseX }];
   viewerStage.setPointerCapture?.(event.pointerId);
 });
 
 viewerStage.addEventListener("pointermove", (event) => {
-  if (!dragging) return;
+  if (!dragging || viewerPointerId !== event.pointerId) return;
   dragDeltaX = event.clientX - dragStartX;
   dragDeltaY = event.clientY - dragStartY;
-  viewerImage.style.transform = `translateX(${dragDeltaX * .55}px)`;
-  viewerImage.style.opacity = String(Math.max(.55, 1 - Math.abs(dragDeltaX) / 500));
+  if (!viewerGestureAxis && Math.max(Math.abs(dragDeltaX), Math.abs(dragDeltaY)) > 10) {
+    viewerGestureAxis = Math.abs(dragDeltaX) >= Math.abs(dragDeltaY) ? "x" : "y";
+  }
+  if (viewerGestureAxis !== "x") return;
+  event.preventDefault();
+  let position = viewerDragBaseX + dragDeltaX;
+  const atFirst = viewerContext.styleId && viewerIndex === 0 && position > 0;
+  const atLast = viewerContext.styleId && viewerIndex === viewerItems.length - 1 && position < 0;
+  if (atFirst || atLast) position = rubberbandViewerOffset(position);
+  viewerImage.style.transform = `translate3d(${position}px,0,0)`;
+  viewerImage.style.opacity = String(Math.max(.55, 1 - Math.abs(position) / Math.max(360, viewerStage.clientWidth * 1.3)));
+  const now = performance.now();
+  viewerVelocitySamples.push({ time: now, position });
+  viewerVelocitySamples = viewerVelocitySamples.filter((sample) => now - sample.time <= 120);
 });
 
 function finishDrag(event, cancelled = false) {
-  if (!dragging) return;
+  if (!dragging || viewerPointerId !== event.pointerId) return;
   dragging = false;
+  viewerPointerId = -1;
   viewerStage.releasePointerCapture?.(event.pointerId);
-  viewerImage.style.transform = "";
-  viewerImage.style.opacity = "";
-  if (cancelled) return;
-  if (Math.abs(dragDeltaX) <= 10 && Math.abs(dragDeltaY) <= 10) {
+  if (cancelled) {
+    viewerVelocitySamples = [];
+    settleViewerPresentation();
+    return;
+  }
+  if (!viewerGestureAxis && Math.abs(dragDeltaX) <= 10 && Math.abs(dragDeltaY) <= 10) {
+    viewerImage.style.transform = "";
+    viewerImage.style.opacity = "";
     closeViewer();
     return;
   }
-  if (Math.abs(dragDeltaX) > 55) moveViewer(dragDeltaX < 0 ? 1 : -1);
+  if (viewerGestureAxis !== "x") {
+    settleViewerPresentation();
+    return;
+  }
+  const velocity = releaseVelocity(viewerVelocitySamples, performance.now(), "position");
+  const projectedOffset = viewerPresentationX() + velocity * .12;
+  viewerVelocitySamples = [];
+  if (Math.abs(dragDeltaX) > 55 || Math.abs(projectedOffset) > 80) {
+    viewerImage.style.transform = "";
+    viewerImage.style.opacity = "";
+    moveViewer(projectedOffset < 0 ? 1 : -1);
+    return;
+  }
+  settleViewerPresentation();
 }
 
 viewerStage.addEventListener("pointerup", finishDrag);
 viewerStage.addEventListener("pointercancel", (event) => finishDrag(event, true));
-document.querySelector("#viewer-close").addEventListener("click", closeViewer);
+viewerClose.addEventListener("click", closeViewer);
 document.querySelector("#viewer-prev").addEventListener("click", () => moveViewer(-1));
 document.querySelector("#viewer-next").addEventListener("click", () => moveViewer(1));
 viewerLike.addEventListener("click", () => toggleFavorite(viewerItems[viewerIndex].id));

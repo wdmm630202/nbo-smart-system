@@ -49,7 +49,12 @@ function updateLocation(windowObject, state, method = "replaceState") {
     if (value) url.searchParams.set(key, value);
     else url.searchParams.delete(key);
   }
-  windowObject.history[method]?.({ ...windowObject.history.state, styleExplorer: true }, "", url);
+  windowObject.history[method]?.({
+    ...windowObject.history.state,
+    styleExplorer: true,
+    styleExplorerView: state.view,
+    styleExplorerPoseIndex: state.poseIndex,
+  }, "", url);
 }
 
 export function createStyleExplorer({
@@ -71,8 +76,20 @@ export function createStyleExplorer({
   const familyTabs = requiredElement(root, "#style-family-tabs");
   const cardGrid = requiredElement(root, "#style-card-grid");
   const album = requiredElement(root, "#style-album");
+  const albumClose = requiredElement(root, "#style-album-close");
+  const albumScene = requiredElement(root, "#style-album-scene");
+  const albumTitle = requiredElement(root, "#style-album-title");
+  const albumDescription = requiredElement(root, "#style-album-description");
+  const albumGrid = requiredElement(root, "#style-album-grid");
+  const stylesChrome = [...root.children].filter((element) => element !== album);
   let state = createExplorerState(library, new URLSearchParams(windowObject?.location?.search || ""));
   let destroyed = false;
+  let lastOpenedStyleId = state.styleId;
+  let viewerTriggerSlotId = "";
+  const previousScrollRestoration = windowObject?.history?.scrollRestoration;
+  if (windowObject?.history && "scrollRestoration" in windowObject.history) {
+    windowObject.history.scrollRestoration = "manual";
+  }
 
   const styleById = new Map(library.styles.map((style) => [style.id, style]));
 
@@ -233,6 +250,166 @@ export function createStyleExplorer({
     cardGrid.replaceChildren(...activeStyles.map(renderStyleCard));
   }
 
+  function viewerItemsFor(style) {
+    return style.slots.map(({ asset }) => asset);
+  }
+
+  function viewerContextFor(style) {
+    return {
+      styleId: style.id,
+      slotIds: style.slots.map(({ id }) => id),
+    };
+  }
+
+  function renderPoseChoice(style, slot) {
+    const choice = documentObject.createElement("button");
+    choice.type = "button";
+    choice.className = "pose-choice";
+    choice.dataset.slotId = slot.id;
+    choice.setAttribute("aria-label", `想拍${style.label}的${slot.poseLabel}`);
+    choice.textContent = "想拍这个姿势";
+    bindPressFeedback(choice);
+    // Task 8 consumes this explicit request hook and owns persistence/demand state.
+    choice.addEventListener("click", () => onSelectionChange(state, {
+      type: "pose-choice-request",
+      style,
+      slot,
+    }));
+    return choice;
+  }
+
+  function renderAlbum(style) {
+    if (album.dataset.renderedStyleId === style.id && albumGrid.children.length === 9) return;
+    const family = library.families.find((item) => item.id === style.familyId);
+    const slots = [...style.slots].sort((left, right) => left.position - right.position);
+    album.dataset.renderedStyleId = style.id;
+    album.dataset.styleId = style.id;
+    albumScene.textContent = `${sceneLabels[style.scene]} · ${family?.label || "风格相册"}`;
+    albumTitle.textContent = style.label;
+    albumDescription.textContent = `${style.audience} · ${style.description}`;
+    albumGrid.replaceChildren(...slots.map((slot, index) => {
+      const card = documentObject.createElement("article");
+      card.className = `pose-card style-pose-card${index === 0 ? " is-lead" : ""}`;
+      card.dataset.slotId = slot.id;
+      card.dataset.position = String(slot.position);
+
+      const open = documentObject.createElement("button");
+      open.type = "button";
+      open.className = "pose-open";
+      open.setAttribute("aria-label", `查看${style.label}第${slot.position}个拍摄参考，${slot.poseLabel}`);
+      bindPressFeedback(open);
+
+      const imageWrap = documentObject.createElement("span");
+      imageWrap.className = "pose-image is-loading";
+      const image = documentObject.createElement("img");
+      image.width = 480;
+      image.height = 640;
+      image.loading = "lazy";
+      image.decoding = "async";
+      image.alt = `${style.label}${slot.poseLabel}`;
+      const fallback = documentObject.createElement("span");
+      fallback.className = "pose-image-fallback";
+      fallback.hidden = true;
+      fallback.textContent = `NBO · ${slot.poseLabel}`;
+      image.addEventListener("load", () => imageWrap.classList.remove("is-loading"), { once: true });
+      image.addEventListener("error", () => {
+        image.removeAttribute("src");
+        image.hidden = true;
+        imageWrap.classList.remove("is-loading");
+        fallback.hidden = false;
+      }, { once: true });
+      imageWrap.append(image, fallback);
+
+      const number = documentObject.createElement("span");
+      number.className = "pose-number";
+      number.setAttribute("aria-hidden", "true");
+      number.textContent = String(slot.position).padStart(2, "0");
+      const label = documentObject.createElement("span");
+      label.className = "pose-label";
+      label.textContent = slot.poseLabel;
+      open.append(imageWrap, number, label);
+      open.addEventListener("click", () => openPose(index, open));
+
+      card.append(open, renderPoseChoice(style, slot));
+      image.src = versionPhoto(slot.asset.thumb);
+      return card;
+    }));
+    album.scrollTop = 0;
+    album.querySelector(".style-album-panel")?.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function setStylesChromeActive(active) {
+    stylesChrome.forEach((element) => {
+      element.inert = !active;
+      if (active) element.removeAttribute("aria-hidden");
+      else element.setAttribute("aria-hidden", "true");
+    });
+  }
+
+  function presentView() {
+    const style = styleById.get(state.styleId);
+    const showsAlbum = state.view === "album" || state.view === "viewer";
+    root.dataset.view = state.view;
+    root.dataset.scene = state.scene;
+    root.dataset.familyId = state.familyId;
+    root.dataset.styleId = state.styleId;
+    root.dataset.poseIndex = String(state.poseIndex);
+    if (showsAlbum && style) renderAlbum(style);
+    album.hidden = !showsAlbum;
+    album.dataset.styleId = showsAlbum ? state.styleId : "";
+    setStylesChromeActive(!showsAlbum);
+    documentObject.body.classList.toggle("style-album-open", showsAlbum);
+  }
+
+  function openCurrentViewer() {
+    const style = styleById.get(state.styleId);
+    if (!style || state.view !== "viewer") return false;
+    onOpenViewer(state.poseIndex, viewerItemsFor(style), viewerContextFor(style));
+    return true;
+  }
+
+  function openPose(index, trigger) {
+    if (state.view !== "album") return false;
+    const style = styleById.get(state.styleId);
+    if (!style) return false;
+    state = reduceExplorer(state, { type: "open-pose", poseIndex: index }, library);
+    viewerTriggerSlotId = style.slots[state.poseIndex]?.id || trigger?.closest("[data-slot-id]")?.dataset.slotId || "";
+    presentView();
+    updateLocation(windowObject, state, "pushState");
+    openCurrentViewer();
+    onTrack("style_pose_open", {
+      scene: style.scene,
+      targetId: viewerTriggerSlotId,
+      targetLabel: style.slots[state.poseIndex]?.poseLabel || style.label,
+    });
+    onSelectionChange(state, { type: "open-pose", style, slot: style.slots[state.poseIndex] });
+    return true;
+  }
+
+  function restorePoseFocus() {
+    if (!viewerTriggerSlotId) return;
+    windowObject?.requestAnimationFrame?.(() => {
+      albumGrid.querySelector(`[data-slot-id="${viewerTriggerSlotId}"] .pose-open`)?.focus({ preventScroll: true });
+    });
+  }
+
+  function restoreStyleCard(scrollY = state.returnScrollY) {
+    const styleId = lastOpenedStyleId;
+    windowObject?.requestAnimationFrame?.(() => windowObject.requestAnimationFrame?.(() => {
+      cardGrid.querySelector(`[data-style-id="${styleId}"] .portrait-style-card-open`)?.focus({ preventScroll: true });
+      const restoreScroll = () => {
+        const previousScrollBehavior = documentObject.documentElement.style.scrollBehavior;
+        documentObject.documentElement.style.scrollBehavior = "auto";
+        windowObject.scrollTo(0, scrollY);
+        windowObject.requestAnimationFrame?.(() => {
+          documentObject.documentElement.style.scrollBehavior = previousScrollBehavior;
+        });
+      };
+      windowObject.requestAnimationFrame?.(restoreScroll);
+      windowObject.setTimeout?.(restoreScroll, 80);
+    }));
+  }
+
   function chooseFeatured(style) {
     if (style.scene !== state.scene) state = reduceExplorer(state, { type: "scene", scene: style.scene }, library);
     if (style.familyId !== state.familyId) state = reduceExplorer(state, { type: "family", familyId: style.familyId }, library);
@@ -271,14 +448,10 @@ export function createStyleExplorer({
 
   function render() {
     if (destroyed) return;
-    root.dataset.view = state.view;
-    root.dataset.scene = state.scene;
-    root.dataset.familyId = state.familyId;
-    album.dataset.styleId = state.styleId;
-    album.hidden = true;
     renderSceneTabs();
     renderFamilyTabs();
     renderCards();
+    presentView();
   }
 
   function openStyle(styleId) {
@@ -291,10 +464,12 @@ export function createStyleExplorer({
       styleId,
       scrollY: windowObject?.scrollY || 0,
     }, library);
-    root.dataset.view = state.view;
-    root.dataset.styleId = style.id;
-    album.dataset.styleId = style.id;
+    lastOpenedStyleId = style.id;
+    viewerTriggerSlotId = "";
+    renderAlbum(style);
+    presentView();
     updateLocation(windowObject, state, "pushState");
+    windowObject?.requestAnimationFrame?.(() => albumClose.focus({ preventScroll: true }));
     onTrack("style_open", {
       scene: style.scene,
       targetId: style.id,
@@ -304,10 +479,94 @@ export function createStyleExplorer({
     return true;
   }
 
-  function restoreFromLocation() {
-    state = createExplorerState(library, new URLSearchParams(windowObject?.location?.search || ""));
-    render();
-    onSelectionChange(state, { type: "restore" });
+  function movePose(direction) {
+    if (state.view !== "viewer") return null;
+    const previousIndex = state.poseIndex;
+    state = reduceExplorer(state, { type: "move-pose", direction }, library);
+    presentView();
+    updateLocation(windowObject, state, "replaceState");
+    if (state.poseIndex !== previousIndex) {
+      const style = styleById.get(state.styleId);
+      onSelectionChange(state, { type: "move-pose", style, slot: style?.slots[state.poseIndex] });
+    }
+    return state.poseIndex;
+  }
+
+  function requestCloseViewer() {
+    if (state.view !== "viewer") return false;
+    if (windowObject?.history?.state?.styleExplorerView === "viewer") {
+      windowObject.history.back();
+      return true;
+    }
+    state = reduceExplorer(state, { type: "back" }, library);
+    presentView();
+    onSelectionChange(state, { type: "viewer-history-close" });
+    restorePoseFocus();
+    return true;
+  }
+
+  function requestCloseAlbum() {
+    if (state.view !== "album") return false;
+    if (windowObject?.history?.state?.styleExplorerView === "album") {
+      windowObject.history.back();
+      return true;
+    }
+    const scrollY = state.returnScrollY;
+    lastOpenedStyleId = state.styleId;
+    state = reduceExplorer(state, { type: "back" }, library);
+    presentView();
+    updateLocation(windowObject, state, "replaceState");
+    restoreStyleCard(scrollY);
+    onSelectionChange(state, { type: "album-close" });
+    return true;
+  }
+
+  function restoreFromLocation(event) {
+    const previous = state;
+    const restored = createExplorerState(library, new URLSearchParams(windowObject?.location?.search || ""));
+    const targetView = event?.state?.styleExplorerView || restored.view;
+    const sameStyle = restored.styleId && restored.styleId === previous.styleId;
+
+    if (previous.view === "viewer" && targetView !== "viewer" && restored.view === "album" && sameStyle) {
+      state = reduceExplorer(previous, { type: "back" }, library);
+    } else if (previous.view === "album" && restored.view === "styles") {
+      lastOpenedStyleId = previous.styleId;
+      state = reduceExplorer(previous, { type: "back" }, library);
+    } else {
+      state = {
+        ...restored,
+        returnScrollY: previous.familyId === restored.familyId ? previous.returnScrollY : restored.returnScrollY,
+      };
+    }
+
+    if (targetView === "viewer" && state.view === "album") {
+      const poseIndex = Number.isInteger(event?.state?.styleExplorerPoseIndex)
+        ? event.state.styleExplorerPoseIndex : 0;
+      state = reduceExplorer(state, { type: "open-pose", poseIndex }, library);
+      const style = styleById.get(state.styleId);
+      viewerTriggerSlotId = style?.slots[state.poseIndex]?.id || viewerTriggerSlotId;
+    }
+
+    const navigationChanged = previous.scene !== state.scene
+      || previous.familyId !== state.familyId
+      || !cardGrid.children.length;
+    if (navigationChanged) {
+      renderSceneTabs();
+      renderFamilyTabs();
+      renderCards();
+    }
+    presentView();
+
+    if (previous.view === "viewer" && state.view !== "viewer") {
+      onSelectionChange(state, { type: "viewer-history-close" });
+      restorePoseFocus();
+    } else if (state.view === "viewer" && previous.view !== "viewer") {
+      openCurrentViewer();
+      onSelectionChange(state, { type: "viewer-history-open" });
+    } else {
+      onSelectionChange(state, { type: "restore" });
+    }
+    if (previous.view === "album" && state.view === "styles") restoreStyleCard(state.returnScrollY);
     return state;
   }
 
@@ -320,14 +579,26 @@ export function createStyleExplorer({
     sceneTabs.replaceChildren();
     familyTabs.replaceChildren();
     cardGrid.replaceChildren();
+    clearImageSources(albumGrid);
+    albumGrid.replaceChildren();
+    documentObject.body.classList.remove("style-album-open");
+    if (windowObject?.history && previousScrollRestoration) {
+      windowObject.history.scrollRestoration = previousScrollRestoration;
+    }
   }
 
-  // Task 7 consumes the same callback when the 9-photo album is mounted.
-  void onOpenViewer;
+  bindPressFeedback(albumClose);
+  albumClose.addEventListener("click", requestCloseAlbum);
   renderFeatured();
   render();
   root.hidden = false;
   windowObject?.addEventListener("popstate", restoreFromLocation);
 
-  return { openStyle, restoreFromLocation, destroy };
+  return {
+    openStyle,
+    movePose,
+    requestCloseViewer,
+    restoreFromLocation,
+    destroy,
+  };
 }

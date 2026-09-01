@@ -369,3 +369,35 @@ test("library builder rejects malformed unreferenced assets", async () => {
     ],
   }), /公共资产 999 场景字段格式无效/);
 });
+
+test("style documents fall back without removing the 158-photo legacy gallery", async () => {
+  const { loadPortfolioDocument } = await import("../apps/portfolio-v2/portfolio-runtime.js");
+  const warnings = [];
+  const fallback = { schemaVersion: 1, families: [], styles: [] };
+  const result = await loadPortfolioDocument({
+    fetchImpl: async () => { throw new Error("offline"); },
+    url: "./style-catalog.json",
+    fallback,
+    label: "风格目录",
+    warn: (...args) => warnings.push(args),
+  });
+  assert.equal(result, fallback);
+  assert.equal(buildPortfolioItems(portfolioCatalog).length, 158);
+  assert.equal(warnings.length, 1);
+});
+
+test("invalid style documents disable only the style library", async () => {
+  const { buildCustomerStyleLibrary } = await import("../apps/portfolio-v2/portfolio-runtime.js");
+  const warnings = [];
+  const legacyItems = buildPortfolioItems(portfolioCatalog);
+  const library = buildCustomerStyleLibrary({
+    styleCatalog: { schemaVersion: 1, families: [], styles: [] },
+    assignments: { schemaVersion: 1, assignments: {} },
+    assets: legacyItems,
+    fallback: null,
+    warn: (...args) => warnings.push(args),
+  });
+  assert.equal(library, null);
+  assert.equal(legacyItems.length, 158);
+  assert.equal(warnings.length, 1);
+});

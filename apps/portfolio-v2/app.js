@@ -4,7 +4,12 @@ import {
   emptyPortfolioAdditions,
   portfolioCatalog,
 } from "./catalog.js?v=__NBO_BUILD_VERSION__";
-import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=__NBO_BUILD_VERSION__";
+import {
+  buildCustomerPortfolio,
+  buildCustomerStyleLibrary,
+  loadPortfolioAdditions,
+  loadPortfolioDocument,
+} from "./portfolio-runtime.js?v=__NBO_BUILD_VERSION__";
 import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=__NBO_BUILD_VERSION__";
 
 const embeddedBuildVersion = "__NBO_BUILD_VERSION__";
@@ -13,12 +18,28 @@ const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;
 const versionPhoto = (path) => `${path}?v=${encodeURIComponent(buildVersion)}`;
 
-const portfolioAdditions = await loadPortfolioAdditions({
-  fetchImpl: fetch,
-  url: `./catalog-additions.json?v=${encodeURIComponent(buildVersion)}`,
-  fallback: emptyPortfolioAdditions,
-  warn: (...args) => console.warn(...args),
-});
+const [portfolioAdditions, styleCatalog, styleAssignments] = await Promise.all([
+  loadPortfolioAdditions({
+    fetchImpl: fetch,
+    url: `./catalog-additions.json?v=${encodeURIComponent(buildVersion)}`,
+    fallback: emptyPortfolioAdditions,
+    warn: (...args) => console.warn(...args),
+  }),
+  loadPortfolioDocument({
+    fetchImpl: fetch,
+    url: `./style-catalog.json?v=${encodeURIComponent(buildVersion)}`,
+    fallback: null,
+    label: "风格目录",
+    warn: (...args) => console.warn(...args),
+  }),
+  loadPortfolioDocument({
+    fetchImpl: fetch,
+    url: `./style-slot-assignments.json?v=${encodeURIComponent(buildVersion)}`,
+    fallback: null,
+    label: "风格照片位",
+    warn: (...args) => console.warn(...args),
+  }),
+]);
 const customerPortfolio = buildCustomerPortfolio({
   catalog: portfolioCatalog,
   additions: portfolioAdditions,
@@ -35,6 +56,15 @@ const galleryItems = customerPortfolio.items.map((item) => ({
   thumb: versionPhoto(`../portfolio/assets/photos/thumbs/photo-${String(item.id).padStart(3, "0")}.webp`),
   full: versionPhoto(`../portfolio/assets/photos/full/photo-${String(item.id).padStart(3, "0")}.jpg`),
 }));
+const customerStyleLibrary = buildCustomerStyleLibrary({
+  styleCatalog,
+  assignments: styleAssignments,
+  assets: galleryItems,
+  fallback: null,
+  warn: (...args) => console.warn(...args),
+});
+const styleExplorer = document.querySelector("[data-style-explorer]");
+if (styleExplorer) styleExplorer.hidden = !customerStyleLibrary;
 const sceneConfig = portfolioCatalog.scenes.map((scene) => scene.id === "all"
   ? { ...scene, description: `${galleryItems.length} 张真实客片` }
   : scene);

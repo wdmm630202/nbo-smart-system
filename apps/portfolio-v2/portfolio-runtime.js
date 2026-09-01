@@ -1,4 +1,17 @@
+import { buildStyleLibrary } from "./style-library.js";
+
 const defaultWarn = (...args) => console.warn(...args);
+
+export async function loadPortfolioDocument({ fetchImpl, url, fallback, label, warn = defaultWarn }) {
+  try {
+    const response = await fetchImpl(url, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    warn(`${label}请求失败，继续使用兼容内容`, error);
+    return fallback;
+  }
+}
 
 export async function loadPortfolioAdditions({ fetchImpl, url, fallback, warn = defaultWarn }) {
   let response;
@@ -42,4 +55,13 @@ export function buildCustomerPortfolio({ catalog, additions, fallback, buildItem
       sceneThemes: Object.fromEntries(sceneIds.map((scene) => [scene, themes.filter((theme) => theme.scene === scene).length])),
     },
   };
+}
+
+export function buildCustomerStyleLibrary({ styleCatalog, assignments, assets, fallback = null, warn = defaultWarn }) {
+  try {
+    return buildStyleLibrary({ catalog: styleCatalog, assignments, assets });
+  } catch (error) {
+    warn("风格资料校验失败，继续显示历史客片", error);
+    return fallback;
+  }
 }

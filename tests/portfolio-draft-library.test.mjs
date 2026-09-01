@@ -165,6 +165,12 @@ async function createSyntheticPublishManager(t, {
     "apps/portfolio-v2/catalog.js",
     "apps/portfolio-v2/interaction-model.js",
     "apps/portfolio-v2/portfolio-runtime.js",
+    "apps/portfolio-v2/style-catalog.json",
+    "apps/portfolio-v2/style-slot-assignments.json",
+    "apps/portfolio-v2/style-library.js",
+    "apps/portfolio-v2/style-explorer-model.js",
+    "apps/portfolio-v2/style-preferences.js",
+    "apps/portfolio-v2/style-explorer.js",
   ]) {
     await writeFixture(join(repository, path), await readFile(join(root, path)));
   }
@@ -183,6 +189,9 @@ async function createSyntheticPublishManager(t, {
     'const additionsTarget = join(root, "docs/projects/portfolio-v2/catalog-additions.json");',
     'await mkdir(dirname(additionsTarget), { recursive: true });',
     'await copyFile(join(root, "apps/portfolio-v2/catalog-additions.json"), additionsTarget);',
+    'for (const name of ["style-catalog.json", "style-slot-assignments.json", "style-library.js", "style-explorer-model.js", "style-preferences.js", "style-explorer.js"]) {',
+    '  await copyFile(join(root, "apps/portfolio-v2", name), join(root, "docs/projects/portfolio-v2", name));',
+    '}',
     'const additions = JSON.parse(await readFile(join(root, "apps/portfolio-v2/catalog-additions.json"), "utf8"));',
     'for (const id of [158, ...additions.photos.map((photo) => Number(photo.id))]) {',
     '  const base = `photo-${String(id).padStart(3, "0")}`;',
@@ -327,6 +336,11 @@ async function createSyntheticPublishManager(t, {
   } else if (sourceChange === "photos") {
     await writeFixture(join(publicPhotoRoot, "full/photo-158.jpg"), "changed-full-158\n");
     await writeFixture(join(publicPhotoRoot, "thumbs/photo-158.webp"), "changed-thumb-158\n");
+  } else if (sourceChange === "style") {
+    const styleCatalogPath = join(repository, "apps/portfolio-v2/style-catalog.json");
+    const styleCatalog = JSON.parse(await readFile(styleCatalogPath, "utf8"));
+    styleCatalog.styles[0].label = `${styleCatalog.styles[0].label}更新`;
+    await writeFixture(styleCatalogPath, `${JSON.stringify(styleCatalog, null, 2)}\n`);
   } else if (archivedFirstSync) {
     additions.photos.push({ ...additionPhoto, visibility: "archived" });
     await writeFixture(additionsPath, `${JSON.stringify(additions, null, 2)}\n`);
@@ -1078,6 +1092,30 @@ test("发布增量元数据同时暂存源清单和 Pages 副本", { timeout: 60
   ]);
   assert.equal(pagesManifest, sourceManifest);
   assert.equal((await server.store.read()).photos[0].status, "published");
+  assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
+});
+
+test("发布风格资料同时暂存六个 source/docs 运行时文件并保持逐字节一致", { timeout: 60_000 }, async (t) => {
+  const server = await createSyntheticPublishManager(t, { sourceChange: "style" });
+
+  const response = await server.publish();
+  const payload = await response.json();
+  assert.equal(response.status, 200, payload.error);
+  assert.equal(payload.published, true);
+  for (const name of [
+    "style-catalog.json",
+    "style-slot-assignments.json",
+    "style-library.js",
+    "style-explorer-model.js",
+    "style-preferences.js",
+    "style-explorer.js",
+  ]) {
+    const [{ stdout: source }, { stdout: published }] = await Promise.all([
+      gitAt(server.sandbox, [`--git-dir=${server.remote}`, "show", `main:apps/portfolio-v2/${name}`]),
+      gitAt(server.sandbox, [`--git-dir=${server.remote}`, "show", `main:docs/projects/portfolio-v2/${name}`]),
+    ]);
+    assert.equal(published, source, `${name} 发布副本不一致`);
+  }
   assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
 });
 

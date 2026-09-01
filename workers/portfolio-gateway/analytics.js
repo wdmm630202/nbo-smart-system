@@ -8,6 +8,12 @@ const EVENT_TYPES = new Set([
   "load_more",
   "brief_open",
   "brief_copy",
+  "style_favorite_add",
+  "style_favorite_remove",
+  "pose_select_add",
+  "pose_select_remove",
+  "style_album_open",
+  "style_viewer_open",
 ]);
 
 function corsHeaders(origin) {

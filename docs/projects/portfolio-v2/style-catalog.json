@@ -1,0 +1,1763 @@
+{
+  "schemaVersion": 1,
+  "families": [
+    {
+      "id": "IN-01",
+      "scene": "indoor",
+      "label": "商务气场",
+      "description": "适合需要清晰、可靠与专业观感的内景人物表达",
+      "order": 1
+    },
+    {
+      "id": "IN-02",
+      "scene": "indoor",
+      "label": "杂志质感",
+      "description": "以光线、构图和人物状态呈现更有编辑感的内景肖像",
+      "order": 2
+    },
+    {
+      "id": "IN-03",
+      "scene": "indoor",
+      "label": "韩系松弛",
+      "description": "偏向清爽、日常与不刻意摆拍的内景人物状态",
+      "order": 3
+    },
+    {
+      "id": "IN-04",
+      "scene": "indoor",
+      "label": "运动硬朗",
+      "description": "通过力量感、利落结构与鲜明状态表现硬朗气质",
+      "order": 4
+    },
+    {
+      "id": "IN-05",
+      "scene": "indoor",
+      "label": "港风故事",
+      "description": "用复古、东方或叙事化的画面方向呈现人物气质",
+      "order": 5
+    },
+    {
+      "id": "IN-06",
+      "scene": "indoor",
+      "label": "创意个性",
+      "description": "适合想用鲜明概念、色彩或主题表达个人特点的人群",
+      "order": 6
+    },
+    {
+      "id": "OUT-01",
+      "scene": "outdoor",
+      "label": "都市街拍",
+      "description": "围绕城市行走和日常节奏呈现自然的外景人物状态",
+      "order": 1
+    },
+    {
+      "id": "OUT-02",
+      "scene": "outdoor",
+      "label": "城市夜景",
+      "description": "以夜间城市光线和情绪节奏表达更强的叙事氛围",
+      "order": 2
+    },
+    {
+      "id": "OUT-03",
+      "scene": "outdoor",
+      "label": "森系自然",
+      "description": "以自然光与安静环境关系表现舒展、清新的个人气质",
+      "order": 3
+    },
+    {
+      "id": "OUT-04",
+      "scene": "outdoor",
+      "label": "机车酷感",
+      "description": "侧重金属、结构与行动感，呈现果断的外景人物气质",
+      "order": 4
+    },
+    {
+      "id": "OUT-05",
+      "scene": "outdoor",
+      "label": "校园少年",
+      "description": "聚焦运动、成长与日常活力，表达真实轻快的青春状态",
+      "order": 5
+    },
+    {
+      "id": "OUT-06",
+      "scene": "outdoor",
+      "label": "旅行电影",
+      "description": "围绕人物与环境的关系，表达出发、停留和片段式叙事",
+      "order": 6
+    }
+  ],
+  "styles": [
+    {
+      "id": "ST-IN-01-01",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "职业形象",
+      "audience": "需要职业头像、个人主页或团队介绍的男士",
+      "description": "以干净轮廓和稳定目光，呈现可信赖的职业状态",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-02",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "企业肖像",
+      "audience": "用于公司介绍、采访页面或专业资料的男士",
+      "description": "强调人物精神面貌与正式感，方便用于工作场景展示",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-03",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "霸道总裁",
+      "audience": "偏好强势、自信人物气质的男士",
+      "description": "通过利落构图和坚定姿态，突出有主见的视觉印象",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-04",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "精英西装",
+      "audience": "希望突出成熟专业感的职场男士",
+      "description": "以简洁西装层次组织画面，呈现克制而清晰的精英气质；服装搭配需拍摄前确认。",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-05",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "绅士正装",
+      "audience": "重视礼仪感与正式肖像的男士",
+      "description": "以端正正装轮廓和自然神情表达从容分寸，服装款式需拍摄前确认。",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-06",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "雅痞西装",
+      "audience": "偏好轻松但不失质感风格的男士",
+      "description": "在西装轮廓中保留松弛动作，形成有态度的正式感；实际搭配需拍摄前确认。",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-07",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "红底西装",
+      "audience": "希望尝试鲜明背景对比的男士",
+      "description": "以红色背景与西装轮廓形成强烈对比，背景和服装搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-08",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "西装少年",
+      "audience": "刚进入职场或偏好清爽正装感的男生",
+      "description": "以年轻神态平衡西装轮廓，呈现自然不拘谨的成长感；服装搭配需拍摄前确认。",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-09",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "领带松弛",
+      "audience": "想要兼顾职业感与轻松状态的男士",
+      "description": "以领带松开的细微动作表现工作之外的从容，领带与服装搭配需拍摄前确认。",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-10",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "个人模卡",
+      "audience": "需要展示个人面貌与气质特点的男士",
+      "description": "以清晰面部和整体比例为重点，方便后续多场景使用",
+      "legacyThemeIds": [],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-01-11",
+      "familyId": "IN-01",
+      "scene": "indoor",
+      "label": "职业证照",
+      "audience": "需要正式、清楚个人形象资料的男士",
+      "description": "注重端正视线和整洁观感，形成稳妥易用的肖像呈现",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-01",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "杂志肖像",
+      "audience": "喜欢成熟编辑感与镜头表现的男士",
+      "description": "突出人物线条和视线关系，形成简洁有张力的肖像",
+      "legacyThemeIds": [
+        "magazine"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-02",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "简约杂志",
+      "audience": "偏好留白、干净画面语言的男士",
+      "description": "减少干扰元素，让人物状态成为画面的主要信息",
+      "legacyThemeIds": [
+        "magazine"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-03",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "光影肖像",
+      "audience": "在意明暗层次和面部质感的男士",
+      "description": "以克制光比勾勒人物轮廓，灯光方向与效果需拍摄前确认。",
+      "legacyThemeIds": [
+        "light-mood"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-04",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "情绪肖像",
+      "audience": "希望照片表达个人感受与气场的男士",
+      "description": "以自然停顿和视线变化，营造含蓄的故事感",
+      "legacyThemeIds": [
+        "light-mood"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-05",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "黑白硬照",
+      "audience": "偏好经典、利落影像风格的男士",
+      "description": "以黑白影调压低色彩干扰，突出表情与结构；后期影调方向需拍摄前确认。",
+      "legacyThemeIds": [
+        "magazine"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-06",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "雕塑光影",
+      "audience": "重视轮廓塑造与立体感的男士",
+      "description": "以明暗沿人物结构展开雕塑感，灯光位置与效果需拍摄前确认。",
+      "legacyThemeIds": [
+        "light-mood"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-07",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "窗影故事",
+      "audience": "喜欢局部光线与安静叙事的男士",
+      "description": "利用窗边投下的光影切分人物轮廓，窗位与自然光条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "light-mood"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-08",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "时尚摩登",
+      "audience": "希望尝试利落现代画面感的男士",
+      "description": "强调线条与姿态配合，呈现更鲜明的都市视觉态度",
+      "legacyThemeIds": [
+        "magazine"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-09",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "冷调封面",
+      "audience": "偏好冷静、克制画面色感的男士",
+      "description": "以冷调低饱和影调拉开人物距离感，色彩与灯光效果需拍摄前确认。",
+      "legacyThemeIds": [
+        "magazine"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-10",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "暖调封面",
+      "audience": "喜欢温和、亲近视觉氛围的男士",
+      "description": "以暖调柔和色彩托住人物神情，色彩与灯光效果需拍摄前确认。",
+      "legacyThemeIds": [
+        "magazine"
+      ],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-02-11",
+      "familyId": "IN-02",
+      "scene": "indoor",
+      "label": "白底极简",
+      "audience": "需要纯净、聚焦人物本身的男士",
+      "description": "以白色背景和清楚轮廓聚焦人物本身，实际背景布置需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-01",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "居家韩系",
+      "audience": "喜欢日常感和轻松人物状态的男生",
+      "description": "以居家式布景和自然动作营造亲近感，实际可用布景需拍摄前确认。",
+      "legacyThemeIds": [
+        "home-korean"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-02",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "韩系学长",
+      "audience": "希望显得干净可靠又有亲和力的男生",
+      "description": "以轻松站坐状态展现舒展感，画面清爽不做作",
+      "legacyThemeIds": [
+        "home-korean"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-03",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "美式少年",
+      "audience": "偏好明快、自然少年感的男生",
+      "description": "强调轻松笑意和利落状态，传达有活力的个人印象",
+      "legacyThemeIds": [],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-04",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "清爽少年",
+      "audience": "想记录自然成长状态的年轻男生",
+      "description": "用简洁画面突出清晰神情，保留真实不紧张的观感",
+      "legacyThemeIds": [
+        "home-korean"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-05",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "白衫禁欲",
+      "audience": "喜欢克制、清冷人物氛围的男生",
+      "description": "以白衫的干净线条和低调表情表达安静边界，服装搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-06",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "针织少年",
+      "audience": "偏好柔和、温暖视觉感受的男生",
+      "description": "以针织材质的柔软层次衬托人物，具体服装与色彩需拍摄前确认。",
+      "legacyThemeIds": [
+        "home-korean"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-07",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "奶油暖男",
+      "audience": "希望照片显得温和、好接近的男生",
+      "description": "以奶油色调和柔和光线突出亲和感，色彩与灯光效果需拍摄前确认。",
+      "legacyThemeIds": [
+        "home-korean"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-08",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "夏日清新",
+      "audience": "喜欢轻快明朗人物风格的男生",
+      "description": "以夏日般通透色感和自然动作表达轻松心情，色彩方向需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-09",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "慵懒居家",
+      "audience": "偏好安静、放松日常状态的男生",
+      "description": "以可用居家布景和舒展姿态呈现生活感，实际场景需拍摄前确认。",
+      "legacyThemeIds": [
+        "home-korean"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-10",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "苹果主题",
+      "audience": "喜欢简洁趣味与轻松表达的男生",
+      "description": "以苹果道具形成明快视觉焦点，苹果道具与可用布景需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-03-11",
+      "familyId": "IN-03",
+      "scene": "indoor",
+      "label": "校园学长",
+      "audience": "想要青春但不幼态人物形象的男生",
+      "description": "通过稳重神态和清爽构图，呈现温和可靠的少年感；校园式场景需拍摄前确认。",
+      "legacyThemeIds": [
+        "home-korean"
+      ],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-01",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "拳击硬汉",
+      "audience": "偏好力量感和强烈人物张力的男士",
+      "description": "以拳击主题动作和紧凑姿态表达力量感，相关道具与安全条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "boxing"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-02",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "腹肌健身",
+      "audience": "想记录训练成果与身体状态的男士",
+      "description": "强调健康线条和自信神情，画面保持克制不过度修饰",
+      "legacyThemeIds": [
+        "boxing"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-03",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "运动型格",
+      "audience": "喜欢运动感与时尚感结合的男生",
+      "description": "用有节奏的姿态展现活力，让人物显得利落有型",
+      "legacyThemeIds": [
+        "sport-style"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-04",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "网球运动",
+      "audience": "偏好轻快运动气质的男生",
+      "description": "以网球准备动作和专注视线展现轻快活力，器材与可用场地需拍摄前确认。",
+      "legacyThemeIds": [
+        "sport-style"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-05",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "战术硬汉",
+      "audience": "喜欢冷静、坚决视觉气场的男士",
+      "description": "以战术造型的硬朗服装、可用道具和沉稳表情建立行动感，服装与道具资源需到店确认。",
+      "legacyThemeIds": [],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-06",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "皮衣硬汉",
+      "audience": "偏好鲜明成熟个性表达的男士",
+      "description": "以皮衣轮廓和克制姿态形成硬朗张力，服装搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-07",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "痞帅西装",
+      "audience": "想要正式感里带一点不羁气质的男士",
+      "description": "以西装的整齐轮廓平衡自然表情，呈现有态度的都市状态；搭配需拍摄前确认。",
+      "legacyThemeIds": [
+        "business-boss"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-08",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "湿发型男",
+      "audience": "偏好更强镜头感和冷感氛围的男士",
+      "description": "以湿发造型和眼神轮廓强化镜头感，造型效果需拍摄前确认。",
+      "legacyThemeIds": [
+        "magazine"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-09",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "机能潮男",
+      "audience": "喜欢现代、实用主义潮流感的男生",
+      "description": "以机能风服装的结构和动态姿态表达现代感，服装搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-10",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "高街潮男",
+      "audience": "希望尝试鲜明街头时尚气质的男生",
+      "description": "以高街风服装和姿势节奏拉长人物比例，服装搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-04-11",
+      "familyId": "IN-04",
+      "scene": "indoor",
+      "label": "朋克青年",
+      "audience": "偏好独立、锋利个人气质的男生",
+      "description": "以朋克风服装和不迎合的神情形成辨识度，造型搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-01",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "复古港风",
+      "audience": "喜欢旧电影氛围与人物故事感的男士",
+      "description": "以复古色调和克制神情表达时间感，影调与可用造型需拍摄前确认。",
+      "legacyThemeIds": [
+        "retro-hk"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-02",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "双人港风",
+      "audience": "希望和同伴记录默契互动的两位男生",
+      "description": "围绕人物关系组织画面，呈现自然有情节的合拍状态",
+      "legacyThemeIds": [
+        "retro-hk"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-03",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "港片男主",
+      "audience": "偏好成熟电影感和主角气场的男士",
+      "description": "通过沉稳视线与画面节奏，营造有留白的叙事感",
+      "legacyThemeIds": [
+        "retro-hk"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-04",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "国风少年",
+      "audience": "喜欢东方审美与年轻人物状态的男生",
+      "description": "以国风服装轮廓和清爽姿态表达文雅气质，实际造型资源需拍摄前确认。",
+      "legacyThemeIds": [
+        "wuxia"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-05",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "古风武侠",
+      "audience": "偏好侠气与含蓄人物表达的男士",
+      "description": "以武侠主题的姿态和坚定神情传达东方力量，服装与道具条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "wuxia"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-06",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "民国男主",
+      "audience": "喜欢年代感与斯文人物气质的男士",
+      "description": "以民国风服装轮廓和安静视线形成年代感，具体造型需拍摄前确认。",
+      "legacyThemeIds": [
+        "retro-hk"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-07",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "中式雅士",
+      "audience": "偏好沉静、文雅个人风格的男士",
+      "description": "以中式造型的简洁层次突出从容状态，实际服装资源需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-08",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "新中公子",
+      "audience": "想尝试现代东方气质的年轻男士",
+      "description": "以新中式服装与含蓄神情结合，表达轻盈有分寸感；搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-09",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "长衫先生",
+      "audience": "喜欢传统轮廓与书卷气质的男士",
+      "description": "以长衫轮廓和安定姿态呈现书卷气质，服装资源需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-10",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "美式复古",
+      "audience": "偏好经典、松弛复古人物感的男士",
+      "description": "以美式复古造型和朴素视觉关系表现人物性格，服装搭配需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-05-11",
+      "familyId": "IN-05",
+      "scene": "indoor",
+      "label": "怀旧胶片",
+      "audience": "喜欢颗粒感与回忆氛围的男生",
+      "description": "以胶片影调保留日常片段的颗粒与回忆感，影调处理需拍摄前确认。",
+      "legacyThemeIds": [
+        "retro-hk"
+      ],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-01",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "赛博朋克",
+      "audience": "喜欢未来感与强烈色彩氛围的男生",
+      "description": "以赛博色光和明暗对比强调人物轮廓，灯光效果与可用设备需拍摄前确认。",
+      "legacyThemeIds": [
+        "cyberpunk"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-02",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "创意概念",
+      "audience": "希望照片更有想法和个人识别度的男士",
+      "description": "围绕明确视觉主题组织人物状态，保留可读的画面重点",
+      "legacyThemeIds": [
+        "concept"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-03",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "彩色光影",
+      "audience": "喜欢色彩变化与情绪表达的男生",
+      "description": "以彩色光影在人物轮廓上形成层次，灯光效果与可用设备需拍摄前确认。",
+      "legacyThemeIds": [
+        "cyberpunk"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-04",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "镜面空间",
+      "audience": "偏好结构感和视觉趣味的男生",
+      "description": "以镜面反射建立多层视线关系，镜面道具与可用空间需拍摄前确认。",
+      "legacyThemeIds": [
+        "concept"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-05",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "花艺少年",
+      "audience": "喜欢柔和色彩与文艺人物气质的男生",
+      "description": "以花艺和人物神情形成轻盈对照，花材与可用布景需拍摄前确认。",
+      "legacyThemeIds": [
+        "floral-boy"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-06",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "繁花公子",
+      "audience": "希望尝试华丽但有分寸视觉表达的男士",
+      "description": "以繁花层次衬托人物姿态，花材与布景资源需拍摄前确认。",
+      "legacyThemeIds": [
+        "floral-boy"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-07",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "宠物合拍",
+      "audience": "想与自家宠物记录相处瞬间的男士",
+      "description": "以人与宠物的自然互动作为画面核心，宠物到场与状态需拍摄前确认。",
+      "legacyThemeIds": [
+        "pet"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-08",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "生日主题",
+      "audience": "希望记录生日阶段或送给自己的男生",
+      "description": "以生日庆祝布景和人物心情留下纪念，布景与道具资源需拍摄前确认。",
+      "legacyThemeIds": [
+        "celebration"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-09",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "新春主题",
+      "audience": "想在节日期间留下个人影像的男士",
+      "description": "以新春节庆色彩和人物神情传达喜庆气氛，节庆布景需拍摄前确认。",
+      "legacyThemeIds": [
+        "celebration"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-10",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "圣诞主题",
+      "audience": "喜欢冬日节庆氛围的男生",
+      "description": "以圣诞节庆元素组织轻松情绪，布景、道具与档期需拍摄前确认。",
+      "legacyThemeIds": [
+        "celebration"
+      ],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-IN-06-11",
+      "familyId": "IN-06",
+      "scene": "indoor",
+      "label": "乐队主唱",
+      "audience": "偏好舞台感与鲜明表达力的男生",
+      "description": "以乐队主唱式投入神情和节奏感组织画面，相关造型与道具需拍摄前确认。",
+      "legacyThemeIds": [
+        "concept"
+      ],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-01",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "时尚街拍",
+      "audience": "喜欢利落都市穿搭与镜头感的男生",
+      "description": "在行走与停留之间捕捉姿态，画面强调清晰的个人风格",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-02",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "痞帅街拍",
+      "audience": "偏好随性、有态度城市形象的男生",
+      "description": "保留自然神情和不刻意动作，形成松弛有劲的街头气质",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-03",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "潮流街拍",
+      "audience": "想展示年轻潮流感的男生",
+      "description": "关注人物比例与动作节奏，让整体状态显得活力而利落",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-04",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "都市街拍",
+      "audience": "希望记录城市生活状态的男士",
+      "description": "以环境线条衬托人物，呈现真实、自信的行走感",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-05",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "日常休闲",
+      "audience": "偏好轻松、可长期留存人物照的男士",
+      "description": "让人物保持熟悉的自然状态，画面不强调刻意造型效果",
+      "legacyThemeIds": [
+        "daily-walk"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-06",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "城市漫步",
+      "audience": "喜欢慢节奏、观察感画面的男生",
+      "description": "围绕走路、停留等自然片段组织照片，带出松弛心情",
+      "legacyThemeIds": [
+        "daily-walk"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-07",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "老街港风",
+      "audience": "偏好怀旧城市氛围的男生",
+      "description": "以老街港风的旧感色调和人物视线形成电影片段，实际街景与光线需拍摄前确认。",
+      "legacyThemeIds": [
+        "retro-hk"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-08",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "涂鸦街区",
+      "audience": "喜欢明快色彩与个性背景关系的男生",
+      "description": "以涂鸦街区的环境色彩增强节奏，实际场地与拍摄许可需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-09",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "街角少年",
+      "audience": "想留下青春日常状态的年轻男生",
+      "description": "以轻快动作和真诚神情为重点，呈现不刻意的少年感",
+      "legacyThemeIds": [
+        "daily-walk"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-10",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "彩色街拍",
+      "audience": "喜欢鲜明色彩和活力画面的男生",
+      "description": "以彩色街景和人物情绪形成轻快对照，实际街景与色彩条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-01-11",
+      "familyId": "OUT-01",
+      "scene": "outdoor",
+      "label": "咖啡街角",
+      "audience": "偏好日常停留感与安静城市画面的男士",
+      "description": "以咖啡街角式坐立状态传达放松心情，不承诺特定门店或场所。",
+      "legacyThemeIds": [
+        "daily-walk"
+      ],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-01",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "霓虹夜景",
+      "audience": "喜欢城市灯光与未来感氛围的男生",
+      "description": "以霓虹光色映衬人物轮廓，实际夜景地点与灯光条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-02",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "城市夜景",
+      "audience": "希望在夜晚记录都市人物感的男士",
+      "description": "以城市夜景的环境明暗衬托神情，实际夜景地点与灯光条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-03",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "天台夜景",
+      "audience": "偏好开阔感与独处气质的男生",
+      "description": "以天台的开阔层次和沉静视线表达夜晚从容，场地与拍摄许可需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-04",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "港风夜拍",
+      "audience": "喜欢复古电影感夜景表达的男生",
+      "description": "以港风夜拍的暖冷光线和人物神情形成叙事感，实际夜景与灯光需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-05",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "雨夜电影",
+      "audience": "偏好湿润光影与电影叙事感的男士",
+      "description": "以雨后反光和明暗变化烘托电影情绪，天气与可用场地需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-06",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "情绪隧道",
+      "audience": "喜欢纵深感和安静画面张力的男生",
+      "description": "以隧道线条引导人物视线，实际场地、安全与拍摄许可需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-07",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "暗系情绪",
+      "audience": "偏好低调冷静人物表达的男士",
+      "description": "以暗调灯光压低环境亮度，配合后期影调突出眼神变化，灯光与后期效果需到店确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-08",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "夜市烟火",
+      "audience": "喜欢人间烟火与生活感夜景的男生",
+      "description": "以夜市环境光和人间烟火衬托人物状态，实际环境与拍摄条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-09",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "车灯电影",
+      "audience": "偏好流动光线与故事感的男士",
+      "description": "以车灯在夜间形成流动光线和时间感，车辆与拍摄位置需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-10",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "酒吧微醺",
+      "audience": "想表达成熟放松夜生活气质的男士",
+      "description": "以酒吧式低饱和光线呈现成熟松弛感，具体场地与灯光条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-02-11",
+      "familyId": "OUT-02",
+      "scene": "outdoor",
+      "label": "闪光街拍",
+      "audience": "喜欢直接、鲜明镜头语言的男生",
+      "description": "以闪光灯定格人物表情，灯光设备与可用街景需拍摄前确认。",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-01",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "森系文艺",
+      "audience": "喜欢安静自然与文艺气质的男生",
+      "description": "以自然绿意和柔和环境层次呈现安静气质，实际场地与光线需拍摄前确认。",
+      "legacyThemeIds": [
+        "forest"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-02",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "海边少年",
+      "audience": "想要开阔、轻松少年感的男生",
+      "description": "以风感和自然动作呈现自由心情，不承诺具体海边地点",
+      "legacyThemeIds": [],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-03",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "海洋馆景",
+      "audience": "喜欢蓝色氛围与观察感画面的男生",
+      "description": "用通透色彩关系烘托人物，具体场地需以实际条件确认",
+      "legacyThemeIds": [],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-04",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "草地少年",
+      "audience": "偏好阳光、清新日常状态的男生",
+      "description": "以草地环境和自然站坐记录青春感，实际场地与天气需拍摄前确认。",
+      "legacyThemeIds": [
+        "forest"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-05",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "山野旅人",
+      "audience": "喜欢旅行感与户外人物状态的男士",
+      "description": "以人物和山野环境的开阔关系表达探索心情，实际地点与天气需拍摄前确认。",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-06",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "湖边静坐",
+      "audience": "偏好安静、沉思画面气质的男士",
+      "description": "以湖边留白和舒缓姿态表达沉思感，水边场地与天气需拍摄前确认。",
+      "legacyThemeIds": [
+        "forest"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-07",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "溪边少年",
+      "audience": "喜欢清凉自然和轻快人物感的男生",
+      "description": "以环境纹理衬托人物状态，具体水边条件以现场为准",
+      "legacyThemeIds": [
+        "forest"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-08",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "麦田暖阳",
+      "audience": "偏好温暖季节感和松弛画面的男生",
+      "description": "用金色调性表达舒展心情，不承诺特定作物或季节场地",
+      "legacyThemeIds": [],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-09",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "芦苇秋日",
+      "audience": "喜欢安静秋意与柔和人物气质的男生",
+      "description": "以轻盈层次衬托神情，实际环境与季节需结合可用资源",
+      "legacyThemeIds": [],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-10",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "雪景少年",
+      "audience": "想尝试清冷、纯净季节氛围的男生",
+      "description": "以明亮留白突出人物状态，需根据真实天气与场地安排",
+      "legacyThemeIds": [],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-03-11",
+      "familyId": "OUT-03",
+      "scene": "outdoor",
+      "label": "花海少年",
+      "audience": "喜欢明快色彩和温柔人物表达的男生",
+      "description": "用自然色彩关系增强画面心情，不保证特定花期与花海",
+      "legacyThemeIds": [],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-01",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "炫酷机车",
+      "audience": "喜欢速度感与鲜明个人态度的男生",
+      "description": "以人物姿态和硬朗线条制造张力，机车条件需现场确认",
+      "legacyThemeIds": [
+        "moto"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-02",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "机车型格",
+      "audience": "偏好成熟、利落机车风格的男士",
+      "description": "以机车与人物轮廓、动作节奏建立型格，不承诺特定车型或车辆提供。",
+      "legacyThemeIds": [
+        "moto"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-03",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "公路机车",
+      "audience": "希望表达旅途感和行动力的男生",
+      "description": "围绕人物、机车与道路关系展开，实际路线、车辆和安全条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "moto"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-04",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "车库冷感",
+      "audience": "喜欢工业感和冷静人物氛围的男生",
+      "description": "以车库的简洁结构衬托人物轮廓，具体拍摄环境需事先确认。",
+      "legacyThemeIds": [
+        "moto"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-05",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "工业硬照",
+      "audience": "偏好硬朗、简洁线条视觉的男士",
+      "description": "以工业空间的硬朗结构衬托人物姿态，实际场地与许可需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-06",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "厂房型男",
+      "audience": "喜欢粗粝质感与成熟形象的男士",
+      "description": "以厂房环境纹理增强人物气场，实际可用场地需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-07",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "水泥工业",
+      "audience": "偏好极简粗粝视觉风格的男生",
+      "description": "以水泥质感和灰阶结构突出人物比例，实际场地条件需拍摄前确认。",
+      "legacyThemeIds": [],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-08",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "隧道冷调",
+      "audience": "喜欢纵深线条和清冷夜行感的男生",
+      "description": "将人物置于延伸结构中表达方向感，拍摄条件以现场为准",
+      "legacyThemeIds": [
+        "city-night"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-09",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "公路旅人",
+      "audience": "想记录出发感和轻松旅行状态的男士",
+      "description": "着重人物与路途关系，不绑定特定公路或远行地点",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-10",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "车旁街拍",
+      "audience": "偏好都市车感与自然人物状态的男士",
+      "description": "以人物为中心组织画面，车辆及合规拍摄条件需另行确认",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-04-11",
+      "familyId": "OUT-04",
+      "scene": "outdoor",
+      "label": "驾车绅士",
+      "audience": "喜欢成熟、从容人物气场的男士",
+      "description": "突出坐姿与视线表达，车辆和拍摄位置以实际安排为准",
+      "legacyThemeIds": [],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-01",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "热血高校",
+      "audience": "喜欢热烈青春与团队感的年轻男生",
+      "description": "以投入神情和行动姿态表达活力，不承诺具体学校场地",
+      "legacyThemeIds": [
+        "campus"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-02",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "校园少年",
+      "audience": "想留下自然学生气质的年轻男生",
+      "description": "以校园式日常场景和轻松笑意记录青春状态，实际场地需拍摄前确认。",
+      "legacyThemeIds": [
+        "campus"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-03",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "操场青春",
+      "audience": "偏好开阔、阳光成长感的年轻男生",
+      "description": "通过自然跑动或停留表达青春节奏，具体场地需提前确认",
+      "legacyThemeIds": [
+        "campus"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-04",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "篮球少年",
+      "audience": "喜欢运动热情与力量感的男生",
+      "description": "捕捉篮球动作和身体节奏，球场、器材与安全条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "sport-documentary"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-05",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "网球学长",
+      "audience": "偏好清爽运动与可靠气质的男生",
+      "description": "以运动准备状态呈现有序活力，场地资源需另行确认",
+      "legacyThemeIds": [
+        "sport-style"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-06",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "滑板少年",
+      "audience": "喜欢街头运动与自由表达的男生",
+      "description": "突出动作预备和个性神情，设备与安全条件需自行确认",
+      "legacyThemeIds": [
+        "sport-style"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-07",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "足球少年",
+      "audience": "喜欢团队运动与阳光气质的男生",
+      "description": "以奔跑感和专注状态传递活力，具体场地需按实际安排",
+      "legacyThemeIds": [
+        "sport-documentary"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-08",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "骑行少年",
+      "audience": "想表达轻快出行与行动力的男生",
+      "description": "围绕自然骑行状态组织画面，车辆和路线需拍摄前确认。",
+      "legacyThemeIds": [
+        "daily-walk"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-09",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "跑步少年",
+      "audience": "喜欢自律、轻盈运动感的男生",
+      "description": "以跑步节奏和自然呼吸感呈现人物状态，路线与场地条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "sport-documentary"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-10",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "运动纪实",
+      "audience": "想记录真实运动片段的男士",
+      "description": "以连续运动动作保留纪实过程感，运动环境与安全条件需拍摄前确认。",
+      "legacyThemeIds": [
+        "sport-documentary"
+      ],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-05-11",
+      "familyId": "OUT-05",
+      "scene": "outdoor",
+      "label": "机长制服",
+      "audience": "喜欢职业制服感和整洁形象的男士",
+      "description": "以端正姿态表达专业气质，制服和使用许可需自行确认",
+      "legacyThemeIds": [],
+      "order": 11,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-01",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "正装外景",
+      "audience": "需要城市环境中正式人物肖像的男士",
+      "description": "以正装轮廓与外景自然光线结合，服装搭配和实际场地需拍摄前确认。",
+      "legacyThemeIds": [
+        "formal-outdoor"
+      ],
+      "order": 1,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-02",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "国风外景",
+      "audience": "喜欢东方人物气质与环境留白的男士",
+      "description": "以从容姿态表达含蓄意境，具体环境需结合实际资源确认",
+      "legacyThemeIds": [
+        "wuxia-outdoor"
+      ],
+      "order": 2,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-03",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "山野武侠",
+      "audience": "偏好侠气、探索感人物表达的男士",
+      "description": "通过武侠主题姿态与山野关系营造想象空间，服装、地点与天气需拍摄前确认。",
+      "legacyThemeIds": [
+        "wuxia"
+      ],
+      "order": 3,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-04",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "藏地少年",
+      "audience": "喜欢高原旅行感和质朴人物状态的男生",
+      "description": "以自然环境叙事为方向，实际目的地与条件需另行规划",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 4,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-05",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "港澳旅拍",
+      "audience": "想记录城市旅行片段的男士",
+      "description": "强调人物与陌生街景的关系，具体行程与许可需提前确认",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 5,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-06",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "大理旅拍",
+      "audience": "偏好松弛旅行与自然光感的男生",
+      "description": "以轻盈人物状态为核心，具体目的地及交通安排另行确认",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 6,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-07",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "城市地标",
+      "audience": "希望在熟悉城市留下纪念照的男士",
+      "description": "利用城市辨识性构图衬托人物，实际地标和拍摄许可需确认",
+      "legacyThemeIds": [
+        "city-street"
+      ],
+      "order": 7,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-08",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "列车旅途",
+      "audience": "喜欢出发感与移动叙事的男生",
+      "description": "围绕旅途中人物情绪组织画面，交通工具及拍摄规则需确认",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 8,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-09",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "游艇绅士",
+      "audience": "偏好开阔水面与成熟人物气场的男士",
+      "description": "以从容状态为画面核心，船只资源、天气与安全条件需确认",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 9,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-10",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "山水旅拍",
+      "audience": "喜欢人物与自然风景关系的男士",
+      "description": "以安静构图表达旅途心情，不承诺特定山水地点或天气",
+      "legacyThemeIds": [
+        "travel"
+      ],
+      "order": 10,
+      "visibility": "published"
+    },
+    {
+      "id": "ST-OUT-06-11",
+      "familyId": "OUT-06",
+      "scene": "outdoor",
+      "label": "秋冬街拍",
+      "audience": "偏好季节感与都市人物氛围的男士",
+      "description": "用层次和自然状态传达秋冬心情，实际天气与服装需协商",
+      "legacyThemeIds": [
+        "daily-walk"
+      ],
+      "order": 11,
+      "visibility": "published"
+    }
+  ],
+  "featuredStyleIds": [
+    "ST-IN-01-04",
+    "ST-IN-02-01",
+    "ST-IN-03-04",
+    "ST-IN-05-03",
+    "ST-OUT-01-04",
+    "ST-OUT-02-04",
+    "ST-OUT-03-02",
+    "ST-OUT-04-02"
+  ]
+}

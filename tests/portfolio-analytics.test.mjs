@@ -6,10 +6,87 @@ import test from "node:test";
 import vm from "node:vm";
 import { gzipSync } from "node:zlib";
 
+import { collectAnalytics } from "../workers/portfolio-gateway/analytics.js";
+
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 const exists = (path) => access(new URL(path, root)).then(() => true, () => false);
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+
+function captureDatabase() {
+  const batches = [];
+  return {
+    batches,
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return { sql, values };
+        },
+      };
+    },
+    async batch(statements) {
+      batches.push(statements);
+      return [];
+    },
+  };
+}
+
+function analyticsRequest(events, sessionId = "abcdef0123456789abcd") {
+  return new Request("https://p.nanbostudio.com/api/portfolio-analytics/collect", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      origin: "https://p.nanbostudio.com",
+    },
+    body: JSON.stringify({
+      session: {
+        id: sessionId,
+        startedAt: "2026-09-02T00:00:00.000Z",
+        lastSeenAt: "2026-09-02T00:01:00.000Z",
+      },
+      events,
+    }),
+  });
+}
+
+test("collector preserves six style events without conflating viewer and photo opens", async () => {
+  const database = captureDatabase();
+  const types = [
+    "style_favorite_add",
+    "style_favorite_remove",
+    "pose_select_add",
+    "pose_select_remove",
+    "style_album_open",
+    "style_viewer_open",
+  ];
+  const events = types.map((type, index) => ({
+    id: `${String(index + 1).padStart(20, "a")}`,
+    type,
+    targetId: `  ST-IN-01-01-P0${index + 1}  `,
+    targetLabel: `  风格事件 ${index + 1}  `,
+    at: "2026-09-02T00:00:30.000Z",
+  }));
+  events.push({ id: "bbbbbbbbbbbbbbbbbbbb", type: "photo_open", targetId: "137" });
+  events.push({ id: "cccccccccccccccccccc", type: "style_private_open", targetId: "private" });
+
+  const response = await collectAnalytics(analyticsRequest(events), database);
+  assert.equal(response.status, 202);
+  const interactions = database.batches[0].filter(({ sql }) => sql.includes("portfolio_interactions"));
+  assert.deepEqual(interactions.map(({ values }) => values[2]), [...types, "photo_open"]);
+  assert.equal(interactions.find(({ values }) => values[2] === "style_viewer_open").values[3], "ST-IN-01-01-P06");
+  assert.equal(interactions.filter(({ values }) => values[2] === "photo_open").length, 1);
+  assert.equal(interactions.some(({ values }) => values.includes("style_private_open")), false);
+  assert.equal(interactions.every(({ values }) => !/^\s|\s$/.test(values[3] || "")), true);
+
+  const capped = captureDatabase();
+  const manyEvents = Array.from({ length: 25 }, (_, index) => ({
+    id: `${(index + 100).toString(16).padStart(20, "d")}`,
+    type: "page_view",
+    targetId: `target-${index}`,
+  }));
+  await collectAnalytics(analyticsRequest(manyEvents, "fedcba9876543210fedc"), capped);
+  assert.equal(capped.batches[0].filter(({ sql }) => sql.includes("portfolio_interactions")).length, 20);
+});
 
 async function measureMobileFooter() {
   const [html, css, qr] = await Promise.all([

@@ -1,4 +1,4 @@
-import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -165,6 +165,32 @@ await copyFile(
   join(root, "apps/portfolio-v2/catalog-additions.json"),
   join(docs, "projects/portfolio-v2/catalog-additions.json"),
 );
+const styleRuntimeFiles = [
+  "style-catalog.json",
+  "style-slot-assignments.json",
+  "style-library.js",
+  "style-explorer-model.js",
+  "style-preferences.js",
+  "style-explorer.js",
+];
+for (const filename of styleRuntimeFiles) {
+  const [sourceBytes, publishedBytes] = await Promise.all([
+    readFile(join(root, "apps/portfolio-v2", filename)),
+    readFile(join(docs, "projects/portfolio-v2", filename)),
+  ]);
+  if (!sourceBytes.equals(publishedBytes)) throw new Error(`风格静态副本不一致：${filename}`);
+}
+const portfolioPublicRoot = join(docs, "projects/portfolio-v2");
+const publicEntries = await readdir(portfolioPublicRoot, { recursive: true });
+if (publicEntries.some((path) => /(?:^|\/)(?:\.local|manager)(?:\/|$)|transaction|batch|audit/i.test(path))) {
+  throw new Error("风格公开包含有管理台或本机私有文件");
+}
+const publicText = (await Promise.all(publicEntries
+  .filter((path) => /\.(?:html|js|json|css)$/i.test(path))
+  .map((path) => readFile(join(portfolioPublicRoot, path), "utf8")))).join("\n");
+if (/\/Users\/|portfolio-style-transactions|portfolio-style-batches|slotIdentities/.test(publicText)) {
+  throw new Error("风格公开包含有本机绝对路径或私有字段");
+}
 for (const filename of ["index.html", "app.js"]) {
   const target = join(docs, "projects/portfolio-v2", filename);
   const content = await readFile(target, "utf8");

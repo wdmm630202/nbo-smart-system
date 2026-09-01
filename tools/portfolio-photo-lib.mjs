@@ -23,10 +23,18 @@ import {
   normalizePortfolioAdditions,
   portfolioCatalog,
 } from "../apps/portfolio-v2/catalog.js";
+import {
+  buildStyleLibrary,
+  normalizeStyleCatalog,
+  styleSlotId,
+} from "../apps/portfolio-v2/style-library.js";
 
 export const root = dirname(dirname(fileURLToPath(import.meta.url)));
 export const sourcePhotoRoot = join(root, "apps/portfolio/assets/photos");
 export const sourceAdditionsPath = join(root, "apps/portfolio-v2/catalog-additions.json");
+export const sourceStyleCatalogPath = join(root, "apps/portfolio-v2/style-catalog.json");
+export const sourceStyleAssignmentsPath = join(root, "apps/portfolio-v2/style-slot-assignments.json");
+export const styleTransactionRoot = join(root, ".local/portfolio-style-transactions");
 export const backupRoot = join(root, ".local/portfolio-photo-backups");
 export const transactionRoot = join(root, ".local/portfolio-photo-transactions");
 // 这是对外唯一入口。内部项目目录以后可以升级，客户链接始终保持 /p/。
@@ -541,12 +549,160 @@ function validatePortfolioAdditions(additions, catalog) {
   return errors;
 }
 
+const publicStyleSlotKeys = new Set(["assetId", "poseLabel", "source", "updatedAt"]);
+const privatePublicationPattern = /(?:^|\/)(?:Users|private)(?:\/|$)|\.local(?:\/|$)|portfolio-style-(?:transactions|batches)|slotIdentities/;
+
+function stableSlotLabel(styleId, index) {
+  try {
+    return styleSlotId(styleId, index + 1);
+  } catch {
+    return `${styleId}-P${String(index + 1).padStart(2, "0")}`;
+  }
+}
+
+function preflightStyleAssignments(rawCatalog, rawAssignments, assetMap) {
+  const errors = [];
+  let catalog;
+  try {
+    catalog = normalizeStyleCatalog(rawCatalog);
+  } catch (error) {
+    return { catalog: null, errors: [error.message] };
+  }
+  const assignments = rawAssignments?.assignments;
+  if (!assignments || Array.isArray(assignments) || typeof assignments !== "object") {
+    return { catalog, errors: ["照片位分配格式无效"] };
+  }
+  for (const style of catalog.styles) {
+    const layout = assignments[style.id];
+    if (!layout) {
+      errors.push(`风格 ${style.id} 缺少照片位分配`);
+      continue;
+    }
+    if (!Number.isInteger(layout.coverPosition) || layout.coverPosition < 1 || layout.coverPosition > 9) {
+      errors.push(`风格 ${style.id} 封面位置无效`);
+    }
+    if (!Array.isArray(layout.slots)) {
+      errors.push(`风格 ${style.id} 照片位格式无效`);
+      continue;
+    }
+    const firstPositionByAsset = new Map();
+    layout.slots.forEach((slot, index) => {
+      const label = stableSlotLabel(style.id, index);
+      if (!slot || Array.isArray(slot) || typeof slot !== "object") {
+        errors.push(`${label} 格式无效`);
+        return;
+      }
+      const unknownKey = Object.keys(slot).find((key) => !publicStyleSlotKeys.has(key));
+      if (unknownKey) errors.push(`${label} 不允许字段 ${unknownKey}`);
+      if (!Number.isInteger(slot.assetId) || !assetMap.has(slot.assetId)) {
+        errors.push(`${label} 引用未知资产 NB-${String(slot.assetId).padStart(3, "0")}`);
+      } else if (assetMap.get(slot.assetId).scene !== style.scene) {
+        errors.push(`${label} 资产场景与风格不一致`);
+      }
+      if (firstPositionByAsset.has(slot.assetId)) {
+        errors.push(`${label} 与 ${stableSlotLabel(style.id, firstPositionByAsset.get(slot.assetId))} 重复资产`);
+      } else {
+        firstPositionByAsset.set(slot.assetId, index);
+      }
+      if (slot.source === "upload" && (typeof slot.updatedAt !== "string" || Number.isNaN(Date.parse(slot.updatedAt)))) {
+        errors.push(`${label} upload 来源必须设置有效更新时间`);
+      }
+      if (slot.source === "seed" && slot.updatedAt !== null) errors.push(`${label} seed 来源更新时间必须为 null`);
+      for (const value of Object.values(slot)) {
+        if (typeof value === "string" && privatePublicationPattern.test(value)) errors.push(`${label} 包含本机或私有路径`);
+      }
+    });
+  }
+  return { catalog, errors };
+}
+
+async function readStyleProofs(transactionRootPath) {
+  const origins = new Map();
+  const confirmations = new Map();
+  let entries = [];
+  try {
+    entries = await readdir(transactionRootPath, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") return { confirmations, origins };
+    throw error;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    try {
+      const meta = await readJson(join(transactionRootPath, entry.name, "meta.json"));
+      if (meta?.status !== "committed") continue;
+      if (meta.operation === "replace-slot" && typeof meta.slotId === "string" && Number.isInteger(meta.assetId)) {
+        origins.set(meta.assetId, meta.slotId.replace(/-P0[1-9]$/, ""));
+      }
+      if (meta.operation === "replace-style-batch" && typeof meta.styleId === "string" && Array.isArray(meta.assetIds)) {
+        for (const assetId of meta.assetIds) if (Number.isInteger(assetId)) origins.set(assetId, meta.styleId);
+      }
+      if (meta.operation === "update-layout" && meta.maturity === "complete"
+        && typeof meta.styleId === "string" && Array.isArray(meta.assetIds)) {
+        confirmations.set(meta.styleId, [...meta.assetIds].sort((left, right) => left - right));
+      }
+    } catch {
+      // 损坏或无关的本机历史不能证明公开成熟度。
+    }
+  }
+  return { confirmations, origins };
+}
+
+async function validateStylePublication({ rawCatalog, rawAssignments, assets, additions, transactionRootPath }) {
+  const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
+  const preflight = preflightStyleAssignments(rawCatalog, rawAssignments, assetMap);
+  const errors = [...preflight.errors];
+  let library = null;
+  if (!errors.length) {
+    try {
+      library = buildStyleLibrary({ catalog: rawCatalog, assignments: rawAssignments, assets });
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
+  if (library) {
+    const publishedAdditionIds = new Set(additions.photos
+      .filter(({ visibility }) => visibility === "published")
+      .map(({ id }) => id));
+    const { confirmations, origins } = await readStyleProofs(transactionRootPath);
+    for (const style of library.styles) {
+      const uploaded = style.slots.filter(({ source }) => source === "upload");
+      if (uploaded.length === 0 && style.maturity !== "reference") {
+        errors.push(`风格 ${style.id} 成熟度必须为 reference`);
+      } else if (uploaded.length > 0 && uploaded.length < 9 && style.maturity !== "updating") {
+        errors.push(`风格 ${style.id} 成熟度必须为 updating`);
+      } else if (uploaded.length === 9 && !new Set(["updating", "complete"]).has(style.maturity)) {
+        errors.push(`风格 ${style.id} 全部上传后成熟度无效`);
+      }
+      if (style.maturity !== "complete") continue;
+      const assetIds = style.slots.map(({ assetId }) => assetId);
+      const confirmed = confirmations.get(style.id);
+      const completeProof = uploaded.length === 9
+        && new Set(assetIds).size === 9
+        && assetIds.every((assetId) => publishedAdditionIds.has(assetId) && origins.get(assetId) === style.id)
+        && confirmed
+        && JSON.stringify([...assetIds].sort((left, right) => left - right)) === JSON.stringify(confirmed);
+      if (!completeProof) errors.push(`风格 ${style.id} 缺少同风格上传事务和明确公开确认证明`);
+    }
+  }
+  return {
+    errors,
+    library,
+    styleCount: library?.styles.length || 0,
+    styleSlotCount: library?.slots.length || 0,
+    uniqueStyleAssetCount: library ? new Set(library.slots.map(({ assetId }) => assetId)).size : 0,
+  };
+}
+
 export async function validatePortfolioLibrary(options = {}) {
   const errors = [];
   const warnings = [];
   const catalog = portfolioCatalog;
   const photoRoot = options.photoRoot || sourcePhotoRoot;
   const additionsPath = options.additionsPath || sourceAdditionsPath;
+  const styleCatalogPath = options.styleCatalogPath || sourceStyleCatalogPath;
+  const styleAssignmentsPath = options.styleAssignmentsPath || sourceStyleAssignmentsPath;
+  const transactionRootPath = options.styleTransactionRoot || styleTransactionRoot;
   let additions = emptyPortfolioAdditions;
 
   try {
@@ -630,6 +786,29 @@ export async function validatePortfolioLibrary(options = {}) {
     errors.push(error.message);
   }
 
+  let styleResult = { styleCount: 0, styleSlotCount: 0, uniqueStyleAssetCount: 0 };
+  try {
+    const [rawCatalog, rawAssignments] = await Promise.all([
+      readJson(styleCatalogPath),
+      readJson(styleAssignmentsPath),
+    ]);
+    const assets = items.map((item) => ({
+      ...item,
+      thumb: `../portfolio/assets/photos/thumbs/${slotFilename(item.id)}.webp`,
+      full: `../portfolio/assets/photos/full/${slotFilename(item.id)}.jpg`,
+    }));
+    styleResult = await validateStylePublication({
+      rawCatalog,
+      rawAssignments,
+      assets,
+      additions,
+      transactionRootPath,
+    });
+    errors.push(...styleResult.errors);
+  } catch (error) {
+    errors.push(`风格公开清单无效：${error.message}`);
+  }
+
   return {
     ok: errors.length === 0,
     errors,
@@ -637,6 +816,9 @@ export async function validatePortfolioLibrary(options = {}) {
     photoCount: items.length || catalog.photoCount,
     themeCount: themes.length || catalog.themes.length,
     heroAssetCount: catalog.heroAssetIds.length,
+    styleCount: styleResult.styleCount,
+    styleSlotCount: styleResult.styleSlotCount,
+    uniqueStyleAssetCount: styleResult.uniqueStyleAssetCount,
   };
 }
 
@@ -644,6 +826,15 @@ export async function buildPortfolioVersion(options = {}) {
   const photoRoot = options.photoRoot || sourcePhotoRoot;
   const additionsPath = options.additionsPath || sourceAdditionsPath;
   const interactionModelPath = options.interactionModelPath || join(root, "apps/portfolio-v2/interaction-model.js");
+  const defaultStyleVersionPaths = Object.fromEntries([
+    "style-catalog.json",
+    "style-slot-assignments.json",
+    "style-library.js",
+    "style-explorer-model.js",
+    "style-preferences.js",
+    "style-explorer.js",
+  ].map((filename) => [filename, join(root, "apps/portfolio-v2", filename)]));
+  const styleVersionPaths = { ...defaultStyleVersionPaths, ...(options.styleVersionPaths || {}) };
   const additions = await readPortfolioAdditions(additionsPath);
   const hash = createHash("sha256");
   const files = [
@@ -659,6 +850,7 @@ export async function buildPortfolioVersion(options = {}) {
     join(root, "apps/portfolio-v2/privacy.html"),
     join(root, "apps/portfolio-v2/share-card.jpg"),
     additionsPath,
+    ...Object.values(styleVersionPaths),
   ];
   for (let id = 1; id <= portfolioCatalog.photoCount; id += 1) {
     const paths = {

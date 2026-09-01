@@ -71,31 +71,11 @@ async function writeJsonAtomic(path, value) {
 }
 
 function normalizeStoreCatalog(value) {
-  const validationValue = clone(value);
-  if (Array.isArray(validationValue.styles)) {
-    for (const style of validationValue.styles) {
-      if (style?.visibility === "hidden") style.visibility = "archived";
-    }
-  }
-  const normalized = normalizeStyleCatalog(validationValue);
-  const visibilityById = new Map((value.styles || []).map((style) => [style.id, style.visibility]));
-  return {
-    ...normalized,
-    styles: normalized.styles.map((style) => ({
-      ...style,
-      visibility: visibilityById.get(style.id) === "hidden" ? "hidden" : style.visibility,
-    })),
-  };
+  return normalizeStyleCatalog(value);
 }
 
 function validationCatalog(catalog) {
-  return {
-    ...catalog,
-    styles: catalog.styles.map((style) => ({
-      ...style,
-      visibility: style.visibility === "hidden" ? "archived" : style.visibility,
-    })),
-  };
+  return catalog;
 }
 
 function publicAsset(id, photo) {
@@ -1677,7 +1657,13 @@ export function createPortfolioStyleStore({
       normalizeStyleAssignments(assignments, validationCatalog(state.catalog), new Map(state.assets.map((asset) => [asset.id, asset])));
       await commitTransaction({
         operation: "update-layout",
-        context: { styleId, orderedSlotIds: [...input.orderedSlotIds], coverSlotId },
+        context: {
+          styleId,
+          orderedSlotIds: [...input.orderedSlotIds],
+          coverSlotId,
+          maturity: input.maturity,
+          assetIds: layout.slots.map(({ assetId }) => assetId),
+        },
         outputs: [
           ...manifestOutputs(state.catalog, assignments),
           {

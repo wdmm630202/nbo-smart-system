@@ -101,19 +101,30 @@ async function startManagerFixture(t) {
   const additionsPath = join(sandbox, "catalog-additions.json");
   const catalogPath = join(sandbox, "style-catalog.json");
   const assignmentsPath = join(sandbox, "style-slot-assignments.json");
+  const publishedRoot = join(sandbox, "docs/projects/portfolio-v2");
+  const publishedAdditionsPath = join(publishedRoot, "catalog-additions.json");
+  const publishedCatalogPath = join(publishedRoot, "style-catalog.json");
+  const publishedAssignmentsPath = join(publishedRoot, "style-slot-assignments.json");
   const [catalog, assignments] = await Promise.all([
     readFile(new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url), "utf8").then(JSON.parse),
     readFile(new URL("../apps/portfolio-v2/style-slot-assignments.json", import.meta.url), "utf8").then(JSON.parse),
   ]);
   assignments.assignments["ST-IN-01-01"].slots[0].assetId = 137;
   assignments.assignments["ST-IN-01-02"].slots[0].assetId = 137;
+  const additions = { schemaVersion: 1, themes: [], photos: [] };
   await Promise.all([
     mkdir(draftRoot, { recursive: true }),
     mkdir(join(photoRoot, "full"), { recursive: true }),
     mkdir(join(photoRoot, "thumbs"), { recursive: true }),
-    writeFile(additionsPath, `${JSON.stringify({ schemaVersion: 1, themes: [], photos: [] }, null, 2)}\n`),
+    mkdir(publishedRoot, { recursive: true }),
+  ]);
+  await Promise.all([
+    writeFile(additionsPath, `${JSON.stringify(additions, null, 2)}\n`),
     writeFile(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`),
     writeFile(assignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
+    writeFile(publishedAdditionsPath, `${JSON.stringify(additions, null, 2)}\n`),
+    writeFile(publishedCatalogPath, `${JSON.stringify(catalog, null, 2)}\n`),
+    writeFile(publishedAssignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
   ]);
 
   const child = spawn(process.execPath, [fileURLToPath(new URL("../tools/portfolio-manager-server.mjs", import.meta.url))], {
@@ -149,6 +160,10 @@ async function startManagerFixture(t) {
     child,
     exactOrigin: new URL(url).origin,
     photoRoot,
+    publishedAdditionsPath,
+    publishedAssignmentsPath,
+    publishedCatalogPath,
+    publishedRoot,
     sandbox,
     token: session.token,
     url,
@@ -1519,7 +1534,7 @@ test("style library GET exposes the complete safe management view without privat
   const response = await fetch(new URL("api/style-library", server.url));
   assert.equal(response.status, 200);
   const payload = await response.json();
-  assert.deepEqual(Object.keys(payload).sort(), ["counts", "families", "ok", "pendingCount", "styles", "version"]);
+  assert.deepEqual(Object.keys(payload).sort(), ["counts", "families", "ok", "pendingCount", "styles", "syncStatus", "version"]);
   assert.deepEqual(payload.counts, {
     assets: 158,
     indoor: 66,
@@ -1534,6 +1549,11 @@ test("style library GET exposes the complete safe management view without privat
     && typeof style.maturity === "string"
     && typeof style.completeEligible === "boolean"), true);
   assert.equal(payload.pendingCount, 0);
+  assert.deepEqual(payload.syncStatus, {
+    available: true,
+    label: "待同步风格",
+    message: "静态公开副本与本机风格资料一致",
+  });
   assert.match(payload.version, /^style-[0-9a-f]{12}$/);
 
   const forbiddenKeys = new Set([
@@ -1555,6 +1575,81 @@ test("style library GET exposes the complete safe management view without privat
   assert.deepEqual([...forbiddenKeys].filter((key) => exposedKeys.has(key)), []);
   assert.doesNotMatch(JSON.stringify(payload), new RegExp(server.sandbox.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.doesNotMatch(JSON.stringify(payload), /\/Users\/|portfolio-style-transactions|selectedName/);
+});
+
+test("pendingCount tracks changed styles against static copies and returns to zero after export", { timeout: 30_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const originalCatalog = JSON.parse(await readFile(server.catalogPath, "utf8"));
+  const originalAssignments = JSON.parse(await readFile(server.assignmentsPath, "utf8"));
+  const getLibrary = async () => (await (await fetch(new URL("api/style-library", server.url))).json());
+  const writeSource = async ({ catalog = originalCatalog, assignments = originalAssignments } = {}) => {
+    await Promise.all([
+      writeFile(server.catalogPath, `${JSON.stringify(catalog, null, 2)}\n`),
+      writeFile(server.assignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
+    ]);
+  };
+
+  const cases = [
+    ["metadata", ({ catalog }) => { catalog.styles[0].label = "待同步职业形象"; }],
+    ["visibility", ({ catalog }) => { catalog.styles[0].visibility = "hidden"; }],
+    ["layout and cover", ({ assignments }) => {
+      const layout = assignments.assignments["ST-IN-01-01"];
+      layout.slots.reverse();
+      layout.coverPosition = 1;
+    }],
+    ["pose", ({ assignments }) => {
+      assignments.assignments["ST-IN-01-01"].slots[0].poseLabel = "待同步正面站姿";
+    }],
+    ["source", ({ assignments }) => {
+      const slot = assignments.assignments["ST-IN-01-01"].slots[0];
+      slot.source = "upload";
+      slot.updatedAt = "2026-09-02T00:00:00.000Z";
+    }],
+    ["asset", ({ assignments }) => {
+      const slots = assignments.assignments["ST-IN-01-01"].slots;
+      [slots[0].assetId, slots[1].assetId] = [slots[1].assetId, slots[0].assetId];
+    }],
+  ];
+
+  for (const [label, mutate] of cases) {
+    const catalog = structuredClone(originalCatalog);
+    const assignments = structuredClone(originalAssignments);
+    mutate({ catalog, assignments });
+    await writeSource({ catalog, assignments });
+    const payload = await getLibrary();
+    assert.equal(payload.pendingCount, 1, label);
+    assert.equal(payload.syncStatus.available, true, label);
+  }
+
+  const exportedAssignments = structuredClone(originalAssignments);
+  exportedAssignments.assignments["ST-IN-01-01"].slots[0] = {
+    ...exportedAssignments.assignments["ST-IN-01-01"].slots[0],
+    source: "upload",
+    updatedAt: "2026-09-02T00:00:00.000Z",
+  };
+  await writeSource({ assignments: exportedAssignments });
+  await writeFile(server.publishedAssignmentsPath, `${JSON.stringify(exportedAssignments, null, 2)}\n`);
+  const afterExport = await getLibrary();
+  assert.equal(afterExport.pendingCount, 0, "upload-backed slots are not pending after static export");
+  assert.equal(afterExport.syncStatus.available, true);
+});
+
+test("missing or invalid static style copies never report a false zero", { timeout: 30_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  await rm(server.publishedCatalogPath);
+  let payload = await (await fetch(new URL("api/style-library", server.url))).json();
+  assert.equal(payload.pendingCount, 132);
+  assert.deepEqual(payload.syncStatus, {
+    available: false,
+    label: "待同步风格",
+    message: "静态公开副本缺失或无法校验，请重新导出",
+  });
+
+  await writeFile(server.publishedCatalogPath, "{invalid\n");
+  payload = await (await fetch(new URL("api/style-library", server.url))).json();
+  assert.equal(payload.pendingCount, 132);
+  assert.equal(payload.syncStatus.available, false);
+  assert.doesNotMatch(JSON.stringify(payload), new RegExp(server.sandbox.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
 test("asset reference lookup returns every affected style and stable slot", { timeout: 30_000 }, async (t) => {
@@ -1930,6 +2025,7 @@ test("hierarchical manager mode renders 6 families, 11 styles, and 9 slots while
       slotSummary: document.querySelector("#style-slot-count")?.textContent,
       uniqueSummary: document.querySelector("#style-unique-assets")?.textContent,
       maturity: document.querySelector("#style-maturity-label")?.textContent,
+      syncSummary: document.querySelector("#style-sync-status")?.textContent,
       allTargets44: controls.every((control) => control.getBoundingClientRect().height >= 44),
       shortTargets: controls.filter((control) => control.getBoundingClientRect().height < 44)
         .map((control) => control.tagName.toLowerCase() + "#" + control.id + "." + control.className + ":" + control.getBoundingClientRect().height),
@@ -1949,6 +2045,7 @@ test("hierarchical manager mode renders 6 families, 11 styles, and 9 slots while
     slotSummary: initial.slotSummary,
     uniqueSummary: initial.uniqueSummary,
     maturity: initial.maturity,
+    syncSummary: initial.syncSummary,
   }, {
     rootVisible: true,
     publicHidden: true,
@@ -1962,6 +2059,7 @@ test("hierarchical manager mode renders 6 families, 11 styles, and 9 slots while
     slotSummary: "9 个照片位",
     uniqueSummary: "9 张独立资产",
     maturity: "风格参考",
+    syncSummary: "待同步风格 0",
   });
   assert.equal(initial.allTargets44, true, initial.shortTargets.join("\n"));
   assert.ok(initial.horizontalOverflow <= 1, `390px 风格管理横向溢出 ${initial.horizontalOverflow}px`);
@@ -2257,9 +2355,20 @@ test("mixed-MIME reselection invalidates a ready batch, renders nine retryable r
   await browser.waitFor('document.querySelector("#style-batch-commit")?.disabled === false', 30_000);
 
   await browser.setFileInput("#style-batch-files", [...newFiles.slice(0, 8), invalidGif]);
-  await browser.waitFor(`document.querySelectorAll("#style-batch-list [data-batch-position]").length === 9
-    && [...document.querySelectorAll("#style-batch-list [data-batch-position]")].slice(0, 8).every((row) => row.dataset.batchStatus === "ready")
-    && document.querySelector('[data-batch-position="9"]')?.dataset.batchStatus === "error"`, 30_000);
+  try {
+    await browser.waitFor(`document.querySelectorAll("#style-batch-list [data-batch-position]").length === 9
+      && [...document.querySelectorAll("#style-batch-list [data-batch-position]")].slice(0, 8).every((row) => row.dataset.batchStatus === "ready")
+      && document.querySelector('[data-batch-position="9"]')?.dataset.batchStatus === "error"`, 30_000);
+  } catch (error) {
+    const diagnostic = await browser.evaluate(`(() => ({
+      rows: [...document.querySelectorAll("#style-batch-list [data-batch-position]")]
+        .map((row) => ({ position: row.dataset.batchPosition, status: row.dataset.batchStatus, text: row.textContent.replace(/\\s+/g, " ").trim() })),
+      commitDisabled: document.querySelector("#style-batch-commit")?.disabled,
+      dialogOpen: document.querySelector("#style-batch-dialog")?.open,
+      network: [...window.__batchNetwork],
+    }))()`);
+    throw new Error(`${error.message}；诊断=${JSON.stringify(diagnostic)}`);
+  }
   const invalidState = await browser.evaluate(`(() => ({
     commitDisabled: document.querySelector("#style-batch-commit")?.disabled,
     retryCount: document.querySelectorAll("#style-batch-list .style-batch-retry").length,

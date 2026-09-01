@@ -75,6 +75,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     refreshButton: required(root, "#style-refresh-button"),
     loading: required(root, "#style-loading"),
     error: required(root, "#style-error"),
+    syncStatus: required(root, "#style-sync-status"),
     replaceDialog: required(root, "#style-slot-replace-dialog"),
     replaceClose: required(root, "#style-slot-replace-close"),
     replaceCancel: required(root, "#style-slot-cancel"),
@@ -403,6 +404,9 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
 
   function render() {
     if (!state.library) return;
+    elements.syncStatus.textContent = `${state.library.syncStatus?.label || "待同步风格"} ${state.library.pendingCount}`;
+    elements.syncStatus.title = state.library.syncStatus?.message || "";
+    elements.syncStatus.dataset.available = String(state.library.syncStatus?.available === true);
     reconcileSelection();
     renderScenes();
     renderFamilies();
@@ -690,6 +694,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   }
 
   async function acceptBatchFiles(fileList) {
+    if (state.busy) return;
     const files = [...fileList];
     setBusy(true);
     try {

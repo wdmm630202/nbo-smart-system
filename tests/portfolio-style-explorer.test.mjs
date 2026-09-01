@@ -685,6 +685,82 @@ async function measureDirectAlbumEntry(width = 390) {
   }
 }
 
+async function measureHiddenDirectEntry(width = 390) {
+  const [sourceHtml, catalog] = await Promise.all([
+    readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url), "utf8").then(JSON.parse),
+  ]);
+  const hiddenStyleId = "ST-OUT-02-03";
+  catalog.styles.find(({ id }) => id === hiddenStyleId).visibility = "hidden";
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    window.addEventListener("load", () => window.setTimeout(async () => {
+      const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      const root = document.querySelector("#style-explorer");
+      const initialUrl = new URL(location.href);
+      const initial = {
+        view: root?.dataset.view || "",
+        scene: initialUrl.searchParams.get("scene") || "",
+        family: initialUrl.searchParams.get("family") || "",
+        style: initialUrl.searchParams.get("style") || "",
+        hiddenCardPresent: Boolean(document.querySelector('[data-style-id="${hiddenStyleId}"]')),
+        selectedFamily: document.querySelector('#style-family-tabs [aria-selected="true"]')?.dataset.familyId || "",
+        historyView: history.state?.styleExplorerView || "",
+      };
+      document.querySelector("#style-card-grid .portrait-style-card-open")?.click();
+      await wait(80);
+      const openedStyle = new URL(location.href).searchParams.get("style") || "";
+      history.back();
+      await wait(160);
+      const returnedUrl = new URL(location.href);
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
+        initial,
+        openedStyle,
+        returnedView: root?.dataset.view || "",
+        returnedScene: returnedUrl.searchParams.get("scene") || "",
+        returnedFamily: returnedUrl.searchParams.get("family") || "",
+        returnedStyle: returnedUrl.searchParams.get("style") || "",
+      });
+    }, 220));
+  </script>`;
+  const page = sourceHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace("</body>", `${probe}</body>`);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      if (url.pathname === "/portfolio-v2/style-catalog.json") {
+        response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+        response.end(`${JSON.stringify(catalog)}\n`);
+        return;
+      }
+      const asset = await readFile(new URL(`../apps${url.pathname}`, import.meta.url));
+      response.writeHead(200, { "Content-Type": contentType(url.pathname) });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(
+      `http://127.0.0.1:${port}/portfolio-v2/index.html?v=hidden&scene=outdoor&family=OUT-02&style=${hiddenStyleId}`,
+      width,
+    );
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 async function measurePersistentPreferenceFlow(width = 390) {
   const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
   const prelude = `<script>
@@ -1203,6 +1279,59 @@ test("explorer restores a coherent style URL and rejects invalid URL values to t
     view: "styles",
     returnScrollY: 0,
   });
+});
+
+test("hidden style deep links fall back to their visible family without rendering or looping history", () => {
+  const catalog = fixtureStyleCatalog();
+  catalog.styles.find(({ id }) => id === "ST-OUT-02-03").visibility = "hidden";
+  const library = buildStyleLibrary({
+    catalog,
+    assignments: fixtureAssignments(),
+    assets: fixtureAssets(),
+  });
+  const state = explorer.createExplorerState(library, new URLSearchParams(
+    "scene=outdoor&family=OUT-02&style=ST-OUT-02-03",
+  ));
+
+  assert.deepEqual(state, {
+    scene: "outdoor",
+    familyId: "OUT-02",
+    styleId: "",
+    poseIndex: 0,
+    view: "styles",
+    returnScrollY: 0,
+  });
+  assert.equal(explorer.serializeExplorerLocation(state).get("style"), "");
+  assert.throws(
+    () => explorer.reduceExplorer(state, { type: "open-style", styleId: "ST-OUT-02-03", scrollY: 0 }, library),
+    /ST-OUT-02-03.*隐藏|公开/,
+  );
+
+  const unknown = explorer.createExplorerState(library, new URLSearchParams(
+    "scene=outdoor&family=OUT-02&style=ST-OUT-99-99",
+  ));
+  assert.deepEqual([unknown.scene, unknown.familyId, unknown.styleId, unknown.view], ["indoor", "IN-01", "", "styles"]);
+});
+
+test("hidden direct entry normalizes the real URL and browser Back returns to the visible family", { skip: !hasChrome }, async () => {
+  const metrics = await measureHiddenDirectEntry();
+  assert.deepEqual(metrics.initial, {
+    view: "styles",
+    scene: "outdoor",
+    family: "OUT-02",
+    style: "",
+    hiddenCardPresent: false,
+    selectedFamily: "OUT-02",
+    historyView: "styles",
+  });
+  assert.match(metrics.openedStyle, /^ST-OUT-02-/);
+  assert.notEqual(metrics.openedStyle, "ST-OUT-02-03", "隐藏风格不能通过第一张可见卡重新出现");
+  assert.deepEqual([
+    metrics.returnedView,
+    metrics.returnedScene,
+    metrics.returnedFamily,
+    metrics.returnedStyle,
+  ], ["styles", "outdoor", "OUT-02", ""]);
 });
 
 test("explorer derives missing URL parents from a valid scene, family, or style", () => {

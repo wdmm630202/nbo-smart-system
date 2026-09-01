@@ -13,6 +13,10 @@ import {
   portfolioCatalog,
 } from "../apps/portfolio-v2/catalog.js";
 import {
+  normalizeStyleAssignments,
+  normalizeStyleCatalog,
+} from "../apps/portfolio-v2/style-library.js";
+import {
   ingestDraftPhoto,
   loadPublicAdditions,
   recoverIncompletePublicationTransactions,
@@ -90,8 +94,20 @@ const publishPrefixes = [
   "docs/projects/portfolio-v2/",
   "docs/p/",
 ];
+const publicationStyleFilenames = [
+  "style-catalog.json",
+  "style-slot-assignments.json",
+  "style-library.js",
+  "style-explorer-model.js",
+  "style-preferences.js",
+  "style-explorer.js",
+];
+const publicationStyleSourcePaths = publicationStyleFilenames.map((name) => `apps/portfolio-v2/${name}`);
+const publicationMutableStyleSourcePaths = new Set(publicationStyleSourcePaths.slice(0, 2));
+const publicationStylePublishedPaths = publicationStyleFilenames.map((name) => `docs/projects/portfolio-v2/${name}`);
 const publishExactPaths = new Set([
   "apps/portfolio-v2/catalog-additions.json",
+  ...publicationMutableStyleSourcePaths,
   "docs/i/index.html",
 ]);
 const publicationMetadata = "apps/portfolio-v2/catalog-additions.json";
@@ -270,6 +286,7 @@ async function repositoryStatus() {
     .map(({ id }) => id)
     .sort((a, b) => a - b);
   const publishableSourceChanges = changedFiles.filter((path) => path === publicationMetadata
+    || publicationMutableStyleSourcePaths.has(path)
     || (path.startsWith("apps/portfolio/assets/photos/") && registeredIds.has(sourcePhotoId(path))));
   const pendingPublicationIds = [...new Set([...dirtySlots, ...pendingReconciliationIds])].sort((a, b) => a - b);
   const hasPendingPublication = publishableSourceChanges.length > 0 || pendingReconciliationIds.length > 0;
@@ -438,6 +455,74 @@ function safeManagedStyle(style) {
   };
 }
 
+function syncAssets(additions) {
+  return buildPortfolioItems(portfolioCatalog, additions).map((photo) => {
+    const filename = `photo-${String(photo.id).padStart(3, "0")}`;
+    return {
+      ...photo,
+      thumb: `../portfolio/assets/photos/thumbs/${filename}.webp`,
+      full: `../portfolio/assets/photos/full/${filename}.jpg`,
+    };
+  });
+}
+
+function styleSyncSignature({ catalog, assignments, additions }, styleId) {
+  const style = catalog.styles.find(({ id }) => id === styleId);
+  const family = catalog.families.find(({ id }) => id === style?.familyId);
+  const assignment = assignments.assignments[styleId];
+  const additionsById = new Map(additions.photos.map((photo) => [photo.id, photo]));
+  return JSON.stringify({
+    family,
+    style,
+    featured: catalog.featuredStyleIds.includes(styleId),
+    assignment,
+    additions: assignment.slots
+      .map(({ assetId }) => additionsById.get(assetId))
+      .filter(Boolean),
+  });
+}
+
+async function styleSyncStatus(state) {
+  const publicRoot = join(configuredStyleRoot, "docs/projects/portfolio-v2");
+  try {
+    const [rawCatalog, rawAssignments, rawAdditions] = await Promise.all([
+      readFile(join(publicRoot, "style-catalog.json"), "utf8").then(JSON.parse),
+      readFile(join(publicRoot, "style-slot-assignments.json"), "utf8").then(JSON.parse),
+      readFile(join(publicRoot, "catalog-additions.json"), "utf8").then(JSON.parse),
+    ]);
+    const catalog = normalizeStyleCatalog(rawCatalog);
+    const additions = normalizePortfolioAdditions(rawAdditions);
+    const assets = syncAssets(additions);
+    const assignments = normalizeStyleAssignments(
+      rawAssignments,
+      catalog,
+      new Map(assets.map((asset) => [asset.id, asset])),
+    );
+    const published = { additions, assignments, catalog };
+    const pendingCount = state.catalog.styles.reduce((count, { id }) => count
+      + Number(styleSyncSignature(state, id) !== styleSyncSignature(published, id)), 0);
+    return {
+      pendingCount,
+      syncStatus: {
+        available: true,
+        label: "待同步风格",
+        message: pendingCount
+          ? `有 ${pendingCount} 个风格尚未同步到静态公开副本`
+          : "静态公开副本与本机风格资料一致",
+      },
+    };
+  } catch {
+    return {
+      pendingCount: state.catalog.styles.length,
+      syncStatus: {
+        available: false,
+        label: "待同步风格",
+        message: "静态公开副本缺失或无法校验，请重新导出",
+      },
+    };
+  }
+}
+
 async function styleLibraryPayload() {
   let state;
   try {
@@ -446,11 +531,12 @@ async function styleLibraryPayload() {
     if (error?.apiCode) throw error;
     throw apiError("STYLE_LIBRARY_UNAVAILABLE", "风格库暂时无法读取，请稍后重试", 500);
   }
+  const sync = await styleSyncStatus(state);
   return {
     counts: { ...state.counts },
     families: state.families.map(safeStyleFamily),
     styles: state.styles.map(safeManagedStyle),
-    pendingCount: state.slots.filter(({ source }) => source === "upload").length,
+    ...sync,
     version: styleVersion(state),
   };
 }
@@ -913,7 +999,12 @@ async function reconcileStagedDraftsToCommit(commit) {
 
 async function sourcePhotoFilesFromGit() {
   const { stdout } = await git(
-    ["status", "--porcelain=v1", "--untracked-files=all", "--", "apps/portfolio/assets/photos", "apps/portfolio-v2/catalog-additions.json"],
+    [
+      "status", "--porcelain=v1", "--untracked-files=all", "--",
+      "apps/portfolio/assets/photos",
+      "apps/portfolio-v2/catalog-additions.json",
+      ...publicationMutableStyleSourcePaths,
+    ],
     { preserveWhitespace: true },
   );
   if (!stdout) return [];
@@ -965,12 +1056,13 @@ async function publishPhotos(request, response) {
       `apps/portfolio/assets/photos/thumbs/photo-${String(id).padStart(3, "0")}.webp`,
     ]));
     allowedSourceFiles.add(publicationMetadata);
+    for (const path of publicationMutableStyleSourcePaths) allowedSourceFiles.add(path);
     for (const id of portfolioCatalog.heroAssetIds) {
       allowedSourceFiles.add(`apps/portfolio/assets/photos/featured/photo-${String(id).padStart(3, "0")}.webp`);
     }
     const invalidSourceFile = sourceFiles.find((path) => !allowedSourceFiles.has(path));
     if (invalidSourceFile) throw new Error(`未登记的照片文件不会发布：${invalidSourceFile}`);
-    const changedPhotoFiles = sourceFiles.filter((path) => path !== publicationMetadata);
+    const changedPhotoFiles = sourceFiles.filter((path) => path.startsWith("apps/portfolio/assets/photos/"));
     const bundleValidation = validateChangedPhotoBundles(changedPhotoFiles);
     if (!bundleValidation.ok) {
       throw new Error(`同一编号的图片不完整，已停止发布：${bundleValidation.errors.join("；")}`);
@@ -983,6 +1075,8 @@ async function publishPhotos(request, response) {
       ...sourceFiles,
       publicationMetadata,
       publishedMetadata,
+      ...publicationStyleSourcePaths,
+      ...publicationStylePublishedPaths,
       "docs/projects/portfolio-v2/index.html",
       "docs/projects/portfolio-v2/app.js",
       "docs/projects/portfolio-v2/build.json",

@@ -19,17 +19,17 @@ const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 async function loadPublicContract() {
   if (publicContract) return publicContract;
   try {
-    const module = await import("../apps/portfolio-v2/style-library.js");
+    const publicModule = await import("../apps/portfolio-v2/style-library.js");
     for (const name of [
       "buildStyleLibrary",
       "normalizeStyleAssignments",
       "normalizeStyleCatalog",
       "styleSlotId",
     ]) {
-      assert.equal(typeof module[name], "function", `public contract must export ${name}`);
+      assert.equal(typeof publicModule[name], "function", `public contract must export ${name}`);
     }
-    publicContract = module;
-    return module;
+    publicContract = publicModule;
+    return publicModule;
   } catch (error) {
     assert.fail(`style-library public behavior is unavailable: ${error.message}`);
   }
@@ -356,6 +356,28 @@ test("library builder returns stable slots and complete counts", async () => {
     updatedAt: null,
     isCover: true,
   });
+});
+
+test("hidden is the only non-public style visibility and customer counts plus featured omit it", async () => {
+  const { buildStyleLibrary, normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = fixtureStyleCatalog();
+  catalog.styles.find(({ id }) => id === "ST-IN-01-01").visibility = "hidden";
+  const library = buildStyleLibrary({
+    catalog,
+    assignments: fixtureAssignments(),
+    assets: fixtureAssets(),
+  });
+
+  assert.equal(library.styles.find(({ id }) => id === "ST-IN-01-01").visibility, "hidden");
+  assert.equal(library.counts.styles, 131);
+  assert.equal(library.counts.publishedStyles, 131);
+  assert.equal(library.counts.indoor, 65);
+  assert.equal(library.counts.outdoor, 66);
+  assert.equal(library.featuredStyleIds.includes("ST-IN-01-01"), false);
+
+  const legacy = fixtureStyleCatalog();
+  legacy.styles[0].visibility = "archived";
+  assert.throws(() => normalizeStyleCatalog(legacy), /ST-IN-01-01.*可见性/);
 });
 
 test("library builder rejects malformed unreferenced assets", async () => {

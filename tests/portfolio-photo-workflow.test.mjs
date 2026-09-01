@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { once } from "node:events";
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -62,6 +62,40 @@ async function createAdditionsLibraryFixture(t, additions) {
   return { additionsPath, photoRoot };
 }
 
+async function createStylePublicationFixture(t) {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-style-publication-"));
+  const styleCatalogPath = join(directory, "style-catalog.json");
+  const styleAssignmentsPath = join(directory, "style-slot-assignments.json");
+  const styleTransactionRoot = join(directory, ".local/portfolio-style-transactions");
+  const [catalog, assignments] = await Promise.all([
+    readFile(join(root, "apps/portfolio-v2/style-catalog.json"), "utf8").then(JSON.parse),
+    readFile(join(root, "apps/portfolio-v2/style-slot-assignments.json"), "utf8").then(JSON.parse),
+  ]);
+  await mkdir(styleTransactionRoot, { recursive: true });
+  await Promise.all([
+    writeFile(styleCatalogPath, `${JSON.stringify(catalog, null, 2)}\n`),
+    writeFile(styleAssignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  return {
+    catalog,
+    assignments,
+    directory,
+    styleCatalogPath,
+    styleAssignmentsPath,
+    styleTransactionRoot,
+    async save() {
+      await Promise.all([
+        writeFile(styleCatalogPath, `${JSON.stringify(catalog, null, 2)}\n`),
+        writeFile(styleAssignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
+      ]);
+    },
+    options() {
+      return { styleCatalogPath, styleAssignmentsPath, styleTransactionRoot };
+    },
+  };
+}
+
 function registeredAdditions() {
   return {
     schemaVersion: 1,
@@ -117,6 +151,18 @@ function waitForOutput(child, pattern, timeout = 10_000) {
   });
 }
 
+function runNodeScript(path) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [path], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.once("error", reject);
+    child.once("close", (code) => resolve({ code, stdout, stderr }));
+  });
+}
+
 test("客片清单生成 158 个唯一稳定编号", () => {
   const items = buildPortfolioItems();
   assert.equal(items.length, 158);
@@ -129,6 +175,105 @@ test("主题、气质和图片文件完整", async () => {
   assert.equal(result.ok, true, result.errors.join("\n"));
   assert.equal(result.photoCount, portfolioCatalog.photoCount);
   assert.equal(result.themeCount, 23);
+});
+
+test("public validation includes the complete 132-style and 1188-slot manifests", async () => {
+  const result = await validatePortfolioLibrary();
+  assert.equal(result.ok, true, result.errors.join("\n"));
+  assert.equal(result.styleCount, 132);
+  assert.equal(result.styleSlotCount, 1188);
+  assert.equal(result.uniqueStyleAssetCount, 158);
+});
+
+test("portfolio validation CLI and aggregate suite expose the complete style contract", async () => {
+  const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+  const aggregate = packageJson.scripts["portfolio:test"];
+  assert.match(aggregate, /--test-concurrency=1/);
+  for (const filename of [
+    "tests/portfolio-style-library.test.mjs",
+    "tests/portfolio-style-explorer.test.mjs",
+    "tests/portfolio-style-manager.test.mjs",
+  ]) assert.match(aggregate, new RegExp(filename.replaceAll(".", "\\.")));
+
+  const result = await runNodeScript("tools/validate-portfolio-photos.mjs");
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /158 unique assets · 132 styles · 1188 slots/);
+});
+
+test("style publication rejects missing, unsafe, unknown, duplicate, and forged assignment state with stable IDs", async (t) => {
+  const cases = [
+    {
+      name: "missing style assignment",
+      mutate({ assignments }) { delete assignments.assignments["ST-OUT-06-11"]; },
+      pattern: /ST-OUT-06-11/,
+    },
+    {
+      name: "unknown asset",
+      mutate({ assignments }) { assignments.assignments["ST-IN-01-01"].slots[2].assetId = 9999; },
+      pattern: /ST-IN-01-01-P03.*NB-9999|ST-IN-01-01-P03.*9999/,
+    },
+    {
+      name: "duplicate asset in one album",
+      mutate({ assignments }) {
+        assignments.assignments["ST-IN-01-01"].slots[1].assetId = assignments.assignments["ST-IN-01-01"].slots[0].assetId;
+      },
+      pattern: /ST-IN-01-01-P02.*重复/,
+    },
+    {
+      name: "invalid cover",
+      mutate({ assignments }) { assignments.assignments["ST-IN-01-01"].coverPosition = 10; },
+      pattern: /ST-IN-01-01.*封面/,
+    },
+    {
+      name: "private slot field",
+      mutate({ assignments }) { assignments.assignments["ST-IN-01-01"].slots[0]._slotId = "/Users/private/photo.jpg"; },
+      pattern: /ST-IN-01-01-P01.*_slotId/,
+    },
+    {
+      name: "private catalog field",
+      mutate({ catalog }) { catalog.slotIdentities = { local: true }; },
+      pattern: /slotIdentities/,
+    },
+    {
+      name: "upload without timestamp",
+      mutate({ assignments }) { assignments.assignments["ST-IN-01-01"].slots[0].source = "upload"; },
+      pattern: /ST-IN-01-01-P01.*upload.*时间/,
+    },
+    {
+      name: "forged maturity",
+      mutate({ assignments }) { assignments.assignments["ST-IN-01-01"].maturity = "updating"; },
+      pattern: /ST-IN-01-01.*成熟度/,
+    },
+  ];
+
+  for (const entry of cases) {
+    await t.test(entry.name, async (subtest) => {
+      const fixture = await createStylePublicationFixture(subtest);
+      entry.mutate(fixture);
+      await fixture.save();
+      const result = await validatePortfolioLibrary(fixture.options());
+      assert.equal(result.ok, false, entry.name);
+      assert.match(result.errors.join("\n"), entry.pattern, entry.name);
+    });
+  }
+});
+
+test("complete maturity requires same-style upload history and explicit confirmation proof", async (t) => {
+  const fixture = await createStylePublicationFixture(t);
+  const styleId = "ST-IN-01-01";
+  const layout = fixture.assignments.assignments[styleId];
+  const now = "2026-09-02T00:00:00.000Z";
+  layout.slots.forEach((slot) => {
+    slot.source = "upload";
+    slot.updatedAt = now;
+  });
+  layout.updatedAt = now;
+  layout.maturity = "complete";
+  await fixture.save();
+
+  const withoutProof = await validatePortfolioLibrary(fixture.options());
+  assert.equal(withoutProof.ok, false);
+  assert.match(withoutProof.errors.join("\n"), /ST-IN-01-01.*事务|事务.*ST-IN-01-01/);
 });
 
 test("公开库验证已发布和已归档增量的完整资源", async (t) => {
@@ -283,6 +428,36 @@ test("交互模型变化必须生成新的发布版本", async (t) => {
   assert.notEqual(after, before, "只修改滑动交互模型时也必须刷新缓存版本");
 });
 
+test("all six style runtime inputs participate in the portfolio version hash", async (t) => {
+  const files = [
+    "style-catalog.json",
+    "style-slot-assignments.json",
+    "style-library.js",
+    "style-explorer-model.js",
+    "style-preferences.js",
+    "style-explorer.js",
+  ];
+  for (const filename of files) {
+    await t.test(filename, async (subtest) => {
+      const directory = await mkdtemp(join(tmpdir(), "nanbo-style-version-"));
+      subtest.after(() => rm(directory, { recursive: true, force: true }));
+      const styleVersionPaths = {};
+      for (const current of files) {
+        const target = join(directory, current);
+        await copyFile(join(root, "apps/portfolio-v2", current), target);
+        styleVersionPaths[current] = target;
+      }
+      const before = await buildPortfolioVersion({ styleVersionPaths });
+      await writeFile(styleVersionPaths[filename], Buffer.concat([
+        await readFile(styleVersionPaths[filename]),
+        Buffer.from("\n"),
+      ]));
+      const after = await buildPortfolioVersion({ styleVersionPaths });
+      assert.notEqual(after, before, `${filename} 变化没有刷新版本`);
+    });
+  }
+});
+
 test("企业微信二维码跟随客片版本刷新", async () => {
   const qrPath = join(root, "apps/portfolio-v2/wechat-contact-qr.png");
   const [sourceIndex, originalQr, before] = await Promise.all([
@@ -357,6 +532,38 @@ test("对外固定短链接不包含内部版本路径", async () => {
   assert.doesNotMatch(shortIndex, /__NBO_BUILD_VERSION__/);
   assert.equal(shortBuild, longBuild);
   assert.equal(onlinePortfolioUrl, "https://wdmm630202.github.io/nbo-smart-system/p/");
+});
+
+test("static portfolio export keeps style runtime byte parity and excludes private manager state", async () => {
+  const publicFiles = [
+    "style-catalog.json",
+    "style-slot-assignments.json",
+    "style-library.js",
+    "style-explorer-model.js",
+    "style-preferences.js",
+    "style-explorer.js",
+  ];
+  for (const filename of publicFiles) {
+    const [source, published] = await Promise.all([
+      readFile(join(root, "apps/portfolio-v2", filename)),
+      readFile(join(root, "docs/projects/portfolio-v2", filename)),
+    ]);
+    assert.deepEqual(published, source, `${filename} 静态副本不一致`);
+  }
+
+  const shortHtml = await readFile(join(root, "docs/p/index.html"), "utf8");
+  assert.match(shortHtml, /<base href="\.\.\/projects\/portfolio-v2\/" \/>/);
+  for (const filename of publicFiles) {
+    assert.equal(new URL(filename, "https://example.test/nbo-smart-system/projects/portfolio-v2/").pathname,
+      `/nbo-smart-system/projects/portfolio-v2/${filename}`);
+  }
+
+  const publishedNames = await readdir(join(root, "docs/projects/portfolio-v2"));
+  assert.equal(publishedNames.some((name) => name === ".local" || /manager|transaction|batch|audit/i.test(name)), false);
+  const publicText = (await Promise.all(publishedNames
+    .filter((name) => /\.(?:html|js|json|css)$/i.test(name))
+    .map((name) => readFile(join(root, "docs/projects/portfolio-v2", name), "utf8")))).join("\n");
+  assert.doesNotMatch(publicText, /\/Users\/|portfolio-style-transactions|portfolio-style-batches|slotIdentities/);
 });
 
 test("发布必须包含同编号的全套图片", () => {

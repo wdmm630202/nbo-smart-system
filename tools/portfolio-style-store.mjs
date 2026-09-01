@@ -478,34 +478,171 @@ export function createPortfolioStyleStore({
     };
   }
 
-  async function restoreOutputs(transactionDir, outputs) {
-    for (const output of outputs) await assertJournalOutputPaths(transactionDir, output);
-    const errors = [];
-    for (const output of [...outputs].reverse()) {
-      try {
-        await assertJournalOutputPaths(transactionDir, output);
-        if (output.beforeKind === "file") {
-          const restorePath = `${output.target}.tmp-style-restore-${randomBytes(5).toString("hex")}`;
-          await assertInsideRealRoot(restorePath, `事务恢复临时文件 ${output.key}`);
-          await copyFile(join(transactionDir, "before", output.key), restorePath);
-          await Promise.all([
-            assertInsideRealRoot(restorePath, `事务恢复临时文件 ${output.key}`),
-            assertInsideRealRoot(output.target, `事务目标 ${output.key}`),
-          ]);
-          await rename(restorePath, output.target);
-        } else if (output.beforeKind === "missing") {
-          await assertInsideRealRoot(output.target, `事务目标 ${output.key}`);
-          await rm(output.target, { force: true });
+  async function noFollowKind(path, label) {
+    await assertInsideRealRoot(path, label);
+    try {
+      const info = await lstat(path);
+      if (info.isSymbolicLink()) throw new Error(`${label}不能是符号链接`);
+      if (info.isFile()) return { info, kind: "file" };
+      if (info.isDirectory()) return { info, kind: "directory" };
+      return { info, kind: "other" };
+    } catch (error) {
+      if (error.code === "ENOENT") return { info: null, kind: "missing" };
+      throw error;
+    }
+  }
+
+  async function removeSafeRecoveryFiles(paths) {
+    for (const path of paths.filter(Boolean)) {
+      await assertInsideRealRoot(path, "事务恢复临时文件");
+      await rm(path, { force: true }).catch(() => {});
+    }
+  }
+
+  async function prepareOutputRestoration(transactionDir, outputs) {
+    const restoreToken = randomBytes(8).toString("hex");
+    const plans = [];
+    const keys = new Set();
+    const targets = new Set();
+    for (const output of outputs) {
+      await assertJournalOutputPaths(transactionDir, output);
+      const target = resolve(output.target);
+      if (keys.has(output.key) || targets.has(target)) throw new Error("风格事务恢复输出重复");
+      keys.add(output.key);
+      targets.add(target);
+      if (output.action === "write" && (typeof output.temporaryPath !== "string" || !output.temporaryPath)) {
+        throw new Error(`事务输出 ${output.key} 缺少写入临时文件`);
+      }
+      if (output.action === "delete" && output.temporaryPath !== "") {
+        throw new Error(`事务输出 ${output.key} 删除语义无效`);
+      }
+      const backupPath = join(transactionDir, "before", output.key);
+      const [backupState, targetState, temporaryState] = await Promise.all([
+        noFollowKind(backupPath, `事务备份 ${output.key}`),
+        noFollowKind(output.target, `事务目标 ${output.key}`),
+        output.temporaryPath
+          ? noFollowKind(output.temporaryPath, `事务临时文件 ${output.key}`)
+          : Promise.resolve({ info: null, kind: "missing" }),
+      ]);
+      if (output.beforeKind === "file" && backupState.kind !== "file") {
+        throw new Error(`事务备份 ${output.key} 必须是存在、可读的普通文件`);
+      }
+      if (output.beforeKind !== "file" && backupState.kind !== "missing") {
+        throw new Error(`事务备份 ${output.key} 与 ${output.beforeKind} 记录不匹配`);
+      }
+      if (!["missing", "file"].includes(temporaryState.kind)) {
+        throw new Error(`事务临时文件 ${output.key} 必须是普通文件或不存在`);
+      }
+      if (["file", "missing"].includes(output.beforeKind)
+        && !["file", "missing"].includes(targetState.kind)) {
+        throw new Error(`事务目标 ${output.key} 状态与 ${output.beforeKind} 记录不匹配`);
+      }
+      if (["directory", "other"].includes(output.beforeKind) && targetState.kind !== output.beforeKind) {
+        throw new Error(`事务目标 ${output.key} 必须保持 ${output.beforeKind} 状态`);
+      }
+      if (output.action === "delete" && output.beforeKind === "missing" && targetState.kind !== "missing") {
+        throw new Error(`事务目标 ${output.key} 与删除前 missing 语义不匹配`);
+      }
+      plans.push({
+        backupPath,
+        output,
+        restorePath: output.beforeKind === "file"
+          ? `${output.target}.tmp-style-restore-${restoreToken}`
+          : "",
+        rollbackPath: ["file", "missing"].includes(output.beforeKind) && targetState.kind === "file"
+          ? `${output.target}.tmp-style-recovery-backup-${restoreToken}`
+          : "",
+        targetKind: targetState.kind,
+      });
+    }
+
+    const preparedPaths = [];
+    try {
+      for (const plan of plans) {
+        for (const path of [plan.restorePath, plan.rollbackPath].filter(Boolean)) {
+          await assertInsideRealRoot(path, `事务恢复临时文件 ${plan.output.key}`);
         }
-        if (output.temporaryPath) {
-          await assertInsideRealRoot(output.temporaryPath, `事务临时文件 ${output.key}`);
-          await rm(output.temporaryPath, { force: true });
+        if (plan.restorePath) {
+          await copyFile(plan.backupPath, plan.restorePath);
+          preparedPaths.push(plan.restorePath);
+          const [backupInfo, restoreState] = await Promise.all([
+            stat(plan.backupPath),
+            noFollowKind(plan.restorePath, `事务恢复临时文件 ${plan.output.key}`),
+          ]);
+          if (restoreState.kind !== "file" || restoreState.info.size !== backupInfo.size) {
+            throw new Error(`事务备份 ${plan.output.key} 复制验证失败`);
+          }
+        }
+        if (plan.rollbackPath) {
+          await copyFile(plan.output.target, plan.rollbackPath);
+          preparedPaths.push(plan.rollbackPath);
+          const [targetInfo, rollbackState] = await Promise.all([
+            stat(plan.output.target),
+            noFollowKind(plan.rollbackPath, `事务恢复回滚文件 ${plan.output.key}`),
+          ]);
+          if (rollbackState.kind !== "file" || rollbackState.info.size !== targetInfo.size) {
+            throw new Error(`事务目标 ${plan.output.key} 回滚备份验证失败`);
+          }
+        }
+      }
+      return plans;
+    } catch (error) {
+      await removeSafeRecoveryFiles(preparedPaths);
+      throw error;
+    }
+  }
+
+  async function rollbackRestoration(appliedPlans) {
+    const errors = [];
+    for (const plan of [...appliedPlans].reverse()) {
+      try {
+        await assertInsideRealRoot(plan.output.target, `事务目标 ${plan.output.key}`);
+        if (plan.targetKind === "file") {
+          await assertInsideRealRoot(plan.rollbackPath, `事务恢复回滚文件 ${plan.output.key}`);
+          await rename(plan.rollbackPath, plan.output.target);
+        } else if (plan.targetKind === "missing") {
+          await rm(plan.output.target, { force: true });
         }
       } catch (error) {
-        errors.push(`${output.key}: ${error.message}`);
+        errors.push(`${plan.output.key}: ${error.message}`);
       }
     }
     if (errors.length) throw new Error(errors.join("；"));
+  }
+
+  async function restoreOutputs(transactionDir, outputs) {
+    const plans = await prepareOutputRestoration(transactionDir, outputs);
+    const appliedPlans = [];
+    try {
+      for (const plan of [...plans].reverse()) {
+        if (plan.output.beforeKind === "file") {
+          await Promise.all([
+            assertInsideRealRoot(plan.restorePath, `事务恢复临时文件 ${plan.output.key}`),
+            assertInsideRealRoot(plan.output.target, `事务目标 ${plan.output.key}`),
+          ]);
+          await rename(plan.restorePath, plan.output.target);
+          appliedPlans.push(plan);
+        } else if (plan.output.beforeKind === "missing" && plan.targetKind !== "missing") {
+          await assertInsideRealRoot(plan.output.target, `事务目标 ${plan.output.key}`);
+          await rm(plan.output.target, { force: true });
+          appliedPlans.push(plan);
+        }
+      }
+    } catch (error) {
+      try {
+        await rollbackRestoration(appliedPlans);
+      } catch (rollbackError) {
+        throw new Error(`${error.message}；恢复提交回滚失败：${rollbackError.message}`);
+      } finally {
+        await removeSafeRecoveryFiles(plans.flatMap((plan) => [plan.restorePath, plan.rollbackPath]));
+      }
+      throw error;
+    }
+    await removeSafeRecoveryFiles(plans.flatMap((plan) => [
+      plan.restorePath,
+      plan.rollbackPath,
+      plan.output.temporaryPath,
+    ]));
   }
 
   async function cleanupPreparedOutputs(outputs) {

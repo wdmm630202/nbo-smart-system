@@ -788,6 +788,89 @@ test("transaction recovery rejects a tampered temporary path without touching th
   assert.equal(await readFile(sentinel, "utf8"), "keep me\n");
 });
 
+test("recovery with one missing file backup leaves every target unchanged", { timeout: 5_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const before = await Promise.all([
+    fileBytes(fixture.additionsPath),
+    fileBytes(fixture.assignmentsPath),
+  ]);
+  const transactionName = "zzzz-missing-file-backup";
+  const transactionDir = join(fixture.rootDir, ".local/portfolio-style-transactions", transactionName);
+  const temporaryAdditions = `${fixture.additionsPath}.tmp-style-${transactionName}`;
+  const temporaryAssignments = `${fixture.assignmentsPath}.tmp-style-${transactionName}`;
+  await mkdir(join(transactionDir, "before"), { recursive: true });
+  await Promise.all([
+    writeFile(join(transactionDir, "before/assignments"), "backup must not install\n"),
+    writeFile(temporaryAdditions, "pending additions\n"),
+    writeFile(temporaryAssignments, "pending assignments\n"),
+  ]);
+  await writeFile(join(transactionDir, "meta.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    operation: "replace-slot",
+    status: "committing",
+    outputs: [
+      {
+        action: "write",
+        beforeKind: "file",
+        key: "additions",
+        target: fixture.additionsPath,
+        temporaryPath: temporaryAdditions,
+      },
+      {
+        action: "write",
+        beforeKind: "file",
+        key: "assignments",
+        target: fixture.assignmentsPath,
+        temporaryPath: temporaryAssignments,
+      },
+    ],
+  }, null, 2)}\n`);
+
+  await assert.rejects(() => fixture.store.read(), /恢复|备份|事务|ENOENT/);
+  const after = await Promise.all([
+    fileBytes(fixture.additionsPath),
+    fileBytes(fixture.assignmentsPath),
+  ]);
+  assert.deepEqual(after.map((bytes, index) => bytes.equals(before[index])), [true, true]);
+});
+
+test("recovery rejects a symlink file backup even when it resolves inside root", { timeout: 5_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const before = await fileBytes(fixture.additionsPath);
+  const transactionName = "zzzz-symlink-file-backup";
+  const transactionDir = join(fixture.rootDir, ".local/portfolio-style-transactions", transactionName);
+  const backupSource = join(transactionDir, "backup-source.json");
+  const temporaryAdditions = `${fixture.additionsPath}.tmp-style-${transactionName}`;
+  await mkdir(join(transactionDir, "before"), { recursive: true });
+  await Promise.all([
+    writeFile(backupSource, "{\"schemaVersion\":1,\"themes\":[],\"photos\":[]}\n"),
+    writeFile(temporaryAdditions, "pending additions\n"),
+  ]);
+  await symlink(backupSource, join(transactionDir, "before/additions"));
+  await writeFile(join(transactionDir, "meta.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    operation: "replace-slot",
+    status: "committing",
+    outputs: [{
+      action: "write",
+      beforeKind: "file",
+      key: "additions",
+      target: fixture.additionsPath,
+      temporaryPath: temporaryAdditions,
+    }],
+  }, null, 2)}\n`);
+
+  const rejection = await fixture.store.read().then(() => null, (error) => error);
+  assert.deepEqual({
+    rejected: rejection instanceof Error,
+    additionsUnchanged: (await fileBytes(fixture.additionsPath)).equals(before),
+  }, {
+    rejected: true,
+    additionsUnchanged: true,
+  });
+  assert.match(rejection.message, /备份|普通文件|symlink|符号链接|事务/i);
+});
+
 test("transaction recovery cannot target a legacy photo asset", async (t) => {
   const fixture = await createStyleStoreFixture(t);
   const legacyFull = join(fixture.photoRoot, "full/photo-137.jpg");

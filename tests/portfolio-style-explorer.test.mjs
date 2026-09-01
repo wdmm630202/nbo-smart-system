@@ -3,10 +3,13 @@ import test from "node:test";
 
 import { fixtureStyleCatalog } from "./helpers/portfolio-style-fixtures.mjs";
 
-async function loadExplorerModel() {
+const explorerModelUrl = new URL("../apps/portfolio-v2/style-explorer-model.js", import.meta.url).href;
+
+async function loadExplorerModel(loadModule = () => import(explorerModelUrl)) {
   try {
-    return await import("../apps/portfolio-v2/style-explorer-model.js");
-  } catch {
+    return await loadModule();
+  } catch (error) {
+    if (error?.code !== "ERR_MODULE_NOT_FOUND" || error.url !== explorerModelUrl) throw error;
     // Keep the first RED run a contract assertion, not an uncaught module-load error.
     return {
       createExplorerState: () => ({}),
@@ -21,6 +24,18 @@ const explorer = await loadExplorerModel();
 function libraryFixture() {
   return fixtureStyleCatalog();
 }
+
+test("explorer bootstrap rethrows a missing dependency instead of masking it as the expected missing model", async () => {
+  const dependencyError = Object.assign(new Error("missing dependency"), {
+    code: "ERR_MODULE_NOT_FOUND",
+    url: new URL("./missing-style-explorer-dependency.js", import.meta.url).href,
+  });
+
+  await assert.rejects(
+    () => loadExplorerModel(async () => { throw dependencyError; }),
+    (error) => error === dependencyError,
+  );
+});
 
 test("explorer narrows 132 styles to one eleven-style family and restores return state", () => {
   const library = libraryFixture();

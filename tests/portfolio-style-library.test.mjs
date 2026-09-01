@@ -67,6 +67,46 @@ const riskyCopyTokens = new Map([
   ["ST-OUT-02-09", ["车灯", "车辆", "确认"]],
 ]);
 
+// Hand-reviewed, immutable inventory: each entry names the visual mechanism and its availability boundary.
+const resourceEffectContract = new Map([
+  ["ST-IN-01-04", ["西装", "确认"]], ["ST-IN-01-05", ["正装", "确认"]], ["ST-IN-01-06", ["西装", "确认"]],
+  ["ST-IN-01-07", ["红色背景", "确认"]], ["ST-IN-01-08", ["西装", "确认"]], ["ST-IN-01-09", ["领带", "确认"]],
+  ["ST-IN-02-03", ["光比", "确认"]], ["ST-IN-02-05", ["黑白", "确认"]], ["ST-IN-02-06", ["明暗", "确认"]],
+  ["ST-IN-02-07", ["窗", "确认"]], ["ST-IN-02-09", ["冷调", "确认"]], ["ST-IN-02-10", ["暖调", "确认"]], ["ST-IN-02-11", ["白色背景", "确认"]],
+  ["ST-IN-03-01", ["居家", "确认"]], ["ST-IN-03-05", ["白衫", "确认"]], ["ST-IN-03-06", ["针织", "确认"]],
+  ["ST-IN-03-07", ["奶油", "确认"]], ["ST-IN-03-08", ["夏日", "确认"]], ["ST-IN-03-09", ["居家", "确认"]],
+  ["ST-IN-03-10", ["苹果", "确认"]], ["ST-IN-03-11", ["校园", "确认"]],
+  ["ST-IN-04-01", ["拳击", "确认"]], ["ST-IN-04-04", ["网球", "确认"]], ["ST-IN-04-06", ["皮衣", "确认"]],
+  ["ST-IN-04-07", ["西装", "确认"]], ["ST-IN-04-08", ["湿发", "确认"]], ["ST-IN-04-09", ["机能", "确认"]],
+  ["ST-IN-04-10", ["高街", "确认"]], ["ST-IN-04-11", ["朋克", "确认"]],
+  ["ST-IN-05-01", ["复古", "确认"]], ["ST-IN-05-04", ["国风", "确认"]], ["ST-IN-05-05", ["武侠", "确认"]],
+  ["ST-IN-05-06", ["民国", "确认"]], ["ST-IN-05-07", ["中式", "确认"]], ["ST-IN-05-08", ["新中式", "确认"]],
+  ["ST-IN-05-09", ["长衫", "确认"]], ["ST-IN-05-10", ["美式复古", "确认"]], ["ST-IN-05-11", ["胶片", "确认"]],
+  ["ST-IN-06-01", ["赛博", "确认"]], ["ST-IN-06-03", ["彩色光影", "确认"]], ["ST-IN-06-04", ["镜面", "确认"]],
+  ["ST-IN-06-05", ["花艺", "确认"]], ["ST-IN-06-06", ["繁花", "确认"]], ["ST-IN-06-07", ["宠物", "确认"]],
+  ["ST-IN-06-08", ["生日", "确认"]], ["ST-IN-06-09", ["新春", "确认"]], ["ST-IN-06-10", ["圣诞", "确认"]], ["ST-IN-06-11", ["节奏", "确认"]],
+  ["ST-OUT-01-07", ["港风", "确认"]], ["ST-OUT-01-08", ["涂鸦", "确认"]], ["ST-OUT-01-10", ["彩色", "确认"]], ["ST-OUT-01-11", ["咖啡", "不承诺"]],
+  ["ST-OUT-02-01", ["霓虹", "确认"]], ["ST-OUT-02-02", ["城市夜景", "确认"]], ["ST-OUT-02-03", ["天台", "确认"]],
+  ["ST-OUT-02-04", ["港风", "确认"]], ["ST-OUT-02-05", ["雨后", "确认"]], ["ST-OUT-02-06", ["隧道", "确认"]],
+  ["ST-OUT-02-08", ["夜市", "确认"]], ["ST-OUT-02-09", ["车灯", "确认"]], ["ST-OUT-02-10", ["酒吧", "确认"]], ["ST-OUT-02-11", ["闪光灯", "确认"]],
+  ["ST-OUT-03-01", ["绿意", "确认"]], ["ST-OUT-03-02", ["风感", "不承诺"]], ["ST-OUT-03-03", ["场地", "确认"]],
+  ["ST-OUT-03-04", ["草地", "确认"]], ["ST-OUT-03-05", ["山野", "确认"]], ["ST-OUT-03-06", ["湖边", "确认"]],
+  ["ST-OUT-03-07", ["水边", "以现场为准"]], ["ST-OUT-03-08", ["作物", "不承诺"]], ["ST-OUT-03-09", ["季节", "需结合"]],
+  ["ST-OUT-03-10", ["天气", "需根据"]], ["ST-OUT-03-11", ["花期", "不保证"]],
+  ["ST-OUT-04-01", ["机车", "确认"]], ["ST-OUT-04-02", ["机车", "不承诺"]], ["ST-OUT-04-03", ["机车", "确认"]],
+  ["ST-OUT-04-04", ["车库", "确认"]], ["ST-OUT-04-05", ["工业空间", "确认"]], ["ST-OUT-04-06", ["厂房", "确认"]],
+  ["ST-OUT-04-07", ["水泥", "确认"]], ["ST-OUT-04-08", ["延伸结构", "以现场为准"]], ["ST-OUT-04-09", ["路途", "不绑定"]],
+  ["ST-OUT-04-10", ["车辆", "确认"]], ["ST-OUT-04-11", ["车辆", "实际安排"]],
+  ["ST-OUT-05-01", ["行动姿态", "不承诺"]], ["ST-OUT-05-02", ["校园", "确认"]], ["ST-OUT-05-03", ["场地", "确认"]],
+  ["ST-OUT-05-04", ["篮球", "确认"]], ["ST-OUT-05-05", ["运动准备", "确认"]], ["ST-OUT-05-06", ["动作预备", "确认"]],
+  ["ST-OUT-05-07", ["奔跑", "实际安排"]], ["ST-OUT-05-08", ["骑行", "确认"]], ["ST-OUT-05-09", ["跑步", "确认"]],
+  ["ST-OUT-05-10", ["连续运动", "确认"]], ["ST-OUT-05-11", ["制服", "确认"]],
+  ["ST-OUT-06-01", ["正装", "确认"]], ["ST-OUT-06-02", ["环境", "确认"]], ["ST-OUT-06-03", ["武侠", "确认"]],
+  ["ST-OUT-06-04", ["目的地", "另行规划"]], ["ST-OUT-06-05", ["行程", "确认"]], ["ST-OUT-06-06", ["目的地", "确认"]],
+  ["ST-OUT-06-07", ["地标", "确认"]], ["ST-OUT-06-08", ["交通工具", "确认"]], ["ST-OUT-06-09", ["船只", "确认"]],
+  ["ST-OUT-06-10", ["山水", "不承诺"]], ["ST-OUT-06-11", ["秋冬", "需协商"]],
+]);
+
 test("style library exposes its public contract", async () => {
   await loadPublicContract();
 });
@@ -122,6 +162,18 @@ test("resource-dependent production styles state their visual mechanism and pre-
     const description = styleById.get(styleId)?.description || "";
     for (const token of tokens) assert.ok(description.includes(token), `${styleId} must include ${token}`);
   }
+});
+
+test("all hand-reviewed resource and effect styles keep their mechanism and availability boundary", async () => {
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = normalizeStyleCatalog(await loadProductionCatalog());
+  const styleById = new Map(catalog.styles.map((style) => [style.id, style]));
+  for (const [styleId, [mechanism, boundary]] of resourceEffectContract) {
+    const description = styleById.get(styleId)?.description || "";
+    assert.ok(description.includes(mechanism), `${styleId} must include mechanism ${mechanism}`);
+    assert.ok(description.includes(boundary), `${styleId} must include boundary ${boundary}`);
+  }
+  assert.equal(resourceEffectContract.size, 106);
 });
 
 test("style slot ids are stable and one based", async () => {

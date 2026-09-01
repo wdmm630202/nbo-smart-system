@@ -258,7 +258,7 @@
       "scene": "indoor",
       "label": "光影肖像",
       "audience": "在意明暗层次和面部质感的男士",
-      "description": "利用克制光比勾勒轮廓，保留安静而立体的情绪",
+      "description": "以克制光比勾勒人物轮廓，灯光方向与效果需拍摄前确认。",
       "legacyThemeIds": [
         "light-mood"
       ],
@@ -284,7 +284,7 @@
       "scene": "indoor",
       "label": "黑白硬照",
       "audience": "偏好经典、利落影像风格的男士",
-      "description": "去除色彩干扰，着重展示表情、结构和人物力量",
+      "description": "以黑白影调压低色彩干扰，突出表情与结构；后期影调方向需拍摄前确认。",
       "legacyThemeIds": [
         "magazine"
       ],
@@ -297,7 +297,7 @@
       "scene": "indoor",
       "label": "雕塑光影",
       "audience": "重视轮廓塑造与立体感的男士",
-      "description": "让明暗沿人物结构展开，形成简练克制的视觉节奏",
+      "description": "以明暗沿人物结构展开雕塑感，灯光位置与效果需拍摄前确认。",
       "legacyThemeIds": [
         "light-mood"
       ],
@@ -336,7 +336,7 @@
       "scene": "indoor",
       "label": "冷调封面",
       "audience": "偏好冷静、克制画面色感的男士",
-      "description": "以低饱和氛围衬托人物，形成清醒有距离感的肖像",
+      "description": "以冷调低饱和影调拉开人物距离感，色彩与灯光效果需拍摄前确认。",
       "legacyThemeIds": [
         "magazine"
       ],
@@ -349,7 +349,7 @@
       "scene": "indoor",
       "label": "暖调封面",
       "audience": "喜欢温和、亲近视觉氛围的男士",
-      "description": "用柔和色彩关系托住人物神情，画面显得自然有温度",
+      "description": "以暖调柔和色彩托住人物神情，色彩与灯光效果需拍摄前确认。",
       "legacyThemeIds": [
         "magazine"
       ],
@@ -447,7 +447,7 @@
       "scene": "indoor",
       "label": "奶油暖男",
       "audience": "希望照片显得温和、好接近的男生",
-      "description": "以明亮柔和的画面关系，突出友善稳定的个人气质",
+      "description": "以奶油色调和柔和光线突出亲和感，色彩与灯光效果需拍摄前确认。",
       "legacyThemeIds": [
         "home-korean"
       ],
@@ -460,7 +460,7 @@
       "scene": "indoor",
       "label": "夏日清新",
       "audience": "喜欢轻快明朗人物风格的男生",
-      "description": "用通透感和自然动作表达轻松心情，不强调夸张效果",
+      "description": "以夏日般通透色感和自然动作表达轻松心情，色彩方向需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 8,
       "visibility": "published"
@@ -608,7 +608,7 @@
       "scene": "indoor",
       "label": "机能潮男",
       "audience": "喜欢现代、实用主义潮流感的男生",
-      "description": "以干净结构和动态姿态，表达清晰的个人风格取向",
+      "description": "以机能风服装的结构和动态姿态表达现代感，服装搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 9,
       "visibility": "published"
@@ -619,7 +619,7 @@
       "scene": "indoor",
       "label": "高街潮男",
       "audience": "希望尝试鲜明街头时尚气质的男生",
-      "description": "突出人物比例和姿势节奏，画面更有年轻的表达感",
+      "description": "以高街风服装和姿势节奏拉长人物比例，服装搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 10,
       "visibility": "published"
@@ -630,7 +630,7 @@
       "scene": "indoor",
       "label": "朋克青年",
       "audience": "偏好独立、锋利个人气质的男生",
-      "description": "保留不迎合的神情与姿态，形成有辨识度的肖像感",
+      "description": "以朋克风服装和不迎合的神情形成辨识度，造型搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 11,
       "visibility": "published"
@@ -641,7 +641,7 @@
       "scene": "indoor",
       "label": "复古港风",
       "audience": "喜欢旧电影氛围与人物故事感的男士",
-      "description": "以温润色调和克制神情，表达带时间感的肖像气质",
+      "description": "以复古色调和克制神情表达时间感，影调与可用造型需拍摄前确认。",
       "legacyThemeIds": [
         "retro-hk"
       ],
@@ -752,7 +752,7 @@
       "scene": "indoor",
       "label": "美式复古",
       "audience": "偏好经典、松弛复古人物感的男士",
-      "description": "用朴素视觉关系表现人物性格，画面有自然的旧时光感",
+      "description": "以美式复古造型和朴素视觉关系表现人物性格，服装搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 10,
       "visibility": "published"
@@ -763,7 +763,7 @@
       "scene": "indoor",
       "label": "怀旧胶片",
       "audience": "喜欢颗粒感与回忆氛围的男生",
-      "description": "将人物放在柔和影调中，保留日常片段般的真实感",
+      "description": "以胶片影调保留日常片段的颗粒与回忆感，影调处理需拍摄前确认。",
       "legacyThemeIds": [
         "retro-hk"
       ],
@@ -776,7 +776,7 @@
       "scene": "indoor",
       "label": "赛博朋克",
       "audience": "喜欢未来感与强烈色彩氛围的男生",
-      "description": "以明暗和色彩对比强调人物轮廓，形成具有想象力的画面",
+      "description": "以赛博色光和明暗对比强调人物轮廓，灯光效果与可用设备需拍摄前确认。",
       "legacyThemeIds": [
         "cyberpunk"
       ],
@@ -906,7 +906,7 @@
       "scene": "indoor",
       "label": "乐队主唱",
       "audience": "偏好舞台感与鲜明表达力的男生",
-      "description": "突出投入的神情和节奏感，展现更有声音感的人物状态",
+      "description": "以乐队主唱式投入神情和节奏感组织画面，相关造型与道具需拍摄前确认。",
       "legacyThemeIds": [
         "concept"
       ],
@@ -997,7 +997,7 @@
       "scene": "outdoor",
       "label": "老街港风",
       "audience": "偏好怀旧城市氛围的男生",
-      "description": "借由旧感色调和人物视线，表达克制的电影片段感",
+      "description": "以老街港风的旧感色调和人物视线形成电影片段，实际街景与光线需拍摄前确认。",
       "legacyThemeIds": [
         "retro-hk"
       ],
@@ -1010,7 +1010,7 @@
       "scene": "outdoor",
       "label": "涂鸦街区",
       "audience": "喜欢明快色彩与个性背景关系的男生",
-      "description": "利用环境色彩增强节奏，人物表达仍保持自然直接",
+      "description": "以涂鸦街区的环境色彩增强节奏，实际场地与拍摄许可需拍摄前确认。",
       "legacyThemeIds": [
         "city-street"
       ],
@@ -1036,7 +1036,7 @@
       "scene": "outdoor",
       "label": "彩色街拍",
       "audience": "喜欢鲜明色彩和活力画面的男生",
-      "description": "让颜色衬托人物情绪，照片显得轻快且有清楚记忆点",
+      "description": "以彩色街景和人物情绪形成轻快对照，实际街景与色彩条件需拍摄前确认。",
       "legacyThemeIds": [
         "city-street"
       ],
@@ -1049,7 +1049,7 @@
       "scene": "outdoor",
       "label": "咖啡街角",
       "audience": "偏好日常停留感与安静城市画面的男士",
-      "description": "以自然坐立状态传达放松心情，不承诺特定门店或场所",
+      "description": "以咖啡街角式坐立状态传达放松心情，不承诺特定门店或场所。",
       "legacyThemeIds": [
         "daily-walk"
       ],
@@ -1075,7 +1075,7 @@
       "scene": "outdoor",
       "label": "城市夜景",
       "audience": "希望在夜晚记录都市人物感的男士",
-      "description": "利用环境明暗衬托神情，保持人物在画面中的清晰重点",
+      "description": "以城市夜景的环境明暗衬托神情，实际夜景地点与灯光条件需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1101,7 +1101,7 @@
       "scene": "outdoor",
       "label": "港风夜拍",
       "audience": "喜欢复古电影感夜景表达的男生",
-      "description": "通过暖冷光线关系与人物神情，形成有故事的城市片段",
+      "description": "以港风夜拍的暖冷光线和人物神情形成叙事感，实际夜景与灯光需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1349,7 +1349,7 @@
       "scene": "outdoor",
       "label": "机车型格",
       "audience": "偏好成熟、利落机车风格的男士",
-      "description": "突出人物轮廓与动作节奏，不承诺特定车型或车辆提供",
+      "description": "以机车与人物轮廓、动作节奏建立型格，不承诺特定车型或车辆提供。",
       "legacyThemeIds": [
         "moto"
       ],
@@ -1375,7 +1375,7 @@
       "scene": "outdoor",
       "label": "车库冷感",
       "audience": "喜欢工业感和冷静人物氛围的男生",
-      "description": "以简洁结构衬托轮廓，具体拍摄环境需事先确认",
+      "description": "以车库的简洁结构衬托人物轮廓，具体拍摄环境需事先确认。",
       "legacyThemeIds": [
         "moto"
       ],
@@ -1399,7 +1399,7 @@
       "scene": "outdoor",
       "label": "厂房型男",
       "audience": "喜欢粗粝质感与成熟形象的男士",
-      "description": "用环境纹理增强人物气场，实际可用场地需提前确认",
+      "description": "以厂房环境纹理增强人物气场，实际可用场地需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 6,
       "visibility": "published"

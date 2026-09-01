@@ -119,7 +119,7 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
   const measurement = (async () => {
     const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
     const probe = `<output id="style-explorer-metrics"></output><script>
-      window.addEventListener("load", () => window.setTimeout(() => {
+      window.addEventListener("load", () => window.setTimeout(async () => {
         const root = document.querySelector("#style-explorer");
         const grid = document.querySelector("#style-card-grid");
         const cards = [...(grid?.querySelectorAll(".portrait-style-card") || [])];
@@ -154,6 +154,14 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         const sceneBadgeBorderWidth = Number.parseFloat(sceneBadgeStyle?.borderTopWidth || "0");
         const legacyLikeBackground = legacyLikeStyle?.backgroundColor || "";
         const legacyLikeBorderWidth = Number.parseFloat(legacyLikeStyle?.borderTopWidth || "0");
+        const legacyLikeBorderColor = legacyLikeStyle?.borderTopColor || "";
+        legacyLike?.click();
+        await new Promise((resolve) => window.setTimeout(resolve, 200));
+        const selectedLegacyLikeStyle = legacyLike ? getComputedStyle(legacyLike) : null;
+        const selectedLegacyLikePressed = legacyLike?.getAttribute("aria-pressed") || "";
+        const selectedLegacyLikeBackground = selectedLegacyLikeStyle?.backgroundColor || "";
+        const selectedLegacyLikeBorderWidth = Number.parseFloat(selectedLegacyLikeStyle?.borderTopWidth || "0");
+        const selectedLegacyLikeBorderColor = selectedLegacyLikeStyle?.borderTopColor || "";
         const openStyle = firstOpen ? getComputedStyle(firstOpen) : null;
         const gridStyle = grid ? getComputedStyle(grid) : null;
         const initialTransitionDurations = (openStyle?.transitionDuration || "")
@@ -262,6 +270,11 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
           sceneBadgeBorderWidth,
           legacyLikeBackground,
           legacyLikeBorderWidth,
+          legacyLikeBorderColor,
+          selectedLegacyLikePressed,
+          selectedLegacyLikeBackground,
+          selectedLegacyLikeBorderWidth,
+          selectedLegacyLikeBorderColor,
           pressing,
           pressedTransform,
           transitionDurations: initialTransitionDurations,
@@ -585,7 +598,7 @@ test("phone card titles and audience labels remain readable at 390px and 320px",
   }
 });
 
-test("high contrast gives photo overlay controls near-solid backgrounds and explicit borders", { skip: !hasChrome }, async () => {
+test("high contrast keeps explicit borders around unselected and selected photo favorites", { skip: !hasChrome }, async () => {
   const metrics = await measureCustomerStyleExplorer(390, { highContrast: true });
 
   assert.equal(metrics.highContrastMatches, true, "测试浏览器没有进入 prefers-contrast: more");
@@ -593,6 +606,11 @@ test("high contrast gives photo overlay controls near-solid backgrounds and expl
   assert.ok(metrics.sceneBadgeBorderWidth >= 2, `场景标签边框不足：${metrics.sceneBadgeBorderWidth}px`);
   assert.doesNotMatch(metrics.legacyLikeBackground, /rgba\([^)]*,\s*0(?:\.|\))/i, `旧照片爱心背景仍透明：${metrics.legacyLikeBackground}`);
   assert.ok(metrics.legacyLikeBorderWidth >= 2, `旧照片爱心边框不足：${metrics.legacyLikeBorderWidth}px`);
+  assert.equal(metrics.selectedLegacyLikePressed, "true", "测试没有通过真实点击进入已收藏状态");
+  assert.ok(metrics.selectedLegacyLikeBorderWidth >= 2, `已收藏爱心边框不足：${metrics.selectedLegacyLikeBorderWidth}px`);
+  assert.match(metrics.legacyLikeBorderColor, /rgb\(255, 255, 255\)/, `未收藏爱心没有明确白边：${metrics.legacyLikeBorderColor}`);
+  assert.match(metrics.selectedLegacyLikeBorderColor, /rgb\(255, 255, 255\)/, `已收藏爱心边框被底色覆盖：${metrics.selectedLegacyLikeBorderColor}`);
+  assert.notEqual(metrics.selectedLegacyLikeBackground, metrics.legacyLikeBackground, "已收藏爱心底色与未收藏状态无法区分");
 });
 
 test("customer wording is honest and the 158-photo gallery remains available behind its disclosure", { skip: !hasChrome }, async () => {

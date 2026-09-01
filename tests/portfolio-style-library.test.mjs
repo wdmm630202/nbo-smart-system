@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { portfolioCatalog } from "../apps/portfolio-v2/catalog.js";
 import {
   fixtureAssets,
   fixtureAssignments,
@@ -36,6 +37,36 @@ async function loadProductionCatalog() {
   }
 }
 
+const approvedFamilies = [
+  ["IN-01", "indoor", "商务气场", "职业形象、企业肖像、霸道总裁、精英西装、绅士正装、雅痞西装、红底西装、西装少年、领带松弛、个人模卡、职业证照"],
+  ["IN-02", "indoor", "杂志质感", "杂志肖像、简约杂志、光影肖像、情绪肖像、黑白硬照、雕塑光影、窗影故事、时尚摩登、冷调封面、暖调封面、白底极简"],
+  ["IN-03", "indoor", "韩系松弛", "居家韩系、韩系学长、美式少年、清爽少年、白衫禁欲、针织少年、奶油暖男、夏日清新、慵懒居家、苹果主题、校园学长"],
+  ["IN-04", "indoor", "运动硬朗", "拳击硬汉、腹肌健身、运动型格、网球运动、战术硬汉、皮衣硬汉、痞帅西装、湿发型男、机能潮男、高街潮男、朋克青年"],
+  ["IN-05", "indoor", "港风故事", "复古港风、双人港风、港片男主、国风少年、古风武侠、民国男主、中式雅士、新中公子、长衫先生、美式复古、怀旧胶片"],
+  ["IN-06", "indoor", "创意个性", "赛博朋克、创意概念、彩色光影、镜面空间、花艺少年、繁花公子、宠物合拍、生日主题、新春主题、圣诞主题、乐队主唱"],
+  ["OUT-01", "outdoor", "都市街拍", "时尚街拍、痞帅街拍、潮流街拍、都市街拍、日常休闲、城市漫步、老街港风、涂鸦街区、街角少年、彩色街拍、咖啡街角"],
+  ["OUT-02", "outdoor", "城市夜景", "霓虹夜景、城市夜景、天台夜景、港风夜拍、雨夜电影、情绪隧道、暗系情绪、夜市烟火、车灯电影、酒吧微醺、闪光街拍"],
+  ["OUT-03", "outdoor", "森系自然", "森系文艺、海边少年、海洋馆景、草地少年、山野旅人、湖边静坐、溪边少年、麦田暖阳、芦苇秋日、雪景少年、花海少年"],
+  ["OUT-04", "outdoor", "机车酷感", "炫酷机车、机车型格、公路机车、车库冷感、工业硬照、厂房型男、水泥工业、隧道冷调、公路旅人、车旁街拍、驾车绅士"],
+  ["OUT-05", "outdoor", "校园少年", "热血高校、校园少年、操场青春、篮球少年、网球学长、滑板少年、足球少年、骑行少年、跑步少年、运动纪实、机长制服"],
+  ["OUT-06", "outdoor", "旅行电影", "正装外景、国风外景、山野武侠、藏地少年、港澳旅拍、大理旅拍、城市地标、列车旅途、游艇绅士、山水旅拍、秋冬街拍"],
+];
+
+const riskyCopyTokens = new Map([
+  ["ST-IN-01-07", ["红色背景", "确认"]],
+  ["ST-IN-03-10", ["苹果", "道具", "确认"]],
+  ["ST-IN-06-03", ["彩色光影", "灯光", "确认"]],
+  ["ST-IN-06-04", ["镜面", "反射", "确认"]],
+  ["ST-IN-06-05", ["花艺", "花材", "确认"]],
+  ["ST-IN-06-06", ["繁花", "花材", "确认"]],
+  ["ST-IN-06-08", ["生日", "布景", "确认"]],
+  ["ST-IN-06-09", ["新春", "节庆", "确认"]],
+  ["ST-IN-06-10", ["圣诞", "节庆", "确认"]],
+  ["ST-OUT-02-03", ["天台", "场地", "确认"]],
+  ["ST-OUT-02-08", ["夜市", "环境", "确认"]],
+  ["ST-OUT-02-09", ["车灯", "车辆", "确认"]],
+]);
+
 test("style library exposes its public contract", async () => {
   await loadPublicContract();
 });
@@ -53,6 +84,44 @@ test("production catalog has 66 indoor and 66 outdoor styles in six-by-eleven fa
     for (const family of families) assert.equal(catalog.styles.filter((style) => style.familyId === family.id).length, 11);
   }
   assert.ok(catalog.styles.every((style) => style.audience.length >= 6 && style.description.length >= 6));
+});
+
+test("production catalog matches every approved family and style identity", async () => {
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = normalizeStyleCatalog(await loadProductionCatalog());
+  const expectedFamilies = approvedFamilies.map(([id, scene, label], index) => ({
+    id,
+    scene,
+    label,
+    order: (index % 6) + 1,
+  }));
+  assert.deepEqual(catalog.families.map(({ id, scene, label, order }) => ({ id, scene, label, order })), expectedFamilies);
+
+  const expectedStyles = approvedFamilies.flatMap(([familyId, scene, , labels]) => labels.split("、").map((label, index) => ({
+    id: `ST-${familyId}-${String(index + 1).padStart(2, "0")}`,
+    familyId,
+    scene,
+    label,
+    order: index + 1,
+  })));
+  assert.deepEqual(catalog.styles.map(({ id, familyId, scene, label, order }) => ({ id, familyId, scene, label, order })), expectedStyles);
+  assert.deepEqual(catalog.featuredStyleIds, [
+    "ST-IN-01-04", "ST-IN-02-01", "ST-IN-03-04", "ST-IN-05-03",
+    "ST-OUT-01-04", "ST-OUT-02-04", "ST-OUT-03-02", "ST-OUT-04-02",
+  ]);
+  assert.ok(catalog.styles.every((style) => style.visibility === "published"));
+  const legacyThemeIds = new Set(portfolioCatalog.themes.map((theme) => theme.id));
+  assert.ok(catalog.styles.every((style) => style.legacyThemeIds.every((themeId) => legacyThemeIds.has(themeId))));
+});
+
+test("resource-dependent production styles state their visual mechanism and pre-shoot boundary", async () => {
+  const { normalizeStyleCatalog } = await loadPublicContract();
+  const catalog = normalizeStyleCatalog(await loadProductionCatalog());
+  const styleById = new Map(catalog.styles.map((style) => [style.id, style]));
+  for (const [styleId, tokens] of riskyCopyTokens) {
+    const description = styleById.get(styleId)?.description || "";
+    for (const token of tokens) assert.ok(description.includes(token), `${styleId} must include ${token}`);
+  }
 });
 
 test("style slot ids are stable and one based", async () => {

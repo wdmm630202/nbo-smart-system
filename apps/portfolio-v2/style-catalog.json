@@ -132,7 +132,7 @@
       "scene": "indoor",
       "label": "精英西装",
       "audience": "希望突出成熟专业感的职场男士",
-      "description": "以简洁层次组织画面，呈现克制而清晰的精英气质",
+      "description": "以简洁西装层次组织画面，呈现克制而清晰的精英气质；服装搭配需拍摄前确认。",
       "legacyThemeIds": [
         "business-boss"
       ],
@@ -145,7 +145,7 @@
       "scene": "indoor",
       "label": "绅士正装",
       "audience": "重视礼仪感与正式肖像的男士",
-      "description": "保持端正比例与自然神情，表达从容有分寸的形象",
+      "description": "以端正正装轮廓和自然神情表达从容分寸，服装款式需拍摄前确认。",
       "legacyThemeIds": [
         "business-boss"
       ],
@@ -158,7 +158,7 @@
       "scene": "indoor",
       "label": "雅痞西装",
       "audience": "偏好轻松但不失质感风格的男士",
-      "description": "在正式轮廓中保留一点松弛感，画面更有个人态度",
+      "description": "在西装轮廓中保留松弛动作，形成有态度的正式感；实际搭配需拍摄前确认。",
       "legacyThemeIds": [
         "business-boss"
       ],
@@ -171,7 +171,7 @@
       "scene": "indoor",
       "label": "红底西装",
       "audience": "希望尝试鲜明背景对比的男士",
-      "description": "用色彩关系强化人物存在感，保留简洁有力的肖像重点",
+      "description": "以红色背景与西装轮廓形成强烈对比，背景和服装搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 7,
       "visibility": "published"
@@ -182,7 +182,7 @@
       "scene": "indoor",
       "label": "西装少年",
       "audience": "刚进入职场或偏好清爽正装感的男生",
-      "description": "以年轻神态平衡正式轮廓，呈现自然不拘谨的成长感",
+      "description": "以年轻神态平衡西装轮廓，呈现自然不拘谨的成长感；服装搭配需拍摄前确认。",
       "legacyThemeIds": [
         "business-boss"
       ],
@@ -195,7 +195,7 @@
       "scene": "indoor",
       "label": "领带松弛",
       "audience": "想要兼顾职业感与轻松状态的男士",
-      "description": "弱化刻板摆姿，用细微动作表现工作之外的从容",
+      "description": "以领带松开的细微动作表现工作之外的从容，领带与服装搭配需拍摄前确认。",
       "legacyThemeIds": [
         "business-boss"
       ],
@@ -310,7 +310,7 @@
       "scene": "indoor",
       "label": "窗影故事",
       "audience": "喜欢局部光线与安静叙事的男士",
-      "description": "以自然光影变化组织画面，表达不夸张的片段感",
+      "description": "利用窗边投下的光影切分人物轮廓，窗位与自然光条件需拍摄前确认。",
       "legacyThemeIds": [
         "light-mood"
       ],
@@ -362,7 +362,7 @@
       "scene": "indoor",
       "label": "白底极简",
       "audience": "需要纯净、聚焦人物本身的男士",
-      "description": "以简洁背景和清楚轮廓呈现个人状态，使用场景更灵活",
+      "description": "以白色背景和清楚轮廓聚焦人物本身，实际背景布置需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 11,
       "visibility": "published"
@@ -373,7 +373,7 @@
       "scene": "indoor",
       "label": "居家韩系",
       "audience": "喜欢日常感和轻松人物状态的男生",
-      "description": "保留自然动作和温和表情，呈现亲近不费力的气质",
+      "description": "以居家式布景和自然动作营造亲近感，实际可用布景需拍摄前确认。",
       "legacyThemeIds": [
         "home-korean"
       ],
@@ -423,7 +423,7 @@
       "scene": "indoor",
       "label": "白衫禁欲",
       "audience": "喜欢克制、清冷人物氛围的男生",
-      "description": "通过低调表情和干净线条，表达安静而有边界的气质",
+      "description": "以白衫的干净线条和低调表情表达安静边界，服装搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 5,
       "visibility": "published"
@@ -434,7 +434,7 @@
       "scene": "indoor",
       "label": "针织少年",
       "audience": "偏好柔和、温暖视觉感受的男生",
-      "description": "利用柔软层次衬托人物，呈现舒适自然的亲近感",
+      "description": "以针织材质的柔软层次衬托人物，具体服装与色彩需拍摄前确认。",
       "legacyThemeIds": [
         "home-korean"
       ],
@@ -471,7 +471,7 @@
       "scene": "indoor",
       "label": "慵懒居家",
       "audience": "偏好安静、放松日常状态的男生",
-      "description": "让姿态保持随意舒展，展现不必刻意用力的生活感",
+      "description": "以可用居家布景和舒展姿态呈现生活感，实际场景需拍摄前确认。",
       "legacyThemeIds": [
         "home-korean"
       ],
@@ -484,7 +484,7 @@
       "scene": "indoor",
       "label": "苹果主题",
       "audience": "喜欢简洁趣味与轻松表达的男生",
-      "description": "以明快视觉重点增加记忆点，人物状态仍保持自然",
+      "description": "以苹果道具形成明快视觉焦点，苹果道具与可用布景需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 10,
       "visibility": "published"
@@ -495,7 +495,7 @@
       "scene": "indoor",
       "label": "校园学长",
       "audience": "想要青春但不幼态人物形象的男生",
-      "description": "通过稳重神态和清爽构图，呈现温和可靠的少年感",
+      "description": "通过稳重神态和清爽构图，呈现温和可靠的少年感；校园式场景需拍摄前确认。",
       "legacyThemeIds": [
         "home-korean"
       ],
@@ -508,7 +508,7 @@
       "scene": "indoor",
       "label": "拳击硬汉",
       "audience": "偏好力量感和强烈人物张力的男士",
-      "description": "以紧凑姿态与坚定目光，表达专注有力量的状态",
+      "description": "以拳击主题动作和紧凑姿态表达力量感，相关道具与安全条件需拍摄前确认。",
       "legacyThemeIds": [
         "boxing"
       ],
@@ -547,7 +547,7 @@
       "scene": "indoor",
       "label": "网球运动",
       "audience": "偏好轻快运动气质的男生",
-      "description": "突出准备动作和专注状态，呈现阳光有秩序的活力",
+      "description": "以网球准备动作和专注视线展现轻快活力，器材与可用场地需拍摄前确认。",
       "legacyThemeIds": [
         "sport-style"
       ],
@@ -571,7 +571,7 @@
       "scene": "indoor",
       "label": "皮衣硬汉",
       "audience": "偏好鲜明成熟个性表达的男士",
-      "description": "通过利落轮廓与克制姿态，形成强而不乱的视觉气质",
+      "description": "以皮衣轮廓和克制姿态形成硬朗张力，服装搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 6,
       "visibility": "published"
@@ -582,7 +582,7 @@
       "scene": "indoor",
       "label": "痞帅西装",
       "audience": "想要正式感里带一点不羁气质的男士",
-      "description": "平衡整齐造型和自然表情，呈现有态度的都市状态",
+      "description": "以西装的整齐轮廓平衡自然表情，呈现有态度的都市状态；搭配需拍摄前确认。",
       "legacyThemeIds": [
         "business-boss"
       ],
@@ -595,7 +595,7 @@
       "scene": "indoor",
       "label": "湿发型男",
       "audience": "偏好更强镜头感和冷感氛围的男士",
-      "description": "着重人物眼神与轮廓关系，营造利落而有张力的画面",
+      "description": "以湿发造型和眼神轮廓强化镜头感，造型效果需拍摄前确认。",
       "legacyThemeIds": [
         "magazine"
       ],
@@ -680,7 +680,7 @@
       "scene": "indoor",
       "label": "国风少年",
       "audience": "喜欢东方审美与年轻人物状态的男生",
-      "description": "以清爽姿态表达文雅气质，避免过度戏剧化的呈现",
+      "description": "以国风服装轮廓和清爽姿态表达文雅气质，实际造型资源需拍摄前确认。",
       "legacyThemeIds": [
         "wuxia"
       ],
@@ -693,7 +693,7 @@
       "scene": "indoor",
       "label": "古风武侠",
       "audience": "偏好侠气与含蓄人物表达的男士",
-      "description": "强调坚定神情和人物姿态，传达克制的东方力量感",
+      "description": "以武侠主题的姿态和坚定神情传达东方力量，服装与道具条件需拍摄前确认。",
       "legacyThemeIds": [
         "wuxia"
       ],
@@ -706,7 +706,7 @@
       "scene": "indoor",
       "label": "民国男主",
       "audience": "喜欢年代感与斯文人物气质的男士",
-      "description": "以端正结构和安静视线，形成温文而有故事的印象",
+      "description": "以民国风服装轮廓和安静视线形成年代感，具体造型需拍摄前确认。",
       "legacyThemeIds": [
         "retro-hk"
       ],
@@ -719,7 +719,7 @@
       "scene": "indoor",
       "label": "中式雅士",
       "audience": "偏好沉静、文雅个人风格的男士",
-      "description": "用简洁层次突出从容状态，呈现不张扬的东方审美",
+      "description": "以中式造型的简洁层次突出从容状态，实际服装资源需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 7,
       "visibility": "published"
@@ -730,7 +730,7 @@
       "scene": "indoor",
       "label": "新中公子",
       "audience": "想尝试现代东方气质的年轻男士",
-      "description": "将清爽状态与含蓄神情结合，表达轻盈而有分寸感",
+      "description": "以新中式服装与含蓄神情结合，表达轻盈有分寸感；搭配需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 8,
       "visibility": "published"
@@ -741,7 +741,7 @@
       "scene": "indoor",
       "label": "长衫先生",
       "audience": "喜欢传统轮廓与书卷气质的男士",
-      "description": "通过安定姿态与人物线条，呈现温和内敛的精神面貌",
+      "description": "以长衫轮廓和安定姿态呈现书卷气质，服装资源需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 9,
       "visibility": "published"
@@ -802,7 +802,7 @@
       "scene": "indoor",
       "label": "彩色光影",
       "audience": "喜欢色彩变化与情绪表达的男生",
-      "description": "让光色服务人物神情，形成丰富但不过分堆叠的层次",
+      "description": "以彩色光影在人物轮廓上形成层次，灯光效果与可用设备需拍摄前确认。",
       "legacyThemeIds": [
         "cyberpunk"
       ],
@@ -815,7 +815,7 @@
       "scene": "indoor",
       "label": "镜面空间",
       "audience": "偏好结构感和视觉趣味的男生",
-      "description": "利用反射与视线关系增强画面层次，人物仍是核心",
+      "description": "以镜面反射建立多层视线关系，镜面道具与可用空间需拍摄前确认。",
       "legacyThemeIds": [
         "concept"
       ],
@@ -828,7 +828,7 @@
       "scene": "indoor",
       "label": "花艺少年",
       "audience": "喜欢柔和色彩与文艺人物气质的男生",
-      "description": "以轻盈画面关系衬托神情，呈现温柔而不失个性的状态",
+      "description": "以花艺和人物神情形成轻盈对照，花材与可用布景需拍摄前确认。",
       "legacyThemeIds": [
         "floral-boy"
       ],
@@ -841,7 +841,7 @@
       "scene": "indoor",
       "label": "繁花公子",
       "audience": "希望尝试华丽但有分寸视觉表达的男士",
-      "description": "用丰富层次突出人物姿态，画面保持清楚的主次关系",
+      "description": "以繁花层次衬托人物姿态，花材与布景资源需拍摄前确认。",
       "legacyThemeIds": [
         "floral-boy"
       ],
@@ -854,7 +854,7 @@
       "scene": "indoor",
       "label": "宠物合拍",
       "audience": "想与自家宠物记录相处瞬间的男士",
-      "description": "重视人与宠物的自然互动，不把亲密感设计成刻意表演",
+      "description": "以人与宠物的自然互动作为画面核心，宠物到场与状态需拍摄前确认。",
       "legacyThemeIds": [
         "pet"
       ],
@@ -867,7 +867,7 @@
       "scene": "indoor",
       "label": "生日主题",
       "audience": "希望记录生日阶段或送给自己的男生",
-      "description": "围绕庆祝心情呈现轻松状态，让画面留下个人纪念意义",
+      "description": "以生日庆祝布景和人物心情留下纪念，布景与道具资源需拍摄前确认。",
       "legacyThemeIds": [
         "celebration"
       ],
@@ -880,7 +880,7 @@
       "scene": "indoor",
       "label": "新春主题",
       "audience": "想在节日期间留下个人影像的男士",
-      "description": "用温暖喜庆的视觉方向传达节日心情，人物表达保持自然",
+      "description": "以新春节庆色彩和人物神情传达喜庆气氛，节庆布景需拍摄前确认。",
       "legacyThemeIds": [
         "celebration"
       ],
@@ -893,7 +893,7 @@
       "scene": "indoor",
       "label": "圣诞主题",
       "audience": "喜欢冬日节庆氛围的男生",
-      "description": "以明亮轻松的情绪组织画面，适合保存一段当下的记忆",
+      "description": "以圣诞节庆元素组织轻松情绪，布景、道具与档期需拍摄前确认。",
       "legacyThemeIds": [
         "celebration"
       ],
@@ -1062,7 +1062,7 @@
       "scene": "outdoor",
       "label": "霓虹夜景",
       "audience": "喜欢城市灯光与未来感氛围的男生",
-      "description": "让光色映衬人物轮廓，营造鲜明而有层次的夜间状态",
+      "description": "以霓虹光色映衬人物轮廓，实际夜景地点与灯光条件需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1088,7 +1088,7 @@
       "scene": "outdoor",
       "label": "天台夜景",
       "audience": "偏好开阔感与独处气质的男生",
-      "description": "以远近层次和沉静视线，表达夜晚里从容的个人状态",
+      "description": "以天台的开阔层次和沉静视线表达夜晚从容，场地与拍摄许可需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1114,7 +1114,7 @@
       "scene": "outdoor",
       "label": "雨夜电影",
       "audience": "偏好湿润光影与电影叙事感的男士",
-      "description": "以反光和明暗变化烘托情绪，不依赖特定天气作为承诺",
+      "description": "以雨后反光和明暗变化烘托电影情绪，天气与可用场地需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1127,7 +1127,7 @@
       "scene": "outdoor",
       "label": "情绪隧道",
       "audience": "喜欢纵深感和安静画面张力的男生",
-      "description": "用线条引导人物视线，营造克制而有方向性的视觉氛围",
+      "description": "以隧道线条引导人物视线，实际场地、安全与拍摄许可需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1153,7 +1153,7 @@
       "scene": "outdoor",
       "label": "夜市烟火",
       "audience": "喜欢人间烟火与生活感夜景的男生",
-      "description": "捕捉人物在光线中的自然状态，画面更像当下的真实片段",
+      "description": "以夜市环境光和人间烟火衬托人物状态，实际环境与拍摄条件需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1166,7 +1166,7 @@
       "scene": "outdoor",
       "label": "车灯电影",
       "audience": "偏好流动光线与故事感的男士",
-      "description": "以环境光的节奏衬托人物，形成具有时间感的夜间画面",
+      "description": "以车灯在夜间形成流动光线和时间感，车辆与拍摄位置需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1179,7 +1179,7 @@
       "scene": "outdoor",
       "label": "酒吧微醺",
       "audience": "想表达成熟放松夜生活气质的男士",
-      "description": "用低饱和氛围呈现松弛状态，不把饮酒作为拍摄前提",
+      "description": "以酒吧式低饱和光线呈现成熟松弛感，具体场地与灯光条件需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1192,7 +1192,7 @@
       "scene": "outdoor",
       "label": "闪光街拍",
       "audience": "喜欢直接、鲜明镜头语言的男生",
-      "description": "用瞬间感突出人物表情，画面呈现热烈但清楚的节奏",
+      "description": "以闪光灯定格人物表情，灯光设备与可用街景需拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1205,7 +1205,7 @@
       "scene": "outdoor",
       "label": "森系文艺",
       "audience": "喜欢安静自然与文艺气质的男生",
-      "description": "让人物融入柔和环境层次，表达不喧闹的放松状态",
+      "description": "以自然绿意和柔和环境层次呈现安静气质，实际场地与光线需拍摄前确认。",
       "legacyThemeIds": [
         "forest"
       ],
@@ -1240,7 +1240,7 @@
       "scene": "outdoor",
       "label": "草地少年",
       "audience": "偏好阳光、清新日常状态的男生",
-      "description": "通过自然站坐与轻松神情，记录真实舒展的青春感",
+      "description": "以草地环境和自然站坐记录青春感，实际场地与天气需拍摄前确认。",
       "legacyThemeIds": [
         "forest"
       ],
@@ -1253,7 +1253,7 @@
       "scene": "outdoor",
       "label": "山野旅人",
       "audience": "喜欢旅行感与户外人物状态的男士",
-      "description": "以人物和开阔环境的关系表达探索心情，不指定目的地",
+      "description": "以人物和山野环境的开阔关系表达探索心情，实际地点与天气需拍摄前确认。",
       "legacyThemeIds": [
         "travel"
       ],
@@ -1266,7 +1266,7 @@
       "scene": "outdoor",
       "label": "湖边静坐",
       "audience": "偏好安静、沉思画面气质的男士",
-      "description": "让人物保持舒缓姿态，画面强调留白与自然呼吸感",
+      "description": "以湖边留白和舒缓姿态表达沉思感，水边场地与天气需拍摄前确认。",
       "legacyThemeIds": [
         "forest"
       ],
@@ -1362,7 +1362,7 @@
       "scene": "outdoor",
       "label": "公路机车",
       "audience": "希望表达旅途感和行动力的男生",
-      "description": "围绕人物与道路关系展开，实际路线和车辆以可用条件为准",
+      "description": "围绕人物、机车与道路关系展开，实际路线、车辆和安全条件需拍摄前确认。",
       "legacyThemeIds": [
         "moto"
       ],
@@ -1388,7 +1388,7 @@
       "scene": "outdoor",
       "label": "工业硬照",
       "audience": "偏好硬朗、简洁线条视觉的男士",
-      "description": "让人物姿态与空间结构呼应，形成清楚有力的照片节奏",
+      "description": "以工业空间的硬朗结构衬托人物姿态，实际场地与许可需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 5,
       "visibility": "published"
@@ -1410,7 +1410,7 @@
       "scene": "outdoor",
       "label": "水泥工业",
       "audience": "偏好极简粗粝视觉风格的男生",
-      "description": "以灰阶结构突出人物比例，保持表达克制、不堆砌效果",
+      "description": "以水泥质感和灰阶结构突出人物比例，实际场地条件需拍摄前确认。",
       "legacyThemeIds": [],
       "order": 7,
       "visibility": "published"
@@ -1484,7 +1484,7 @@
       "scene": "outdoor",
       "label": "校园少年",
       "audience": "想留下自然学生气质的年轻男生",
-      "description": "以干净笑意和轻松状态为重点，画面更接近日常记忆",
+      "description": "以校园式日常场景和轻松笑意记录青春状态，实际场地需拍摄前确认。",
       "legacyThemeIds": [
         "campus"
       ],
@@ -1510,7 +1510,7 @@
       "scene": "outdoor",
       "label": "篮球少年",
       "audience": "喜欢运动热情与力量感的男生",
-      "description": "捕捉专注姿态和身体节奏，球场与器材以实际条件为准",
+      "description": "捕捉篮球动作和身体节奏，球场、器材与安全条件需拍摄前确认。",
       "legacyThemeIds": [
         "sport-documentary"
       ],
@@ -1562,7 +1562,7 @@
       "scene": "outdoor",
       "label": "骑行少年",
       "audience": "想表达轻快出行与行动力的男生",
-      "description": "围绕自然骑行状态组织画面，车辆和路线需以现场条件为准",
+      "description": "围绕自然骑行状态组织画面，车辆和路线需拍摄前确认。",
       "legacyThemeIds": [
         "daily-walk"
       ],
@@ -1575,7 +1575,7 @@
       "scene": "outdoor",
       "label": "跑步少年",
       "audience": "喜欢自律、轻盈运动感的男生",
-      "description": "以呼吸感和运动节奏呈现人物状态，不强调竞技成绩",
+      "description": "以跑步节奏和自然呼吸感呈现人物状态，路线与场地条件需拍摄前确认。",
       "legacyThemeIds": [
         "sport-documentary"
       ],
@@ -1588,7 +1588,7 @@
       "scene": "outdoor",
       "label": "运动纪实",
       "audience": "想记录真实运动片段的男士",
-      "description": "优先保留人物投入状态和连续动作，呈现有过程感的画面",
+      "description": "以连续运动动作保留纪实过程感，运动环境与安全条件需拍摄前确认。",
       "legacyThemeIds": [
         "sport-documentary"
       ],
@@ -1612,7 +1612,7 @@
       "scene": "outdoor",
       "label": "正装外景",
       "audience": "需要城市环境中正式人物肖像的男士",
-      "description": "将利落形象与自然光线结合，呈现成熟稳定的外景状态",
+      "description": "以正装轮廓与外景自然光线结合，服装搭配和实际场地需拍摄前确认。",
       "legacyThemeIds": [
         "formal-outdoor"
       ],
@@ -1638,7 +1638,7 @@
       "scene": "outdoor",
       "label": "山野武侠",
       "audience": "偏好侠气、探索感人物表达的男士",
-      "description": "通过人物姿态和开阔关系营造想象空间，不指定山野地点",
+      "description": "通过武侠主题姿态与山野关系营造想象空间，服装、地点与天气需拍摄前确认。",
       "legacyThemeIds": [
         "wuxia"
       ],

@@ -3,11 +3,11 @@ import {
   buildPortfolioThemes,
   emptyPortfolioAdditions,
   portfolioCatalog,
-} from "./catalog.js?v=pv2-9e2ae888af90";
-import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=pv2-9e2ae888af90";
-import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=pv2-9e2ae888af90";
+} from "./catalog.js?v=pv2-f5a1b7e507f7";
+import { buildCustomerPortfolio, loadPortfolioAdditions } from "./portfolio-runtime.js?v=pv2-f5a1b7e507f7";
+import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=pv2-f5a1b7e507f7";
 
-const embeddedBuildVersion = "pv2-9e2ae888af90";
+const embeddedBuildVersion = "pv2-f5a1b7e507f7";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;

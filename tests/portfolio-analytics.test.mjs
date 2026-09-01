@@ -275,6 +275,7 @@ async function measureMobileCampaign({ theme = "", slideIndex = 0, clickTheme = 
           linkTargets: slides.map((slide) => slide.querySelector("a")?.getAttribute("href") || ""),
           imageSources: slides.map((slide) => slide.querySelector("img")?.getAttribute("src") || ""),
           deferredImageCount: slides.filter((slide) => slide.querySelector("img")?.getAttribute("loading") === "lazy").length,
+          campaignKickerCount: slides.filter((slide) => /NEW PORTRAIT/.test(slide.querySelector(".campaign-slide-copy > small")?.textContent || "")).length,
           scrollSnapType: trackStyle?.scrollSnapType || "",
           overflowX: trackStyle?.overflowX || "",
           scrollLeft: track?.scrollLeft || 0,
@@ -631,6 +632,7 @@ test("首页新品轮播可原生横向滑动并同步进度", { skip: !(await e
   assert.equal(new Set(metrics.imageSources).size, 10, "10 个新品不应重复使用同一张主视觉");
   assert.ok(metrics.imageSources.every((source) => /\/featured\/photo-\d{3}\.webp/.test(source)), "新品主视觉应使用轻量首页 WebP");
   assert.equal(metrics.deferredImageCount, 9, "除第一张外的主视觉应延迟加载");
+  assert.equal(metrics.campaignKickerCount, 0, "主视觉仍显示 NEW PORTRAIT 小字");
   assert.match(metrics.scrollSnapType, /^x/);
   assert.ok(["auto", "scroll"].includes(metrics.overflowX), `首屏无法横向滑动：${metrics.overflowX}`);
   assert.equal(metrics.slidesFitTrack, true, "每次滑动应精确对齐一张新品");

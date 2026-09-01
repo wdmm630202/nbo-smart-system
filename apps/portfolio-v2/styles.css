@@ -51,7 +51,6 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .campaign-slide[data-theme="wuxia-outdoor"] img { object-position: center 38%; }
 .campaign-slide-shade { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(0,0,0,.02) 24%,rgba(0,0,0,.13) 48%,rgba(0,0,0,.9) 100%), linear-gradient(90deg,rgba(0,0,0,.18),transparent 62%); }
 .campaign-slide-copy { position: absolute; z-index: 2; right: 1.35rem; bottom: 6.75rem; left: 1.35rem; display: grid; justify-items: center; color: white; text-align: center; text-shadow: 0 2px 18px rgba(0,0,0,.5); }
-.campaign-slide-copy > small { color: rgba(255,255,255,.73); font-family: Georgia,"Times New Roman",serif; font-size: .5rem; font-weight: 650; letter-spacing: .24em; }
 .campaign-slide-title { max-width: 100%; margin-top: .22rem; font-family: "HanziPen SC","STKaiti","Kaiti SC","KaiTi","Songti SC",serif; font-size: clamp(3.25rem,16vw,5.9rem); font-weight: 400; letter-spacing: -.09em; line-height: .96; white-space: nowrap; transform: rotate(-1.6deg); text-wrap: nowrap; }
 .campaign-slide-copy > span { margin-top: .35rem; font-family: Georgia,"Songti SC",serif; font-size: clamp(1.05rem,4.8vw,1.45rem); letter-spacing: .04em; }
 .campaign-slide-copy > em { margin-top: .45rem; color: rgba(255,255,255,.72); font-size: .62rem; font-style: normal; letter-spacing: .08em; }

@@ -33,6 +33,19 @@ function bindPressFeedback(element) {
   element.addEventListener("blur", release);
 }
 
+function bindScalePressFeedback(element) {
+  const press = (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    element.style.transform = "scale(.84)";
+  };
+  const release = () => element.style.removeProperty("transform");
+  element.addEventListener("pointerdown", press);
+  element.addEventListener("pointerup", release);
+  element.addEventListener("pointercancel", release);
+  element.addEventListener("pointerleave", release);
+  element.addEventListener("blur", release);
+}
+
 function clearImageSources(container) {
   container.querySelectorAll("img").forEach((image) => {
     image.removeAttribute("src");
@@ -64,6 +77,8 @@ export function createStyleExplorer({
   onTrack = () => {},
   onOpenViewer = () => {},
   onSelectionChange = () => {},
+  favoriteStyleIds = new Set(),
+  selectedSlotIds = new Set(),
 }) {
   if (!root?.querySelector || !library?.families || !library?.styles) {
     throw new Error("风格浏览器初始化参数无效");
@@ -91,6 +106,35 @@ export function createStyleExplorer({
   }
 
   const styleById = new Map(library.styles.map((style) => [style.id, style]));
+
+  function updateStyleFavoriteButton(button, style) {
+    const selected = favoriteStyleIds.has(style.id);
+    button.setAttribute("aria-pressed", String(selected));
+    button.setAttribute("aria-label", `${selected ? "取消收藏" : "收藏"}${style.label}`);
+    button.textContent = selected ? "♥" : "♡";
+  }
+
+  function updatePoseChoiceButton(button, style, slot) {
+    const selected = selectedSlotIds.has(slot.id);
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+    button.setAttribute("aria-label", `${selected ? "取消" : "选择"}${style.label}的${slot.poseLabel}`);
+    button.textContent = selected ? "✓ 已选这个姿势" : "想拍这个姿势";
+    button.style.color = selected ? "#fff" : "";
+    button.style.backgroundColor = selected ? "#171714" : "";
+  }
+
+  function syncPreferences() {
+    root.querySelectorAll("[data-style-favorite-id]").forEach((button) => {
+      const style = styleById.get(button.dataset.styleFavoriteId);
+      if (style) updateStyleFavoriteButton(button, style);
+    });
+    root.querySelectorAll(".pose-choice[data-slot-id]").forEach((button) => {
+      const slot = library.slots.find((entry) => entry.id === button.dataset.slotId);
+      const style = slot ? styleById.get(slot.styleId) : null;
+      if (style && slot) updatePoseChoiceButton(button, style, slot);
+    });
+  }
 
   function focusRenderedTab(id) {
     const tab = documentObject.getElementById(id);
@@ -234,7 +278,37 @@ export function createStyleExplorer({
     open.append(imageWrap, scene, copy);
     open.addEventListener("click", () => openStyle(style.id));
 
-    article.append(open);
+    const favorite = documentObject.createElement("button");
+    favorite.className = "like-button portrait-style-like";
+    favorite.type = "button";
+    favorite.dataset.styleFavoriteId = style.id;
+    Object.assign(favorite.style, {
+      width: "2.75rem",
+      height: "2.75rem",
+      minWidth: "44px",
+      minHeight: "44px",
+      top: ".2rem",
+      right: ".2rem",
+    });
+    bindPressFeedback(favorite);
+    bindScalePressFeedback(favorite);
+    updateStyleFavoriteButton(favorite, style);
+    favorite.addEventListener("click", () => {
+      const wasSelected = favoriteStyleIds.has(style.id);
+      if (wasSelected) favoriteStyleIds.delete(style.id);
+      else favoriteStyleIds.add(style.id);
+      updateStyleFavoriteButton(favorite, style);
+      windowObject?.navigator?.vibrate?.(wasSelected ? 4 : 8);
+      onTrack(wasSelected ? "style_favorite_remove" : "style_favorite_add", {
+        scene: style.scene,
+        targetId: style.id,
+        targetLabel: style.label,
+        favoriteCount: favoriteStyleIds.size,
+      });
+      onSelectionChange(state, { type: "style-favorite", style, selected: !wasSelected });
+    });
+
+    article.append(open, favorite);
     image.src = versionPhoto(cover.asset.thumb);
     return article;
   }
@@ -265,15 +339,23 @@ export function createStyleExplorer({
     choice.type = "button";
     choice.className = "pose-choice";
     choice.dataset.slotId = slot.id;
-    choice.setAttribute("aria-label", `想拍${style.label}的${slot.poseLabel}`);
-    choice.textContent = "想拍这个姿势";
     bindPressFeedback(choice);
-    // Task 8 consumes this explicit request hook and owns persistence/demand state.
-    choice.addEventListener("click", () => onSelectionChange(state, {
-      type: "pose-choice-request",
-      style,
-      slot,
-    }));
+    updatePoseChoiceButton(choice, style, slot);
+    choice.addEventListener("click", () => {
+      const wasSelected = selectedSlotIds.has(slot.id);
+      if (wasSelected) selectedSlotIds.delete(slot.id);
+      else selectedSlotIds.add(slot.id);
+      updatePoseChoiceButton(choice, style, slot);
+      windowObject?.navigator?.vibrate?.(wasSelected ? 4 : 8);
+      onTrack(wasSelected ? "pose_select_remove" : "pose_select_add", {
+        scene: style.scene,
+        styleId: style.id,
+        targetId: slot.id,
+        targetLabel: slot.poseLabel,
+        selectedCount: selectedSlotIds.size,
+      });
+      onSelectionChange(state, { type: "pose-choice", style, slot, selected: !wasSelected });
+    });
     return choice;
   }
 
@@ -379,7 +461,7 @@ export function createStyleExplorer({
     presentView();
     updateLocation(windowObject, state, "pushState");
     openCurrentViewer();
-    onTrack("style_pose_open", {
+    onTrack("style_viewer_open", {
       scene: style.scene,
       targetId: viewerTriggerSlotId,
       targetLabel: style.slots[state.poseIndex]?.poseLabel || style.label,
@@ -471,7 +553,7 @@ export function createStyleExplorer({
     renderAlbum(style);
     presentView();
     updateLocation(windowObject, state, "pushState");
-    onTrack("style_open", {
+    onTrack("style_album_open", {
       scene: style.scene,
       targetId: style.id,
       targetLabel: style.label,
@@ -606,6 +688,7 @@ export function createStyleExplorer({
     movePose,
     requestCloseViewer,
     restoreFromLocation,
+    syncPreferences,
     destroy,
   };
 }

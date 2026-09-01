@@ -415,7 +415,7 @@
       </dialog>
 
       <button class="selection-bar" id="selection-bar" type="button" hidden>
-        <span class="selection-bar-count"><strong id="selection-count">0</strong><small>已喜欢</small></span>
+        <span class="selection-bar-count"><strong id="selection-count">0</strong><small>项已选择</small></span>
         <span class="selection-bar-copy"><small>给化妆师和摄影师看</small><strong>查看并生成图文需求</strong></span>
         <span class="selection-bar-arrow" aria-hidden="true">↑</span>
       </button>
@@ -439,7 +439,9 @@
           </section>
           <div class="selection-card-wrap"><img id="selection-card" alt="客户喜欢的南铂拍摄风格图文需求卡" draggable="false" /><span id="selection-generating">正在生成图文需求…</span></div>
           <div class="longpress-guide"><span aria-hidden="true">↓</span><div><strong>长按需求图保存到手机</strong><small>请直接长按上方图片，不会选中文字</small></div></div>
-          <div class="selection-edit-hint"><span>首选参考会在需求卡中重点放大</span><strong>轻点下方小图可更换首选</strong></div>
+          <div class="selection-edit-hint" id="selection-edit-hint"><span>首选参考会在需求卡中重点放大</span><strong>轻点下方小图可更换首选</strong></div>
+          <div id="selected-pose-groups" aria-label="已选拍摄姿势"></div>
+          <div class="selection-edit-hint" id="legacy-selection-heading" hidden><strong>其他喜欢客片</strong></div>
           <div class="selected-list" id="selected-list"></div>
           <details class="selection-text-details"><summary>查看将复制的文字</summary><p class="selection-summary" id="selection-summary"></p></details>
           <div class="selection-actions"><button class="copy-request" id="copy-request" type="button">复制图片＋文字</button></div>

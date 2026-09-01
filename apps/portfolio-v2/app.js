@@ -12,6 +12,11 @@ import {
 } from "./portfolio-runtime.js?v=__NBO_BUILD_VERSION__";
 import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=__NBO_BUILD_VERSION__";
 import { createStyleExplorer } from "./style-explorer.js?v=__NBO_BUILD_VERSION__";
+import {
+  buildPoseBrief,
+  readStylePreferences,
+  writeStylePreferences,
+} from "./style-preferences.js?v=__NBO_BUILD_VERSION__";
 
 const embeddedBuildVersion = "__NBO_BUILD_VERSION__";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
@@ -66,6 +71,9 @@ const customerStyleLibrary = buildCustomerStyleLibrary({
   fallback: null,
   warn: (...args) => console.warn(...args),
 });
+const stylePreferences = customerStyleLibrary
+  ? readStylePreferences(localStorage, customerStyleLibrary)
+  : { styleIds: new Set(), slotIds: new Set() };
 const styleExplorerRoot = document.querySelector("[data-style-explorer]");
 let styleExplorerController = null;
 if (styleExplorerRoot && customerStyleLibrary) {
@@ -75,8 +83,14 @@ if (styleExplorerRoot && customerStyleLibrary) {
     versionPhoto,
     onTrack: trackProductEvent,
     onOpenViewer: (index, items, context) => openViewer(index, items, context),
+    favoriteStyleIds: stylePreferences.styleIds,
+    selectedSlotIds: stylePreferences.slotIds,
     onSelectionChange: (_state, action) => {
       if (action.type === "viewer-history-close") closeViewer({ fromHistory: true });
+      if (action.type === "style-favorite" || action.type === "pose-choice") {
+        persistStylePreferences();
+        refreshDemandUi();
+      }
     },
   });
 } else if (styleExplorerRoot) {
@@ -115,6 +129,9 @@ const navFavoriteCount = document.querySelector("#nav-favorite-count");
 const selectionSheet = document.querySelector("#selection-sheet");
 const selectionCard = document.querySelector("#selection-card");
 const selectionGenerating = document.querySelector("#selection-generating");
+const selectionEditHint = document.querySelector("#selection-edit-hint");
+const selectedPoseGroups = document.querySelector("#selected-pose-groups");
+const legacySelectionHeading = document.querySelector("#legacy-selection-heading");
 const selectedList = document.querySelector("#selected-list");
 const selectionSummary = document.querySelector("#selection-summary");
 const copyRequest = document.querySelector("#copy-request");
@@ -219,6 +236,24 @@ function trackProductEvent(type, detail = {}) {
   window.dispatchEvent(new CustomEvent("nanbo:analytics", { detail: event }));
 }
 
+function persistStylePreferences() {
+  writeStylePreferences(localStorage, stylePreferences);
+}
+
+function demandCount() {
+  return favoriteIds.size + stylePreferences.slotIds.size;
+}
+
+function refreshDemandUi() {
+  selectionCardBlob = null;
+  lastCopiedSignature = "";
+  resetCopyButton();
+  updateSelectionUi();
+  updateViewerPoseChoice();
+  styleExplorerController?.syncPreferences();
+  if (selectionSheet.open) renderSelectionSheet();
+}
+
 function readBriefSettings() {
   const defaults = { name: "", focus: ["光线与色调", "妆发造型", "动作与构图"], note: "" };
   try {
@@ -262,8 +297,39 @@ function selectedItems() {
     .filter(Boolean);
 }
 
+function selectedPoseBrief(legacyItems = selectedItems()) {
+  return buildPoseBrief({
+    slotIds: stylePreferences.slotIds,
+    library: customerStyleLibrary,
+    legacyFavoriteAssets: legacyItems,
+    settings: briefSettings,
+  });
+}
+
+function selectedPoseCardItems() {
+  if (!stylePreferences.slotIds.size || !customerStyleLibrary) return [];
+  return selectedPoseBrief([]).groups.flatMap((group) => group.slots.map((slot) => ({
+    id: slot.id,
+    code: String(slot.position).padStart(2, "0"),
+    title: group.styleLabel,
+    sceneTitle: slot.asset?.scene === "outdoor" ? "外景" : "内景",
+    styleTitle: slot.displayLabel,
+    thumb: slot.asset?.thumb || "",
+    full: slot.asset?.full || "",
+  }))).filter((item) => item.thumb);
+}
+
+function selectedCardItems(legacyItems = selectedItems()) {
+  return [...selectedPoseCardItems(), ...legacyItems];
+}
+
 function briefSignature(items = selectedItems()) {
-  return JSON.stringify({ ids: items.map((item) => item.id), primaryFavoriteId, ...briefSettings });
+  return JSON.stringify({
+    ids: items.map((item) => item.id),
+    slotIds: [...stylePreferences.slotIds].sort((left, right) => left.localeCompare(right, "en")),
+    primaryFavoriteId,
+    ...briefSettings,
+  });
 }
 
 function hydrateSettingsForm() {
@@ -788,9 +854,9 @@ function updateLikeButton(button, id) {
   button.setAttribute("aria-label", `${selected ? "取消喜欢" : "喜欢"}${itemById.get(id)?.code || "这张照片"}`);
 }
 
-function updateSelectionUi() {
+function updateSelectionUi({ persistLegacyFavorites = false } = {}) {
   ensurePrimaryFavorite();
-  const count = favoriteIds.size;
+  const count = demandCount();
   selectionCount.textContent = String(count);
   navFavoriteCount.textContent = String(count);
   navFavoriteCount.hidden = count === 0;
@@ -800,7 +866,7 @@ function updateSelectionUi() {
   document.body.classList.toggle("has-selection", count > 0);
   document.querySelectorAll("[data-favorite-id]").forEach((button) => updateLikeButton(button, Number(button.dataset.favoriteId)));
   updateViewerLike();
-  localStorage.setItem("nanbo-favorite-photos", JSON.stringify([...favoriteIds]));
+  if (persistLegacyFavorites) localStorage.setItem("nanbo-favorite-photos", JSON.stringify([...favoriteIds]));
 }
 
 function toggleFavorite(id) {
@@ -814,7 +880,7 @@ function toggleFavorite(id) {
   lastCopiedSignature = "";
   resetCopyButton();
   navigator.vibrate?.(wasSelected ? 4 : 8);
-  updateSelectionUi();
+  updateSelectionUi({ persistLegacyFavorites: true });
   showToast(wasSelected ? "已取消喜欢" : `已加入喜欢 · 共 ${favoriteIds.size} 张`);
   const item = itemById.get(id);
   trackProductEvent(wasSelected ? "favorite_remove" : "favorite_add", {
@@ -833,6 +899,45 @@ function setPrimaryFavorite(id) {
   navigator.vibrate?.(8);
   renderSelectionSheet();
   showToast(`${itemById.get(id)?.code || "这张照片"} 已设为首选参考`);
+}
+
+function updateViewerPoseChoice() {
+  const slotId = viewerPoseChoice?.dataset.slotId || "";
+  const style = viewerContext.styleId
+    ? customerStyleLibrary?.styles.find((entry) => entry.id === viewerContext.styleId)
+    : null;
+  const slot = style?.slots.find((entry) => entry.id === slotId);
+  const selected = Boolean(slotId && stylePreferences.slotIds.has(slotId));
+  viewerPoseChoice.classList.toggle("is-selected", selected);
+  viewerPoseChoice.setAttribute("aria-pressed", String(selected));
+  viewerPoseChoice.setAttribute(
+    "aria-label",
+    slot ? `${selected ? "取消" : "选择"}${style.label}的${slot.poseLabel}` : "想拍这个姿势",
+  );
+  viewerPoseChoice.textContent = selected ? "✓ 已选这个姿势" : "想拍这个姿势";
+}
+
+function toggleViewerPoseSelection() {
+  const slotId = viewerPoseChoice?.dataset.slotId || "";
+  const style = viewerContext.styleId
+    ? customerStyleLibrary?.styles.find((entry) => entry.id === viewerContext.styleId)
+    : null;
+  const slot = style?.slots.find((entry) => entry.id === slotId);
+  if (!slot) return;
+  const wasSelected = stylePreferences.slotIds.has(slotId);
+  if (wasSelected) stylePreferences.slotIds.delete(slotId);
+  else stylePreferences.slotIds.add(slotId);
+  persistStylePreferences();
+  refreshDemandUi();
+  navigator.vibrate?.(wasSelected ? 4 : 8);
+  showToast(wasSelected ? "已从拍摄需求移除" : `已加入拍摄需求 · 共 ${stylePreferences.slotIds.size} 个姿势`);
+  trackProductEvent(wasSelected ? "pose_select_remove" : "pose_select_add", {
+    targetId: slot.id,
+    targetLabel: slot.poseLabel,
+    scene: style.scene,
+    styleId: style.id,
+    selectedCount: stylePreferences.slotIds.size,
+  });
 }
 
 function setViewer(index) {
@@ -858,8 +963,9 @@ function setViewer(index) {
   viewerPoseChoice.hidden = !slotId;
   if (slotId) viewerPoseChoice.dataset.slotId = slotId;
   else delete viewerPoseChoice.dataset.slotId;
+  updateViewerPoseChoice();
   updateViewerLike();
-  trackProductEvent("photo_open", { targetId: item.code, targetLabel: item.title, theme: item.theme, scene: item.scene });
+  if (!style) trackProductEvent("photo_open", { targetId: item.code, targetLabel: item.title, theme: item.theme, scene: item.scene });
 }
 
 function updateViewerLike() {
@@ -938,6 +1044,7 @@ async function copyText(text, successMessage) {
 }
 
 function requestText(items = selectedItems()) {
+  if (stylePreferences.slotIds.size) return selectedPoseBrief(items).text;
   const scenes = [...new Set(items.map((item) => item.sceneTitle))];
   const themes = [...new Set(items.map((item) => item.title))];
   const styles = [...new Set(items.map((item) => item.styleTitle))];
@@ -954,6 +1061,66 @@ function requestText(items = selectedItems()) {
   if (briefSettings.note) lines.push(`补充要求：${briefSettings.note}`);
   lines.push("请化妆师与摄影师结合我的个人条件参考。请以本人实际条件与现场沟通为准。");
   return lines.join("\n");
+}
+
+function removePoseSelection(style, slot) {
+  if (!stylePreferences.slotIds.has(slot.id)) return;
+  stylePreferences.slotIds.delete(slot.id);
+  persistStylePreferences();
+  refreshDemandUi();
+  navigator.vibrate?.(4);
+  showToast("已从拍摄需求移除");
+  trackProductEvent("pose_select_remove", {
+    targetId: slot.id,
+    targetLabel: slot.poseLabel,
+    scene: style.scene,
+    styleId: style.id,
+    selectedCount: stylePreferences.slotIds.size,
+  });
+}
+
+function renderSelectedPoseGroups() {
+  const groups = selectedPoseBrief([]).groups;
+  selectedPoseGroups.hidden = groups.length === 0;
+  selectedPoseGroups.replaceChildren(...groups.map((group) => {
+    const style = customerStyleLibrary.styles.find((entry) => entry.id === group.styleId);
+    const section = document.createElement("section");
+    section.className = "pose-selection-group";
+    section.dataset.styleId = group.styleId;
+    const heading = document.createElement("div");
+    heading.className = "selection-edit-hint";
+    const title = document.createElement("strong");
+    title.textContent = group.styleLabel;
+    const count = document.createElement("span");
+    count.textContent = `${group.slots.length} 个想拍姿势`;
+    heading.append(title, count);
+    const list = document.createElement("div");
+    list.className = "selected-list";
+    list.replaceChildren(...group.slots.map((slot) => {
+      const chip = document.createElement("div");
+      chip.className = "selected-chip";
+      const remove = document.createElement("button");
+      remove.className = "selected-chip-select";
+      remove.type = "button";
+      remove.setAttribute("aria-pressed", "true");
+      remove.setAttribute("aria-label", `取消${group.styleLabel}的${slot.displayLabel}`);
+      const image = document.createElement("img");
+      image.src = slot.asset.thumb;
+      image.alt = `${group.styleLabel}·${slot.displayLabel}`;
+      image.draggable = false;
+      const selectedBadge = document.createElement("em");
+      selectedBadge.textContent = "已选";
+      remove.append(image, selectedBadge);
+      remove.addEventListener("click", () => removePoseSelection(style, slot));
+      const label = document.createElement("span");
+      label.className = "selected-chip-label";
+      label.textContent = slot.displayLabel;
+      chip.append(remove, label);
+      return chip;
+    }));
+    section.append(heading, list);
+    return section;
+  }));
 }
 
 function renderSelectedList(items) {
@@ -991,19 +1158,24 @@ function renderSelectedList(items) {
 }
 
 function openSelectionSheet() {
-  if (!favoriteIds.size) return;
+  if (!demandCount()) return;
   hydrateSettingsForm();
   briefSettingsPanel.hidden = true;
   settingsToggle.setAttribute("aria-expanded", "false");
   renderSelectionSheet();
   if (!selectionSheet.open) selectionSheet.showModal();
   document.body.classList.add("dialog-open");
-  trackProductEvent("brief_open", { targetId: String(favoriteIds.size), favoriteCount: favoriteIds.size });
+  trackProductEvent("brief_open", { targetId: String(demandCount()), favoriteCount: favoriteIds.size, poseCount: stylePreferences.slotIds.size });
 }
 
 function openFavoritesOrGuide() {
-  if (favoriteIds.size) {
+  if (demandCount()) {
     openSelectionSheet();
+    return;
+  }
+  if (stylePreferences.styleIds.size) {
+    showToast("已收藏的风格会保留；再选具体姿势就能生成需求");
+    document.querySelector("#styles").scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
   showToast("先点照片右上角的爱心，再生成图文需求");
@@ -1017,14 +1189,19 @@ function closeSelectionSheet() {
 
 function renderSelectionSheet() {
   const items = selectedItems();
-  if (!items.length) {
+  if (!items.length && !stylePreferences.slotIds.size) {
     closeSelectionSheet();
     return;
   }
+  renderSelectedPoseGroups();
+  const showsLegacySubgroup = stylePreferences.slotIds.size > 0 && items.length > 0;
+  legacySelectionHeading.hidden = !showsLegacySubgroup;
+  selectedList.hidden = items.length === 0;
+  selectionEditHint.hidden = items.length === 0;
   renderSelectedList(items);
   selectionSummary.textContent = requestText(items);
   updateCopyButton();
-  generateSelectionCard(items);
+  generateSelectionCard(selectedCardItems(items));
 }
 
 function imageFromUrl(url) {
@@ -1255,10 +1432,10 @@ async function generateSelectionCard(items) {
 
 async function copyImageAndText() {
   const items = selectedItems();
-  if (!items.length) return;
+  if (!items.length && !stylePreferences.slotIds.size) return;
   if (lastCopiedSignature === briefSignature(items)) return;
   const text = requestText(items);
-  const blob = selectionCardBlob || await generateSelectionCard(items);
+  const blob = selectionCardBlob || await generateSelectionCard(selectedCardItems(items));
 
   if (blob && navigator.clipboard?.write && window.ClipboardItem) {
     try {
@@ -1272,7 +1449,7 @@ async function copyImageAndText() {
       updateCopyButton();
       navigator.vibrate?.(10);
       showToast("图片和文字已复制，回企业微信粘贴即可");
-      trackProductEvent("brief_copy", { targetId: String(items.length), favoriteCount: items.length });
+      trackProductEvent("brief_copy", { targetId: String(demandCount()), favoriteCount: items.length, poseCount: stylePreferences.slotIds.size });
       return;
     } catch {
       // 企业微信内置浏览器可能限制图片剪贴板，下面自动复制文字。
@@ -1285,7 +1462,7 @@ async function copyImageAndText() {
   copyRequest.classList.add("is-success");
   copyRequest.textContent = "✓ 文字已复制，请长按保存需求图";
   showToast("文字已复制；长按上方需求图保存后一起发送");
-  trackProductEvent("brief_copy", { targetId: String(items.length), favoriteCount: items.length });
+  trackProductEvent("brief_copy", { targetId: String(demandCount()), favoriteCount: items.length, poseCount: stylePreferences.slotIds.size });
 }
 
 viewerImage.addEventListener("load", () => {
@@ -1413,6 +1590,7 @@ viewerStage.addEventListener("pointercancel", (event) => finishDrag(event, true)
 viewerClose.addEventListener("click", closeViewer);
 document.querySelector("#viewer-prev").addEventListener("click", () => moveViewer(-1));
 document.querySelector("#viewer-next").addEventListener("click", () => moveViewer(1));
+viewerPoseChoice.addEventListener("click", toggleViewerPoseSelection);
 viewerLike.addEventListener("click", () => toggleFavorite(viewerItems[viewerIndex].id));
 selectionBar.addEventListener("click", openSelectionSheet);
 themeExperienceSelection?.addEventListener("click", openSelectionSheet);
@@ -1447,9 +1625,12 @@ focusInputs.forEach((input) => input.addEventListener("change", scheduleSettings
 copyRequest.addEventListener("click", copyImageAndText);
 document.querySelector("#clear-selection").addEventListener("click", () => {
   favoriteIds.clear();
+  stylePreferences.slotIds.clear();
+  persistStylePreferences();
   lastCopiedSignature = "";
   resetCopyButton();
-  updateSelectionUi();
+  updateSelectionUi({ persistLegacyFavorites: true });
+  styleExplorerController?.syncPreferences();
   closeSelectionSheet();
   showToast("已清空，可以重新选择");
 });

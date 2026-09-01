@@ -8,6 +8,11 @@ import test from "node:test";
 
 import { buildStyleLibrary } from "../apps/portfolio-v2/style-library.js";
 import {
+  buildPoseBrief,
+  readStylePreferences,
+  writeStylePreferences,
+} from "../apps/portfolio-v2/style-preferences.js";
+import {
   fixtureAssets,
   fixtureAssignments,
   fixtureStyleCatalog,
@@ -290,7 +295,9 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         const styleViewerFavoriteRoundTrip = favoriteBefore !== favoriteAfter
           && viewerLikeButton?.classList.contains("is-selected") === favoriteBefore;
         viewerPoseChoice?.click();
-        const task8PoseStorageUntouched = localStorage.getItem("nanbo-selected-poses") === null;
+        const viewerPoseSelectionPersisted = JSON.parse(localStorage.getItem("nanbo-selected-poses") || "[]")
+          .includes(styleViewerPoseSlotId);
+        const viewerPoseSelectionPressed = viewerPoseChoice?.getAttribute("aria-pressed") || "";
 
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
         const keyboardNextCount = document.querySelector("#viewer-count")?.textContent.trim() || "";
@@ -485,7 +492,8 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
           viewerControlsAtLeast44,
           viewerInitialFocus,
           styleViewerFavoriteRoundTrip,
-          task8PoseStorageUntouched,
+          viewerPoseSelectionPersisted,
+          viewerPoseSelectionPressed,
           keyboardNextCount,
           keyboardNextSlotId,
           keyboardPreviousCount,
@@ -677,6 +685,177 @@ async function measureDirectAlbumEntry(width = 390) {
   }
 }
 
+async function measurePersistentPreferenceFlow(width = 390) {
+  const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
+  const prelude = `<script>
+    if (!sessionStorage.getItem("preference-fixture-ready")) {
+      localStorage.setItem("nanbo-favorite-photos", "[137]");
+      localStorage.setItem("nanbo-favorite-styles", "[\\"ST-UNKNOWN\\"]");
+      localStorage.setItem("nanbo-selected-poses", "[\\"BAD-P01\\"]");
+      sessionStorage.setItem("preference-fixture-ready", "true");
+    }
+    const nativeStorageGet = Storage.prototype.getItem;
+    const nativeStorageSet = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (this === localStorage && key === "nanbo-favorite-photos") {
+        const count = Number(nativeStorageGet.call(sessionStorage, "legacy-write-count") || "0") + 1;
+        nativeStorageSet.call(sessionStorage, "legacy-write-count", String(count));
+      }
+      return nativeStorageSet.call(this, key, value);
+    };
+    window.addEventListener("nanbo:analytics", (event) => {
+      const events = JSON.parse(sessionStorage.getItem("preference-events") || "[]");
+      events.push(event.detail.type);
+      sessionStorage.setItem("preference-events", JSON.stringify(events));
+    });
+  </script>`;
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    window.addEventListener("load", () => window.setTimeout(async () => {
+      const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      const phase = sessionStorage.getItem("preference-phase") || "select";
+      if (phase === "select") {
+        const firstCard = document.querySelector("#style-card-grid .portrait-style-card");
+        const styleId = firstCard?.dataset.styleId || "";
+        const styleFavorite = firstCard?.querySelector(".portrait-style-like");
+        styleFavorite?.dispatchEvent(new PointerEvent("pointerdown", {
+          bubbles: true, pointerId: 91, pointerType: "touch", isPrimary: true,
+        }));
+        const pressedClass = styleFavorite?.classList.contains("is-pressing") || false;
+        const pressedTransform = styleFavorite ? getComputedStyle(styleFavorite).transform : "";
+        styleFavorite?.dispatchEvent(new PointerEvent("pointerup", {
+          bubbles: true, pointerId: 91, pointerType: "touch", isPrimary: true,
+        }));
+        styleFavorite?.click();
+        const favoriteDidNotOpenAlbum = document.querySelector("#style-explorer")?.dataset.view === "styles";
+        firstCard?.querySelector(".portrait-style-card-open")?.click();
+        await wait(60);
+        const poseCard = document.querySelectorAll("#style-album-grid .pose-card")[2];
+        const slotId = poseCard?.dataset.slotId || "";
+        poseCard?.querySelector(".pose-choice")?.click();
+        poseCard?.querySelector(".pose-open")?.click();
+        await wait(60);
+        sessionStorage.setItem("preference-first-pass", JSON.stringify({
+          styleId,
+          slotId,
+          pressedClass,
+          pressedTransform,
+          favoriteDidNotOpenAlbum,
+        }));
+        sessionStorage.setItem("preference-phase", "verify");
+        location.reload();
+        return;
+      }
+
+      const firstPass = JSON.parse(sessionStorage.getItem("preference-first-pass") || "{}");
+      const album = document.querySelector("#style-album");
+      const poseCard = document.querySelector('[data-slot-id="' + firstPass.slotId + '"]');
+      const albumPoseChoice = poseCard?.querySelector(".pose-choice");
+      const persistedPosePressed = albumPoseChoice?.getAttribute("aria-pressed") || "";
+      const persistedPoseLabel = albumPoseChoice?.getAttribute("aria-label") || "";
+      const poseChoiceHeight = albumPoseChoice?.getBoundingClientRect().height || 0;
+      poseCard?.querySelector(".pose-open")?.click();
+      await wait(70);
+      const viewerPoseChoice = document.querySelector("#viewer-pose-choice");
+      const viewerInitiallyPressed = viewerPoseChoice?.getAttribute("aria-pressed") || "";
+      const viewerInitialLabel = viewerPoseChoice?.getAttribute("aria-label") || "";
+      viewerPoseChoice?.click();
+      const viewerRemovedPressed = viewerPoseChoice?.getAttribute("aria-pressed") || "";
+      const albumRemovedPressed = albumPoseChoice?.getAttribute("aria-pressed") || "";
+      viewerPoseChoice?.click();
+      const viewerRestoredPressed = viewerPoseChoice?.getAttribute("aria-pressed") || "";
+      document.querySelector("#viewer-close")?.click();
+      await wait(140);
+      const albumRestoredPressed = albumPoseChoice?.getAttribute("aria-pressed") || "";
+      document.querySelector("#style-album-close")?.click();
+      await wait(160);
+
+      const restoredStyleFavorite = document.querySelector('[data-style-id="' + firstPass.styleId + '"] .portrait-style-like');
+      const styleFavoriteHeight = restoredStyleFavorite?.getBoundingClientRect().height || 0;
+      const styleFavoritePressed = restoredStyleFavorite?.getAttribute("aria-pressed") || "";
+      const styleFavoriteLabel = restoredStyleFavorite?.getAttribute("aria-label") || "";
+      restoredStyleFavorite?.click();
+      const styleFavoriteRemovedPressed = restoredStyleFavorite?.getAttribute("aria-pressed") || "";
+      restoredStyleFavorite?.click();
+      const styleFavoriteRestoredPressed = restoredStyleFavorite?.getAttribute("aria-pressed") || "";
+      document.querySelector("#selection-bar")?.click();
+      await wait(120);
+      const poseGroups = document.querySelector("#selected-pose-groups");
+      const legacyHeading = document.querySelector("#legacy-selection-heading");
+      const poseGroup = poseGroups?.querySelector("[data-style-id]");
+      const poseGroupBeforeLegacy = Boolean(poseGroups && legacyHeading
+        && (poseGroups.compareDocumentPosition(legacyHeading) & Node.DOCUMENT_POSITION_FOLLOWING));
+      const summary = document.querySelector("#selection-summary")?.textContent || "";
+      const copyButton = document.querySelector("#copy-request");
+      copyButton?.click();
+      await wait(240);
+      const events = JSON.parse(sessionStorage.getItem("preference-events") || "[]");
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
+        ...firstPass,
+        legacyStorage: localStorage.getItem("nanbo-favorite-photos"),
+        legacyWriteCount: Number(sessionStorage.getItem("legacy-write-count") || "0"),
+        styleStorage: localStorage.getItem("nanbo-favorite-styles"),
+        poseStorage: localStorage.getItem("nanbo-selected-poses"),
+        persistedPosePressed,
+        persistedPoseLabel,
+        poseChoiceHeight,
+        viewerInitiallyPressed,
+        viewerInitialLabel,
+        viewerRemovedPressed,
+        albumRemovedPressed,
+        viewerRestoredPressed,
+        albumRestoredPressed,
+        styleFavoriteHeight,
+        styleFavoritePressed,
+        styleFavoriteLabel,
+        styleFavoriteRemovedPressed,
+        styleFavoriteRestoredPressed,
+        selectionCount: document.querySelector("#selection-count")?.textContent || "",
+        poseGroupBeforeLegacy,
+        poseGroupStyleId: poseGroup?.dataset.styleId || "",
+        poseGroupText: poseGroup?.textContent.replace(/\\s+/g, " ").trim() || "",
+        legacyHeadingText: legacyHeading?.textContent.trim() || "",
+        summary,
+        selectionWechatHref: document.querySelector("#selection-wechat")?.getAttribute("href") || "",
+        selectionPhoneHref: document.querySelector("#selection-phone")?.getAttribute("href") || "",
+        copyButtonText: copyButton?.textContent || "",
+        events,
+        albumStillPresent: Boolean(album),
+      });
+    }, 260));
+  </script>`;
+  const appScript = '<script type="module" src="app.js?v=__NBO_BUILD_VERSION__"></script>';
+  const page = sourceHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace(appScript, `${prelude}${appScript}`)
+    .replace("</body>", `${probe}</body>`);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      const asset = await readFile(new URL(`../apps${url.pathname}`, import.meta.url));
+      response.writeHead(200, { "Content-Type": contentType(url.pathname) });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(`http://127.0.0.1:${port}/portfolio-v2/index.html?v=preferences`, width);
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 async function loadExplorerModel(loadModule = () => import(explorerModelUrl)) {
   try {
     return await loadModule();
@@ -693,13 +872,128 @@ async function loadExplorerModel(loadModule = () => import(explorerModelUrl)) {
 
 const explorer = await loadExplorerModel();
 
-function libraryFixture() {
+function libraryFixture(assignmentOptions) {
   return buildStyleLibrary({
     catalog: fixtureStyleCatalog(),
-    assignments: fixtureAssignments(),
+    assignments: fixtureAssignments(assignmentOptions),
     assets: fixtureAssets(),
   });
 }
+
+function memoryStorage(initial = {}) {
+  const values = new Map(Object.entries(initial));
+  return {
+    getItem: (key) => values.has(key) ? values.get(key) : null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key),
+  };
+}
+
+test("pose selections group by style without clearing legacy photo favorites", () => {
+  const storage = memoryStorage({ "nanbo-favorite-photos": "[137]" });
+  const library = libraryFixture();
+  const preferences = readStylePreferences(storage, library);
+
+  preferences.styleIds.add("ST-IN-01-01");
+  preferences.slotIds.add("ST-IN-01-01-P03");
+  writeStylePreferences(storage, preferences);
+
+  assert.equal(storage.getItem("nanbo-favorite-photos"), "[137]");
+  assert.equal(storage.getItem("nanbo-favorite-styles"), '["ST-IN-01-01"]');
+  assert.equal(storage.getItem("nanbo-selected-poses"), '["ST-IN-01-01-P03"]');
+
+  const brief = buildPoseBrief({
+    slotIds: preferences.slotIds,
+    library,
+    legacyFavoriteAssets: [137],
+    settings: {},
+  });
+  assert.equal(brief.groups[0].styleId, "ST-IN-01-01");
+  assert.match(brief.text, /indoor 风格 1-1.*第 3 个拍摄参考/s);
+});
+
+test("preferences filter unknown ids and pose briefs keep reviewed labels in stable position order", () => {
+  const baseSlots = fixtureAssignments().assignments["ST-IN-01-01"].slots;
+  const firstSlots = structuredClone(baseSlots);
+  firstSlots[1].poseLabel = "倚墙站姿";
+  const library = libraryFixture({ firstSlots });
+  const storage = memoryStorage({
+    "nanbo-favorite-photos": "[137]",
+    "nanbo-favorite-styles": '["ST-UNKNOWN","ST-OUT-01-01"]',
+    "nanbo-selected-poses": '["ST-OUT-01-01-P03","ST-IN-01-01-P07","BAD-P01","ST-IN-01-01-P02"]',
+  });
+
+  const preferences = readStylePreferences(storage, library);
+  assert.deepEqual([...preferences.styleIds], ["ST-OUT-01-01"]);
+  assert.deepEqual([...preferences.slotIds], ["ST-OUT-01-01-P03", "ST-IN-01-01-P07", "ST-IN-01-01-P02"]);
+
+  writeStylePreferences(storage, preferences);
+  assert.equal(storage.getItem("nanbo-favorite-photos"), "[137]");
+  assert.equal(storage.getItem("nanbo-favorite-styles"), '["ST-OUT-01-01"]');
+  assert.equal(storage.getItem("nanbo-selected-poses"), '["ST-IN-01-01-P02","ST-IN-01-01-P07","ST-OUT-01-01-P03"]');
+
+  const brief = buildPoseBrief({
+    slotIds: preferences.slotIds,
+    library,
+    legacyFavoriteAssets: [137],
+    settings: { name: "不应进入需求", focus: ["不应进入需求"], note: "自然一点" },
+  });
+  assert.deepEqual(brief.groups.map(({ styleId }) => styleId), ["ST-IN-01-01", "ST-OUT-01-01"]);
+  assert.deepEqual(brief.groups[0].slots.map(({ position, displayLabel }) => [position, displayLabel]), [
+    [2, "倚墙站姿"],
+    [7, "第 7 个拍摄参考"],
+  ]);
+  assert.deepEqual(brief.groups[1].slots.map(({ position, displayLabel }) => [position, displayLabel]), [
+    [3, "第 3 个拍摄参考"],
+  ]);
+  assert.match(brief.text, /想拍姿势：倚墙站姿、第 7 个拍摄参考/);
+  assert.match(brief.text, /indoor 风格 1-1[\s\S]*outdoor 风格 1-1/);
+  assert.match(brief.text, /其他喜欢客片：NB-137/);
+  assert.match(brief.text, /补充要求：自然一点/);
+  assert.doesNotMatch(brief.text, /不应进入需求/);
+});
+
+test("style favorites and pose choices persist, stay synchronized, and lead the existing demand sheet", { skip: !hasChrome }, async () => {
+  const metrics = await measurePersistentPreferenceFlow(390);
+
+  assert.equal(metrics.legacyStorage, "[137]", "风格或姿势操作改写了旧客片收藏");
+  assert.equal(metrics.legacyWriteCount, 0, "风格或姿势操作不得调用旧客片收藏写入");
+  assert.equal(metrics.styleStorage, `["${metrics.styleId}"]`, "风格收藏没有过滤无效 ID 并持久化");
+  assert.equal(metrics.poseStorage, `["${metrics.slotId}"]`, "姿势选择没有过滤无效 ID 并持久化");
+  assert.equal(metrics.favoriteDidNotOpenAlbum, true, "收藏爱心误触打开了风格详情");
+  assert.equal(metrics.pressedClass, true, "风格收藏没有在 pointerdown 当帧反馈");
+  assert.notEqual(metrics.pressedTransform, "none", "风格收藏按下无可见反馈");
+  assert.ok(metrics.styleFavoriteHeight >= 44, `风格收藏触控区不足 44px：${metrics.styleFavoriteHeight}px`);
+  assert.ok(metrics.poseChoiceHeight >= 44, `姿势选择触控区不足 44px：${metrics.poseChoiceHeight}px`);
+  assert.equal(metrics.styleFavoritePressed, "true");
+  assert.match(metrics.styleFavoriteLabel, /取消收藏/);
+  assert.equal(metrics.styleFavoriteRemovedPressed, "false");
+  assert.equal(metrics.styleFavoriteRestoredPressed, "true");
+  assert.equal(metrics.persistedPosePressed, "true", "刷新后相册姿势状态丢失");
+  assert.match(metrics.persistedPoseLabel, /取消/);
+  assert.equal(metrics.viewerInitiallyPressed, "true", "viewer 没有同步相册已选状态");
+  assert.match(metrics.viewerInitialLabel, /取消/);
+  assert.equal(metrics.viewerRemovedPressed, "false");
+  assert.equal(metrics.albumRemovedPressed, "false", "viewer 取消后相册入口没有同步");
+  assert.equal(metrics.viewerRestoredPressed, "true");
+  assert.equal(metrics.albumRestoredPressed, "true", "viewer 重新选择后相册入口没有同步");
+  assert.equal(metrics.selectionCount, "2", "需求数应等于 1 个姿势 + 1 张旧客片");
+  assert.equal(metrics.poseGroupBeforeLegacy, true, "需求单没有先列姿势分组");
+  assert.equal(metrics.poseGroupStyleId, metrics.styleId);
+  assert.match(metrics.poseGroupText, /第 3 个拍摄参考/);
+  assert.equal(metrics.legacyHeadingText, "其他喜欢客片");
+  assert.match(metrics.summary, /南铂摄影拍摄需求/);
+  assert.match(metrics.summary, /第 3 个拍摄参考/);
+  assert.match(metrics.summary, /其他喜欢客片：NB-137/);
+  assert.equal(metrics.selectionWechatHref, "https://work.weixin.qq.com/ca/cawcdefa3262730343");
+  assert.equal(metrics.selectionPhoneHref, "tel:17306657880");
+  assert.match(metrics.copyButtonText, /^✓/, "姿势需求文字没有经真实复制流程确认");
+  for (const eventName of ["style_favorite_add", "style_favorite_remove", "pose_select_add", "pose_select_remove", "style_album_open", "style_viewer_open"]) {
+    assert.ok(metrics.events.includes(eventName), `缺少真实交互事件 ${eventName}`);
+  }
+  assert.equal(metrics.events.includes("photo_open"), false, "风格 viewer 被错记为旧客片打开");
+  assert.equal(metrics.events.some((eventName) => /popular|hot/i.test(eventName)), false, "没有真实数据却造了热门事件");
+});
 
 test("explorer bootstrap classifies only its own missing model as a fallback", async (t) => {
   const cases = [
@@ -946,7 +1240,8 @@ test("the reused viewer preserves photo favorites and naturally returns through 
   assert.equal(metrics.styleViewerPoseChoiceVisible, true, "风格 context 中没有显示独立姿势入口");
   assert.equal(metrics.styleViewerPoseSlotId, metrics.albumSlotIds[2]);
   assert.equal(metrics.legacyViewerPoseChoiceHidden, true, "旧图库查看器不应显示风格姿势入口");
-  assert.equal(metrics.task8PoseStorageUntouched, true, "Task 7 不得提前写入 Task 8 的持久姿势选择");
+  assert.equal(metrics.viewerPoseSelectionPersisted, true, "viewer 姿势选择没有写入稳定 slot ID");
+  assert.equal(metrics.viewerPoseSelectionPressed, "true", "viewer 姿势选择没有向读屏更新状态");
   assert.equal(metrics.viewerInitialFocus, "viewer-close", "查看器打开后焦点没有进入关闭控件");
   assert.equal(metrics.viewerControlsAtLeast44, true, "查看器主控件小于 44px");
   assert.ok(metrics.viewerHorizontalOverflow <= 0, `390px 查看器横向溢出 ${metrics.viewerHorizontalOverflow}px`);
@@ -1036,7 +1331,7 @@ test("style controls respond on press, clear stale images on family change, and 
   const metrics = await measureCustomerStyleExplorer(390);
 
   assert.ok(metrics.openHeight >= 44, `整卡按钮触控高度不足：${metrics.openHeight}px`);
-  assert.equal(metrics.styleFavoriteCount, 0, "Task 8 持久化与需求卡接入前，不得展示会刷新丢失的风格收藏爱心");
+  assert.equal(metrics.styleFavoriteCount, 11, "当前风格大类应渲染 11 个真实持久化收藏入口");
   assert.equal(metrics.pressing, true, "pointerdown 当帧没有标记按下状态");
   assert.notEqual(metrics.pressedTransform, "none", "按下状态没有可见反馈");
   assert.ok(metrics.transitionDurations.some((duration) => duration >= .16 && duration <= .22), `非手势反馈不在 160–220ms：${metrics.transitionDurations}`);

@@ -25,16 +25,42 @@ function libraryFixture() {
   return fixtureStyleCatalog();
 }
 
-test("explorer bootstrap rethrows a missing dependency instead of masking it as the expected missing model", async () => {
-  const dependencyError = Object.assign(new Error("missing dependency"), {
-    code: "ERR_MODULE_NOT_FOUND",
-    url: new URL("./missing-style-explorer-dependency.js", import.meta.url).href,
-  });
+test("explorer bootstrap classifies only its own missing model as a fallback", async (t) => {
+  const cases = [
+    {
+      name: "uses fallback for its own missing model",
+      error: Object.assign(new Error("missing explorer model"), {
+        code: "ERR_MODULE_NOT_FOUND",
+        url: explorerModelUrl,
+      }),
+      fallback: true,
+    },
+    {
+      name: "rethrows a missing dependency with the same error object",
+      error: Object.assign(new Error("missing dependency"), {
+        code: "ERR_MODULE_NOT_FOUND",
+        url: new URL("./missing-style-explorer-dependency.js", import.meta.url).href,
+      }),
+    },
+    { name: "rethrows a syntax error with the same error object", error: new SyntaxError("invalid module syntax") },
+    { name: "rethrows a top-level runtime error with the same error object", error: new Error("module initialization failed") },
+  ];
 
-  await assert.rejects(
-    () => loadExplorerModel(async () => { throw dependencyError; }),
-    (error) => error === dependencyError,
-  );
+  for (const entry of cases) {
+    await t.test(entry.name, async () => {
+      if (entry.fallback) {
+        const fallback = await loadExplorerModel(async () => { throw entry.error; });
+        assert.deepEqual(fallback.createExplorerState(), {});
+        assert.deepEqual(fallback.reduceExplorer(), {});
+        assert.equal(fallback.serializeExplorerLocation().toString(), "");
+        return;
+      }
+      await assert.rejects(
+        () => loadExplorerModel(async () => { throw entry.error; }),
+        (error) => error === entry.error,
+      );
+    });
+  }
 });
 
 test("explorer narrows 132 styles to one eleven-style family and restores return state", () => {

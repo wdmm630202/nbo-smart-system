@@ -449,7 +449,17 @@ export function validateChangedPhotoBundles(sourceFiles) {
       errors.push(`无法识别客片改动 ${path}`);
       continue;
     }
-    const id = Number(match[2]);
+    let id;
+    try {
+      id = assertPublicAssetCode(`NB-${match[2]}`);
+    } catch {
+      const numericId = Number(match[2]);
+      const expectedName = Number.isSafeInteger(numericId) && numericId > 0
+        ? slotFilename(numericId)
+        : "photo-001";
+      errors.push(`客片编号必须使用规范文件名 ${expectedName}：${path}`);
+      continue;
+    }
     if (!bySlot.has(id)) bySlot.set(id, new Set());
     bySlot.get(id).add(match[1]);
   }

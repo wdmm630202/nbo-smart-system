@@ -10,12 +10,11 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 
 import {
   buildPortfolioItems,
-  emptyPortfolioAdditions,
   normalizePortfolioAdditions,
   portfolioCatalog,
 } from "../apps/portfolio-v2/catalog.js";
@@ -36,6 +35,13 @@ const uploadLimit = 50 * 1024 * 1024;
 const allowedImageCodecs = new Set(["mjpeg", "jpeg", "png", "webp"]);
 const mutableStyleVisibilities = new Set(["published", "hidden"]);
 const validMaturities = new Set(["reference", "updating", "complete"]);
+const lockHeartbeatMs = 1_000;
+const lockStaleMs = 15_000;
+const lockWaitTimeoutMs = 30_000;
+
+function delay(milliseconds) {
+  return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
+}
 
 function timestampName(date = new Date()) {
   return date.toISOString().replace(/[:.]/g, "-");
@@ -99,18 +105,15 @@ function publicAsset(id, photo) {
 }
 
 function buildAssets(additions) {
-  const legacy = buildPortfolioItems(portfolioCatalog, emptyPortfolioAdditions)
+  const assets = buildPortfolioItems(portfolioCatalog, additions)
     .map((photo) => publicAsset(photo.id, photo));
-  const additionsById = new Map(additions.photos.map((photo) => [photo.id, photo]));
-  const added = additions.photos.map((photo) => publicAsset(photo.id, photo));
-  const assets = [...legacy, ...added];
   const assetById = Object.fromEntries(assets.map((asset) => [asset.id, asset]));
   return {
     assets,
     assetById,
     assetIds: [...new Set([
       ...Array.from({ length: portfolioCatalog.photoCount }, (_, index) => index + 1),
-      ...additionsById.keys(),
+      ...additions.photos.map(({ id }) => id),
     ])].sort((left, right) => left - right),
   };
 }
@@ -133,13 +136,175 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   for (const [label, value] of Object.entries({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath })) {
     if (typeof value !== "string" || !value) throw new Error(`${label}路径无效`);
   }
-  const transactionRoot = join(rootDir, ".local/portfolio-style-transactions");
+  const resolvedRootDir = resolve(rootDir);
+  for (const [label, path] of Object.entries({ photoRoot, additionsPath, catalogPath, assignmentsPath })) {
+    const target = resolve(path);
+    if (target !== resolvedRootDir && !target.startsWith(`${resolvedRootDir}${sep}`)) {
+      throw new Error(`${label}路径越界 rootDir`);
+    }
+  }
+  const localStateRoot = join(resolvedRootDir, ".local");
+  const transactionRoot = join(localStateRoot, "portfolio-style-transactions");
+  const storeLockPath = join(localStateRoot, "portfolio-style-store.lock");
+  const lockOwnerPath = join(storeLockPath, "owner.json");
   const allowedManifestPaths = new Set([
     resolve(additionsPath),
     resolve(catalogPath),
     resolve(assignmentsPath),
   ]);
-  let mutationTail = Promise.resolve();
+  let operationTail = Promise.resolve();
+  let activeLockOwner = null;
+
+  async function ownerProcessIsAlive(pid) {
+    if (!Number.isInteger(pid) || pid < 1) return false;
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (error) {
+      return error.code !== "ESRCH";
+    }
+  }
+
+  async function lockSnapshot() {
+    let directoryInfo;
+    try {
+      directoryInfo = await stat(storeLockPath);
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+    let raw = "";
+    let owner = null;
+    try {
+      raw = await readFile(lockOwnerPath, "utf8");
+      owner = JSON.parse(raw);
+    } catch {
+      // A creator may have made the lock directory but not owner.json yet.
+    }
+    const heartbeatTime = Date.parse(owner?.heartbeatAt || owner?.createdAt || "");
+    const age = Number.isFinite(heartbeatTime)
+      ? Date.now() - heartbeatTime
+      : Date.now() - directoryInfo.mtimeMs;
+    const validOwner = owner?.schemaVersion === 1
+      && Number.isInteger(owner.pid)
+      && typeof owner.token === "string"
+      && /^[a-f0-9]{24}$/.test(owner.token)
+      && typeof owner.host === "string";
+    const alive = validOwner && owner.host === hostname()
+      ? await ownerProcessIsAlive(owner.pid)
+      : false;
+    return {
+      age,
+      owner,
+      raw,
+      stale: validOwner ? (!alive || age > lockStaleMs) : age > lockStaleMs,
+    };
+  }
+
+  async function recoverStaleLock() {
+    const snapshot = await lockSnapshot();
+    if (!snapshot || !snapshot.stale) return !snapshot;
+    const quarantine = `${storeLockPath}.stale-${process.pid}-${randomBytes(5).toString("hex")}`;
+    try {
+      await rename(storeLockPath, quarantine);
+    } catch (error) {
+      if (error.code === "ENOENT") return true;
+      throw error;
+    }
+    let movedRaw = "";
+    try {
+      movedRaw = await readFile(join(quarantine, "owner.json"), "utf8");
+    } catch {
+      // Invalid owner data remains stale when the directory itself is old.
+    }
+    if (movedRaw !== snapshot.raw) {
+      try {
+        await rename(quarantine, storeLockPath);
+      } catch (error) {
+        throw new Error(`风格存储锁所有权变化，无法安全恢复：${error.message}`);
+      }
+      return false;
+    }
+    await rm(quarantine, { recursive: true, force: true });
+    return true;
+  }
+
+  async function acquireStoreLock() {
+    await mkdir(localStateRoot, { recursive: true });
+    const deadline = Date.now() + lockWaitTimeoutMs;
+    const token = randomBytes(12).toString("hex");
+    while (true) {
+      try {
+        await mkdir(storeLockPath);
+      } catch (error) {
+        if (error.code !== "EEXIST") throw error;
+        if (await recoverStaleLock()) continue;
+        if (Date.now() >= deadline) throw new Error("等待风格存储锁超时，未强行覆盖正在进行的操作");
+        await delay(15 + Math.floor(Math.random() * 20));
+        continue;
+      }
+
+      const owner = {
+        schemaVersion: 1,
+        pid: process.pid,
+        host: hostname(),
+        token,
+        createdAt: new Date().toISOString(),
+        heartbeatAt: new Date().toISOString(),
+      };
+      try {
+        await writeJsonAtomic(lockOwnerPath, owner);
+      } catch (error) {
+        await rm(storeLockPath, { recursive: true, force: true }).catch(() => {});
+        throw error;
+      }
+      activeLockOwner = owner;
+      let heartbeatWriting = Promise.resolve();
+      const heartbeat = setInterval(() => {
+        heartbeatWriting = heartbeatWriting.then(async () => {
+          const current = await readJson(lockOwnerPath);
+          if (current.token !== token || current.pid !== process.pid) {
+            throw new Error("风格存储锁所有权已变化");
+          }
+          owner.heartbeatAt = new Date().toISOString();
+          await writeJsonAtomic(lockOwnerPath, owner);
+        }).catch(() => {});
+      }, lockHeartbeatMs);
+      heartbeat.unref();
+
+      return async () => {
+        clearInterval(heartbeat);
+        await heartbeatWriting;
+        let current;
+        try {
+          current = await readJson(lockOwnerPath);
+        } catch (error) {
+          activeLockOwner = null;
+          throw new Error(`风格存储锁记录丢失：${error.message}`);
+        }
+        if (current.token !== token || current.pid !== process.pid) {
+          activeLockOwner = null;
+          throw new Error("风格存储锁所有权不匹配，未删除他人锁");
+        }
+        await rm(storeLockPath, { recursive: true, force: true });
+        activeLockOwner = null;
+      };
+    }
+  }
+
+  function enqueueOperation(work) {
+    const execute = async () => {
+      const release = await acquireStoreLock();
+      try {
+        return await work();
+      } finally {
+        await release();
+      }
+    };
+    const result = operationTail.then(execute, execute);
+    operationTail = result.catch(() => {});
+    return result;
+  }
 
   function assertAllowedTarget(path) {
     const target = resolve(path);
@@ -228,6 +393,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   }
 
   async function recoverTransactions() {
+    if (!activeLockOwner) throw new Error("风格事务恢复必须先持有存储锁");
     let entries = [];
     try {
       entries = (await readdir(transactionRoot, { withFileTypes: true }))
@@ -267,6 +433,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   }
 
   async function commitTransaction({ operation, context = {}, outputs }) {
+    if (!activeLockOwner) throw new Error("风格事务提交必须先持有存储锁");
     const token = `${timestampName()}-${randomBytes(5).toString("hex")}`;
     const transactionDir = join(transactionRoot, token);
     const metaPath = join(transactionDir, "meta.json");
@@ -277,6 +444,8 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
       operation,
       status: "preparing",
       createdAt: new Date().toISOString(),
+      ownerPid: activeLockOwner.pid,
+      ownerToken: activeLockOwner.token,
       ...context,
       outputs: prepared,
     };
@@ -313,7 +482,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     }
   }
 
-  async function readState() {
+  async function readStateUnlocked() {
     await recoverTransactions();
     const [rawCatalog, rawAssignments, rawAdditions] = await Promise.all([
       readJson(catalogPath),
@@ -352,7 +521,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
       assets,
       assetById,
       assetIds,
-      assetCount: assetIds.length,
+      assetCount: assets.length,
       families: catalog.families,
       styles,
       slots,
@@ -360,7 +529,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
       counts: {
         styles: styles.length,
         slots: slots.length,
-        assets: assetIds.length,
+        assets: assets.length,
         indoor: styles.filter((style) => style.scene === "indoor").length,
         outdoor: styles.filter((style) => style.scene === "outdoor").length,
         publishedStyles: styles.filter((style) => style.visibility === "published").length,
@@ -397,19 +566,13 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     }
   }
 
-  function enqueueMutation(work) {
-    const result = mutationTail.then(work, work);
-    mutationTail = result.catch(() => {});
-    return result;
-  }
-
   async function replaceSlot(input) {
     requireExactKeys(input, ["slotId", "inputPath", "originalName"], "替换照片位");
     const slotId = requireText(input.slotId, "照片位编号");
     const inputPath = requireText(input.inputPath, "上传文件路径");
     const originalName = requireText(input.originalName, "原始文件名");
-    return enqueueMutation(async () => {
-      const state = await readState();
+    return enqueueOperation(async () => {
+      const state = await readStateUnlocked();
       const slot = state.slotById[slotId];
       if (!slot) throw new Error("照片位不存在");
       const assetId = Math.max(...state.assetIds) + 1;
@@ -467,14 +630,12 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     });
   }
 
-  function hasCompletePreviousAssignment(meta, state, slot) {
+  function hasStructuredPreviousAssignment(meta) {
     const assignment = meta.previousAssignment;
     if (!assignment || Array.isArray(assignment) || typeof assignment !== "object") return false;
     const keys = Object.keys(assignment).sort();
     if (keys.join(",") !== "assetId,poseLabel,source,updatedAt") return false;
     if (!Number.isInteger(meta.previousAssetId) || assignment.assetId !== meta.previousAssetId) return false;
-    const previousAsset = state.assetById[assignment.assetId];
-    if (!previousAsset || previousAsset.scene !== slot.style.scene) return false;
     if (typeof assignment.poseLabel !== "string" || !assignment.poseLabel.trim()) return false;
     if (!new Set(["seed", "upload"]).has(assignment.source)) return false;
     const validUpdatedAt = assignment.updatedAt === null
@@ -482,6 +643,96 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     if (!validUpdatedAt || (assignment.source === "seed" && assignment.updatedAt !== null)) return false;
     return meta.previousLayoutUpdatedAt === null
       || (typeof meta.previousLayoutUpdatedAt === "string" && !Number.isNaN(Date.parse(meta.previousLayoutUpdatedAt)));
+  }
+
+  function hasCompletePreviousAssignment(meta, state, slot) {
+    if (!hasStructuredPreviousAssignment(meta)) return false;
+    const previousAsset = state.assetById[meta.previousAssignment.assetId];
+    return previousAsset?.scene === slot.style.scene;
+  }
+
+  function hasCommittedEnvelope(meta, operation) {
+    return meta?.schemaVersion === 1
+      && meta.operation === operation
+      && meta.status === "committed"
+      && typeof meta.createdAt === "string"
+      && !Number.isNaN(Date.parse(meta.createdAt))
+      && typeof meta.committedAt === "string"
+      && !Number.isNaN(Date.parse(meta.committedAt))
+      && Date.parse(meta.committedAt) >= Date.parse(meta.createdAt)
+      && Number.isInteger(meta.ownerPid)
+      && meta.ownerPid > 0
+      && typeof meta.ownerToken === "string"
+      && /^[a-f0-9]{24}$/.test(meta.ownerToken);
+  }
+
+  function hasExpectedCommittedOutputs(entry, outputs, expected) {
+    if (!Array.isArray(outputs) || outputs.length !== expected.length) return false;
+    const byKey = new Map();
+    try {
+      for (const output of outputs) {
+        assertJournalOutput(output);
+        if (byKey.has(output.key)) return false;
+        byKey.set(output.key, output);
+      }
+    } catch {
+      return false;
+    }
+    return expected.every((specification) => {
+      const output = byKey.get(specification.key);
+      if (!output
+        || output.action !== specification.action
+        || resolve(output.target) !== resolve(specification.target)) return false;
+      if (output.action === "write") {
+        if (typeof output.temporaryPath !== "string" || !output.temporaryPath) return false;
+        return resolve(output.temporaryPath) === resolve(`${output.target}.tmp-style-${entry}`);
+      }
+      return output.temporaryPath === "";
+    });
+  }
+
+  function hasCompleteReplacementRecord(entry, meta) {
+    if (!hasCommittedEnvelope(meta, "replace-slot")
+      || typeof meta.slotId !== "string"
+      || !Number.isInteger(meta.assetId)
+      || meta.assetId <= portfolioCatalog.photoCount
+      || !Number.isInteger(meta.previousAssetId)
+      || meta.previousAssetId < 1
+      || !hasStructuredPreviousAssignment(meta)
+      || typeof meta.originalName !== "string"
+      || !meta.originalName.trim()) return false;
+    const base = slotFilename(meta.assetId);
+    return hasExpectedCommittedOutputs(entry, meta.outputs, [
+      { key: "full", action: "write", target: join(photoRoot, "full", `${base}.jpg`) },
+      { key: "thumb", action: "write", target: join(photoRoot, "thumbs", `${base}.webp`) },
+      { key: "additions", action: "write", target: additionsPath },
+      { key: "assignments", action: "write", target: assignmentsPath },
+    ]);
+  }
+
+  function hasCompleteUndoRecord(entry, meta, source) {
+    if (!hasCommittedEnvelope(meta, "undo-slot")
+      || typeof meta.sourceTransaction !== "string"
+      || !source
+      || !hasCompleteReplacementRecord(meta.sourceTransaction, source.meta)
+      || Date.parse(meta.createdAt) < Date.parse(source.meta.committedAt)
+      || meta.slotId !== source.meta.slotId
+      || meta.assetId !== source.meta.assetId
+      || meta.restoredAssetId !== source.meta.previousAssetId
+      || ![null, meta.assetId].includes(meta.removedAssetId)) return false;
+    const expected = [];
+    if (meta.removedAssetId === meta.assetId) {
+      const base = slotFilename(meta.assetId);
+      expected.push(
+        { key: "full", action: "delete", target: join(photoRoot, "full", `${base}.jpg`) },
+        { key: "thumb", action: "delete", target: join(photoRoot, "thumbs", `${base}.webp`) },
+      );
+    }
+    expected.push(
+      { key: "additions", action: "write", target: additionsPath },
+      { key: "assignments", action: "write", target: assignmentsPath },
+    );
+    return hasExpectedCommittedOutputs(entry, meta.outputs, expected);
   }
 
   async function availableReplacementHistory(slotId, currentAssetId, state, slot) {
@@ -496,24 +747,25 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
       if (error.code === "ENOENT") return null;
       throw error;
     }
-    const consumed = new Set();
     const history = [];
     for (const entry of entries) {
       try {
         const meta = await readJson(join(transactionRoot, entry, "meta.json"));
         if (meta.status !== "committed") continue;
-        if (meta.operation === "undo-slot" && typeof meta.sourceTransaction === "string") {
-          consumed.add(meta.sourceTransaction);
-        }
         history.push({ entry, meta });
       } catch {
         // Match legacy undo: a corrupt newest entry must not hide an older,
         // complete replacement.
       }
     }
+    const byEntry = new Map(history.map((item) => [item.entry, item]));
+    const consumed = new Set(history
+      .filter(({ entry, meta }) => meta.operation === "undo-slot"
+        && hasCompleteUndoRecord(entry, meta, byEntry.get(meta.sourceTransaction)))
+      .map(({ meta }) => meta.sourceTransaction));
     for (const item of history) {
       const { entry, meta } = item;
-      if (meta.operation !== "replace-slot" || meta.slotId !== slotId || consumed.has(entry)) continue;
+      if (!hasCompleteReplacementRecord(entry, meta) || meta.slotId !== slotId || consumed.has(entry)) continue;
       const addition = state.additions.photos.find((photo) => photo.id === meta.assetId);
       if (!Number.isInteger(meta.assetId) || meta.assetId <= portfolioCatalog.photoCount
         || !addition || addition.visibility !== "published" || meta.assetId !== currentAssetId
@@ -533,8 +785,8 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
 
   async function undoSlot(slotIdValue) {
     const slotId = requireText(slotIdValue, "照片位编号");
-    return enqueueMutation(async () => {
-      const state = await readState();
+    return enqueueOperation(async () => {
+      const state = await readStateUnlocked();
       const slot = state.slotById[slotId];
       if (!slot) throw new Error("照片位不存在");
       const history = await availableReplacementHistory(slotId, slot.assetId, state, slot);
@@ -601,8 +853,8 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
       throw new Error("风格布局必须提供 9 个不重复的完整照片位");
     }
     if (!validMaturities.has(input.maturity)) throw new Error("风格成熟度无效");
-    return enqueueMutation(async () => {
-      const state = await readState();
+    return enqueueOperation(async () => {
+      const state = await readStateUnlocked();
       const style = state.styles.find((item) => item.id === styleId);
       if (!style) throw new Error("风格不存在");
       const currentIds = new Set(style.slots.map((slot) => slot.id));
@@ -636,8 +888,8 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     const audience = requireText(input.audience, "适合人群");
     const description = requireText(input.description, "风格说明");
     if (!mutableStyleVisibilities.has(input.visibility)) throw new Error("风格可见性只能是 published 或 hidden");
-    return enqueueMutation(async () => {
-      const state = await readState();
+    return enqueueOperation(async () => {
+      const state = await readStateUnlocked();
       const catalog = clone(state.catalog);
       const index = catalog.styles.findIndex((style) => style.id === styleId);
       if (index < 0) throw new Error("风格不存在");
@@ -662,8 +914,8 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
     requireExactKeys(input, ["slotId", "poseLabel"], "照片位资料");
     const slotId = requireText(input.slotId, "照片位编号");
     const poseLabel = requireText(input.poseLabel, "姿势标签");
-    return enqueueMutation(async () => {
-      const state = await readState();
+    return enqueueOperation(async () => {
+      const state = await readStateUnlocked();
       const slot = state.slotById[slotId];
       if (!slot) throw new Error("照片位不存在");
       const assignments = clone(state.assignments);
@@ -683,7 +935,7 @@ export function createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, c
   }
 
   return {
-    read: readState,
+    read: () => enqueueOperation(readStateUnlocked),
     replaceSlot,
     undoSlot,
     updateLayout,

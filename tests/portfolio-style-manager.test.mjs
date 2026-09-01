@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import {
+  buildPortfolioItems,
+  portfolioCatalog,
+} from "../apps/portfolio-v2/catalog.js";
 import * as photoLib from "../tools/portfolio-photo-lib.mjs";
 
 const styleStoreUrl = new URL("../tools/portfolio-style-store.mjs", import.meta.url);
@@ -75,6 +79,7 @@ async function createStyleStoreFixture(t, options = {}) {
     directory,
     photoRoot,
     rootDir,
+    createStore: () => createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath }),
     store: createPortfolioStyleStore({ rootDir, photoRoot, additionsPath, catalogPath, assignmentsPath }),
     validPhoto,
     wrongRatioPhoto,
@@ -122,6 +127,62 @@ test("changed photo bundles recognize complete four-digit assets", () => {
     "apps/portfolio/assets/photos/full/photo-1000.jpg",
     "apps/portfolio/assets/photos/thumbs/photo-1000.webp",
   ]), { ok: true, errors: [], slots: [1000] });
+});
+
+test("changed photo bundles reject non-canonical leading zeroes", () => {
+  const nonCanonical = photoLib.validateChangedPhotoBundles([
+    "apps/portfolio/assets/photos/full/photo-0001.jpg",
+    "apps/portfolio/assets/photos/thumbs/photo-0001.webp",
+  ]);
+  assert.equal(nonCanonical.ok, false);
+  assert.match(nonCanonical.errors.join("\n"), /规范|编号|photo-001/i);
+  assert.deepEqual(photoLib.validateChangedPhotoBundles([
+    "apps/portfolio/assets/photos/full/photo-001.jpg",
+    "apps/portfolio/assets/photos/thumbs/photo-001.webp",
+  ]), { ok: true, errors: [], slots: [1] });
+});
+
+test("style store exposes only published additions and rejects archived slot references", async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const additions = {
+    schemaVersion: 1,
+    themes: [],
+    photos: [159, 160].map((id) => ({
+      id,
+      scene: "indoor",
+      theme: "business-boss",
+      category: "business",
+      title: `增量客片 ${id}`,
+      styleTitle: "商务",
+      featured: false,
+      visibility: id === 159 ? "published" : "archived",
+      publishedAt: "2026-09-01T00:00:00.000Z",
+    })),
+  };
+  const assignments = JSON.parse(await readFile(fixture.assignmentsPath, "utf8"));
+  assignments.assignments["ST-IN-01-01"].slots[1] = {
+    ...assignments.assignments["ST-IN-01-01"].slots[1],
+    assetId: 159,
+    source: "upload",
+    updatedAt: "2026-09-01T00:00:00.000Z",
+  };
+  await Promise.all([
+    writeFile(fixture.additionsPath, `${JSON.stringify(additions, null, 2)}\n`),
+    writeFile(fixture.assignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
+  ]);
+
+  const state = await fixture.store.read();
+  assert.deepEqual(
+    state.assets.map(({ id }) => id),
+    buildPortfolioItems(portfolioCatalog, additions).map(({ id }) => id),
+  );
+  assert.equal(state.assetCount, 159);
+  assert.equal(state.counts.assets, 159);
+  assert.deepEqual(state.assetIds.slice(-2), [159, 160], "archived IDs remain reserved for future allocation");
+
+  assignments.assignments["ST-IN-01-01"].slots[1].assetId = 160;
+  await writeFile(fixture.assignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`);
+  await assert.rejects(() => fixture.store.read(), /公共资产|160/);
 });
 
 test("replacing a reused slot creates one sanitized asset and changes only that slot", { timeout: 30_000 }, async (t) => {
@@ -213,6 +274,83 @@ test("a mid-commit asset failure rolls back additions, assignments, full, and th
   assert.equal(metas[0].status, "rolled-back");
 });
 
+test("reads on one store serialize behind an active replacement instead of recovering it", { timeout: 60_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  let replacementSettled = false;
+  const replacement = fixture.store.replaceSlot({
+    slotId: "ST-IN-01-01-P01",
+    inputPath: fixture.validPhoto,
+    originalName: "read-race.jpg",
+  }).finally(() => { replacementSettled = true; });
+  const readers = Array.from({ length: 12 }, async () => {
+    let count = 0;
+    while (!replacementSettled && count < 200) {
+      await fixture.store.read();
+      count += 1;
+    }
+    return count;
+  });
+
+  const [result, readCounts] = await Promise.all([replacement, Promise.all(readers)]);
+  const after = await fixture.store.read();
+  assert.ok(readCounts.reduce((sum, count) => sum + count, 0) > 0);
+  assert.equal(after.slotById["ST-IN-01-01-P01"].assetId, result.assetId);
+  assert.equal(after.additions.photos.some(({ id }) => id === result.assetId), true);
+  assert.equal((await stat(join(fixture.photoRoot, `full/photo-${result.assetId}.jpg`))).isFile(), true);
+  assert.equal((await stat(join(fixture.photoRoot, `thumbs/photo-${result.assetId}.webp`))).isFile(), true);
+});
+
+test("two store instances repeatedly allocate distinct assets without losing either slot update", { timeout: 120_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const firstStore = fixture.store;
+  const secondStore = fixture.createStore();
+  const rounds = [
+    ["ST-IN-01-01-P02", "ST-IN-01-02-P02"],
+    ["ST-IN-01-01-P03", "ST-IN-01-02-P03"],
+    ["ST-IN-01-01-P04", "ST-IN-01-02-P04"],
+  ];
+
+  for (const [firstSlotId, secondSlotId] of rounds) {
+    const [first, second] = await Promise.all([
+      firstStore.replaceSlot({ slotId: firstSlotId, inputPath: fixture.validPhoto, originalName: `${firstSlotId}.jpg` }),
+      secondStore.replaceSlot({ slotId: secondSlotId, inputPath: fixture.validPhoto, originalName: `${secondSlotId}.jpg` }),
+    ]);
+    assert.notEqual(first.assetId, second.assetId);
+    const after = await firstStore.read();
+    assert.equal(after.slotById[firstSlotId].assetId, first.assetId);
+    assert.equal(after.slotById[secondSlotId].assetId, second.assetId);
+    assert.equal(after.additions.photos.some(({ id }) => id === first.assetId), true);
+    assert.equal(after.additions.photos.some(({ id }) => id === second.assetId), true);
+  }
+});
+
+test("store lock rejects configured path traversal and recovers a dead owner's stale lock", async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const { createPortfolioStyleStore } = await loadStyleStoreModule();
+  assert.throws(() => createPortfolioStyleStore({
+    rootDir: fixture.rootDir,
+    photoRoot: join(fixture.rootDir, "../outside-photos"),
+    additionsPath: fixture.additionsPath,
+    catalogPath: fixture.catalogPath,
+    assignmentsPath: fixture.assignmentsPath,
+  }), /rootDir|路径|越界/);
+
+  const lockPath = join(fixture.rootDir, ".local/portfolio-style-store.lock");
+  await mkdir(lockPath, { recursive: true });
+  await writeFile(join(lockPath, "owner.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    pid: 999_999_999,
+    host: hostname(),
+    token: "abcdef0123456789abcdef01",
+    createdAt: "2000-01-01T00:00:00.000Z",
+    heartbeatAt: "2000-01-01T00:00:00.000Z",
+  }, null, 2)}\n`);
+
+  const state = await fixture.store.read();
+  assert.equal(state.counts.styles, 132);
+  await assert.rejects(() => stat(lockPath), { code: "ENOENT" });
+});
+
 test("undo skips corrupt newest history and removes an unreferenced copy-on-write asset", { timeout: 30_000 }, async (t) => {
   const fixture = await createStyleStoreFixture(t);
   await fixture.store.replaceSlot({
@@ -264,6 +402,83 @@ test("undo skips a parseable newest history entry with an incomplete prior assig
   const after = await fixture.store.read();
   assert.equal(result.restoredAssetId, 137);
   assert.equal(after.slotById["ST-IN-01-01-P01"].assetId, 137);
+});
+
+test("an incomplete committed undo record cannot consume a valid replacement", { timeout: 30_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  await fixture.store.replaceSlot({
+    slotId: "ST-IN-01-01-P01",
+    inputPath: fixture.validPhoto,
+    originalName: "undo-source.jpg",
+  });
+  const transactionRoot = join(fixture.rootDir, ".local/portfolio-style-transactions");
+  const sourceTransaction = (await readdir(transactionRoot)).find((entry) => !entry.startsWith("zzzz"));
+  assert.ok(sourceTransaction);
+  const incompleteUndo = join(transactionRoot, "zzzz-incomplete-undo");
+  await mkdir(incompleteUndo);
+  await writeFile(join(incompleteUndo, "meta.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    operation: "undo-slot",
+    status: "committed",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    committedAt: "2026-09-01T00:00:01.000Z",
+    sourceTransaction,
+    slotId: "ST-IN-01-01-P01",
+    assetId: 159,
+    restoredAssetId: 137,
+    removedAssetId: 159,
+  }, null, 2)}\n`);
+  const mismatchedName = "zzzz-mismatched-undo";
+  const mismatchedUndo = join(transactionRoot, mismatchedName);
+  await mkdir(mismatchedUndo);
+  await writeFile(join(mismatchedUndo, "meta.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    operation: "undo-slot",
+    status: "committed",
+    createdAt: "2026-09-01T00:00:02.000Z",
+    committedAt: "2026-09-01T00:00:03.000Z",
+    ownerPid: process.pid,
+    ownerToken: "abcdef0123456789abcdef01",
+    sourceTransaction,
+    slotId: "ST-IN-01-01-P01",
+    assetId: 159,
+    restoredAssetId: 42,
+    removedAssetId: 159,
+    outputs: [
+      {
+        key: "full",
+        action: "delete",
+        beforeKind: "file",
+        target: join(fixture.photoRoot, "full/photo-159.jpg"),
+        temporaryPath: "",
+      },
+      {
+        key: "thumb",
+        action: "delete",
+        beforeKind: "file",
+        target: join(fixture.photoRoot, "thumbs/photo-159.webp"),
+        temporaryPath: "",
+      },
+      {
+        key: "additions",
+        action: "write",
+        beforeKind: "file",
+        target: fixture.additionsPath,
+        temporaryPath: `${fixture.additionsPath}.tmp-style-${mismatchedName}`,
+      },
+      {
+        key: "assignments",
+        action: "write",
+        beforeKind: "file",
+        target: fixture.assignmentsPath,
+        temporaryPath: `${fixture.assignmentsPath}.tmp-style-${mismatchedName}`,
+      },
+    ],
+  }, null, 2)}\n`);
+
+  const result = await fixture.store.undoSlot("ST-IN-01-01-P01");
+  assert.equal(result.restoredAssetId, 137);
+  assert.equal((await fixture.store.read()).slotById["ST-IN-01-01-P01"].assetId, 137);
 });
 
 test("undo never treats a legacy NB-001 through NB-158 asset as removable copy-on-write data", async (t) => {

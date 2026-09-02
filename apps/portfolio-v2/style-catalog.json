@@ -67,8 +67,8 @@
     {
       "id": "OUT-04",
       "scene": "outdoor",
-      "label": "机车酷感",
-      "description": "侧重金属、结构与行动感，呈现果断的外景人物气质",
+      "label": "都市硬朗",
+      "description": "以机车、工业建筑与利落城市结构，呈现果断的外景人物气质",
       "order": 4
     },
     {
@@ -397,9 +397,9 @@
       "id": "ST-IN-03-03",
       "familyId": "IN-03",
       "scene": "indoor",
-      "label": "美式少年",
-      "audience": "偏好明快、自然少年感的男生",
-      "description": "强调轻松笑意和利落状态，传达有活力的个人印象",
+      "label": "金色少年",
+      "audience": "偏好明快金色光影与自然少年感的男士",
+      "description": "以金色光影和轻松表情传达有活力的个人印象，灯光方向拍摄前确认。",
       "legacyThemeIds": [],
       "order": 3,
       "visibility": "published"
@@ -482,9 +482,9 @@
       "id": "ST-IN-03-10",
       "familyId": "IN-03",
       "scene": "indoor",
-      "label": "苹果主题",
-      "audience": "喜欢简洁趣味与轻松表达的男生",
-      "description": "以苹果道具形成明快视觉焦点，苹果道具与可用布景需拍摄前确认。",
+      "label": "水影特写",
+      "audience": "喜欢水影层次与安静人物特写的男士",
+      "description": "以水影、反光和面部特写组织画面，可用布景与光线拍摄前确认。",
       "legacyThemeIds": [],
       "order": 10,
       "visibility": "published"
@@ -704,9 +704,9 @@
       "id": "ST-IN-05-06",
       "familyId": "IN-05",
       "scene": "indoor",
-      "label": "民国男主",
-      "audience": "喜欢年代感与斯文人物气质的男士",
-      "description": "以民国风服装轮廓和安静视线形成年代感，具体造型需拍摄前确认。",
+      "label": "红幕男主",
+      "audience": "喜欢红色电影光感与利落人物状态的男士",
+      "description": "以红色背景和清晰人物轮廓形成电影感，具体布光拍摄前确认。",
       "legacyThemeIds": [
         "retro-hk"
       ],
@@ -728,9 +728,9 @@
       "id": "ST-IN-05-08",
       "familyId": "IN-05",
       "scene": "indoor",
-      "label": "新中公子",
-      "audience": "想尝试现代东方气质的年轻男士",
-      "description": "以新中式服装与含蓄神情结合，表达轻盈有分寸感；搭配需拍摄前确认。",
+      "label": "暗黑公子",
+      "audience": "偏好暗调、克制和神秘人物气质的男士",
+      "description": "以暗色背景和集中光线突出人物状态，灯光方向拍摄前确认。",
       "legacyThemeIds": [],
       "order": 8,
       "visibility": "published"
@@ -739,9 +739,9 @@
       "id": "ST-IN-05-09",
       "familyId": "IN-05",
       "scene": "indoor",
-      "label": "长衫先生",
-      "audience": "喜欢传统轮廓与书卷气质的男士",
-      "description": "以长衫轮廓和安定姿态呈现书卷气质，服装资源需拍摄前确认。",
+      "label": "复古书房",
+      "audience": "喜欢安静书卷感与复古室内叙事的男士",
+      "description": "以复古室内陈设和自然坐姿呈现书房氛围，场景资源拍摄前确认。",
       "legacyThemeIds": [],
       "order": 9,
       "visibility": "published"
@@ -891,9 +891,9 @@
       "id": "ST-IN-06-10",
       "familyId": "IN-06",
       "scene": "indoor",
-      "label": "圣诞主题",
-      "audience": "喜欢冬日节庆氛围的男生",
-      "description": "以圣诞节庆元素组织轻松情绪，布景、道具与档期需拍摄前确认。",
+      "label": "冬日节庆",
+      "audience": "希望记录冬日氛围或节庆纪念感的男士",
+      "description": "以冬日服装和节庆色彩组织画面，具体布景与服装拍摄前确认。",
       "legacyThemeIds": [
         "celebration"
       ],
@@ -1008,9 +1008,9 @@
       "id": "ST-OUT-01-08",
       "familyId": "OUT-01",
       "scene": "outdoor",
-      "label": "涂鸦街区",
-      "audience": "喜欢明快色彩与个性背景关系的男生",
-      "description": "以涂鸦街区的环境色彩增强节奏，实际场地与拍摄许可需拍摄前确认。",
+      "label": "绿意街拍",
+      "audience": "喜欢清爽绿意与自然街拍状态的男士",
+      "description": "以绿意背景和自然动作形成轻快街拍感，实际场地拍摄前确认。",
       "legacyThemeIds": [
         "city-street"
       ],
@@ -1060,9 +1060,9 @@
       "id": "ST-OUT-02-01",
       "familyId": "OUT-02",
       "scene": "outdoor",
-      "label": "霓虹夜景",
-      "audience": "喜欢城市灯光与未来感氛围的男生",
-      "description": "以霓虹光色映衬人物轮廓，实际夜景地点与灯光条件需拍摄前确认。",
+      "label": "金色逆光夜景",
+      "audience": "喜欢暖金灯光与夜间轮廓感的男士",
+      "description": "以金色逆光勾勒人物轮廓，实际夜景地点与灯光条件拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1086,9 +1086,9 @@
       "id": "ST-OUT-02-03",
       "familyId": "OUT-02",
       "scene": "outdoor",
-      "label": "天台夜景",
-      "audience": "偏好开阔感与独处气质的男生",
-      "description": "以天台的开阔层次和沉静视线表达夜晚从容，场地与拍摄许可需拍摄前确认。",
+      "label": "雨幕街景",
+      "audience": "喜欢雨天层次与安静电影感的男士",
+      "description": "以雨幕、伞面和人物侧影建立街景氛围，天气与安全条件拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1151,9 +1151,9 @@
       "id": "ST-OUT-02-08",
       "familyId": "OUT-02",
       "scene": "outdoor",
-      "label": "夜市烟火",
-      "audience": "喜欢人间烟火与生活感夜景的男生",
-      "description": "以夜市环境光和人间烟火衬托人物状态，实际环境与拍摄条件需拍摄前确认。",
+      "label": "城市灯火",
+      "audience": "喜欢夜间灯火与城市背景关系的男士",
+      "description": "以城市灯火和浅景深组织夜间画面，实际环境与灯光拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1164,9 +1164,9 @@
       "id": "ST-OUT-02-09",
       "familyId": "OUT-02",
       "scene": "outdoor",
-      "label": "车灯电影",
-      "audience": "偏好流动光线与故事感的男士",
-      "description": "以车灯在夜间形成流动光线和时间感，车辆与拍摄位置需拍摄前确认。",
+      "label": "夜色光斑",
+      "audience": "偏好夜色光斑和电影层次的男士",
+      "description": "以夜间光斑衬托人物轮廓，灯光与街景条件拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1177,9 +1177,9 @@
       "id": "ST-OUT-02-10",
       "familyId": "OUT-02",
       "scene": "outdoor",
-      "label": "酒吧微醺",
-      "audience": "想表达成熟放松夜生活气质的男士",
-      "description": "以酒吧式低饱和光线呈现成熟松弛感，具体场地与灯光条件需拍摄前确认。",
+      "label": "机车夜巷",
+      "audience": "喜欢机车、暗巷与硬朗夜景状态的男士",
+      "description": "以机车和巷道结构形成夜间叙事，车辆与场地拍摄前确认。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1227,9 +1227,9 @@
       "id": "ST-OUT-03-03",
       "familyId": "OUT-03",
       "scene": "outdoor",
-      "label": "海洋馆景",
-      "audience": "喜欢蓝色氛围与观察感画面的男生",
-      "description": "用通透色彩关系烘托人物，具体场地需以实际条件确认",
+      "label": "蓝调海岸",
+      "audience": "喜欢蓝色海岸与开阔画面的男士",
+      "description": "以蓝调天空、水岸栏杆和风感组织画面，具体水岸地点拍摄前确认。",
       "legacyThemeIds": [],
       "order": 3,
       "visibility": "published"
@@ -1277,9 +1277,9 @@
       "id": "ST-OUT-03-07",
       "familyId": "OUT-03",
       "scene": "outdoor",
-      "label": "溪边少年",
-      "audience": "喜欢清凉自然和轻快人物感的男生",
-      "description": "以环境纹理衬托人物状态，具体水边条件以现场为准",
+      "label": "林间少年",
+      "audience": "喜欢林地绿意和安静人物状态的男士",
+      "description": "以林间层次衬托人物轮廓，实际绿地与天气条件以现场为准。",
       "legacyThemeIds": [
         "forest"
       ],
@@ -1290,9 +1290,9 @@
       "id": "ST-OUT-03-08",
       "familyId": "OUT-03",
       "scene": "outdoor",
-      "label": "麦田暖阳",
-      "audience": "偏好温暖季节感和松弛画面的男生",
-      "description": "用金色调性表达舒展心情，不承诺特定作物或季节场地",
+      "label": "草地暖阳",
+      "audience": "喜欢草地绿意与温暖日常感的男士",
+      "description": "以草地背景和柔和暖光记录自然状态，天气与场地拍摄前确认。",
       "legacyThemeIds": [],
       "order": 8,
       "visibility": "published"
@@ -1301,9 +1301,9 @@
       "id": "ST-OUT-03-09",
       "familyId": "OUT-03",
       "scene": "outdoor",
-      "label": "芦苇秋日",
-      "audience": "喜欢安静秋意与柔和人物气质的男生",
-      "description": "以轻盈层次衬托神情，实际环境与季节需结合可用资源",
+      "label": "荒野秋日",
+      "audience": "偏好秋日层次与旷野电影感的男士",
+      "description": "以秋日服装和自然背景表达安静旅人气质，季节与场地需结合实际。",
       "legacyThemeIds": [],
       "order": 9,
       "visibility": "published"
@@ -1312,9 +1312,9 @@
       "id": "ST-OUT-03-10",
       "familyId": "OUT-03",
       "scene": "outdoor",
-      "label": "雪景少年",
-      "audience": "想尝试清冷、纯净季节氛围的男生",
-      "description": "以明亮留白突出人物状态，需根据真实天气与场地安排",
+      "label": "雨幕少年",
+      "audience": "喜欢雨天层次与清冷人物气质的男士",
+      "description": "以雨幕、伞面和低饱和环境突出人物，天气与安全条件需根据现场安排。",
       "legacyThemeIds": [],
       "order": 10,
       "visibility": "published"
@@ -1323,9 +1323,9 @@
       "id": "ST-OUT-03-11",
       "familyId": "OUT-03",
       "scene": "outdoor",
-      "label": "花海少年",
-      "audience": "喜欢明快色彩和温柔人物表达的男生",
-      "description": "用自然色彩关系增强画面心情，不保证特定花期与花海",
+      "label": "花树少年",
+      "audience": "喜欢花树色彩与清新少年感的男士",
+      "description": "以花树和自然光形成明快画面，花期与可用场地不作固定保证。",
       "legacyThemeIds": [],
       "order": 11,
       "visibility": "published"
@@ -1373,9 +1373,9 @@
       "id": "ST-OUT-04-04",
       "familyId": "OUT-04",
       "scene": "outdoor",
-      "label": "车库冷感",
-      "audience": "喜欢工业感和冷静人物氛围的男生",
-      "description": "以车库的简洁结构衬托人物轮廓，具体拍摄环境需事先确认。",
+      "label": "黑白机车",
+      "audience": "喜欢黑白影调与机车结构感的男士",
+      "description": "以黑白影调、机车和巷道线条形成利落画面，车辆与场地拍摄前确认。",
       "legacyThemeIds": [
         "moto"
       ],
@@ -1397,9 +1397,9 @@
       "id": "ST-OUT-04-06",
       "familyId": "OUT-04",
       "scene": "outdoor",
-      "label": "厂房型男",
-      "audience": "喜欢粗粝质感与成熟形象的男士",
-      "description": "以厂房环境纹理增强人物气场，实际可用场地需拍摄前确认。",
+      "label": "工业建筑",
+      "audience": "喜欢金属网格与工业建筑秩序的男士",
+      "description": "以工业建筑线条衬托人物比例，场地许可与开放情况拍摄前确认。",
       "legacyThemeIds": [],
       "order": 6,
       "visibility": "published"
@@ -1408,9 +1408,9 @@
       "id": "ST-OUT-04-07",
       "familyId": "OUT-04",
       "scene": "outdoor",
-      "label": "水泥工业",
-      "audience": "偏好极简粗粝视觉风格的男生",
-      "description": "以水泥质感和灰阶结构突出人物比例，实际场地条件需拍摄前确认。",
+      "label": "白墙建筑",
+      "audience": "喜欢白色建筑与清晰空间秩序的男士",
+      "description": "以白墙曲线和建筑留白衬托人物，场地许可与开放情况拍摄前确认。",
       "legacyThemeIds": [],
       "order": 7,
       "visibility": "published"
@@ -1419,9 +1419,9 @@
       "id": "ST-OUT-04-08",
       "familyId": "OUT-04",
       "scene": "outdoor",
-      "label": "隧道冷调",
-      "audience": "喜欢纵深线条和清冷夜行感的男生",
-      "description": "将人物置于延伸结构中表达方向感，拍摄条件以现场为准",
+      "label": "站台冷调",
+      "audience": "喜欢冷调站台与克制人物状态的男士",
+      "description": "以站台纵深和冷调关系建立空间感，交通与光线条件以现场为准。",
       "legacyThemeIds": [
         "city-night"
       ],
@@ -1432,9 +1432,9 @@
       "id": "ST-OUT-04-09",
       "familyId": "OUT-04",
       "scene": "outdoor",
-      "label": "公路旅人",
-      "audience": "想记录出发感和轻松旅行状态的男士",
-      "description": "着重人物与路途关系，不绑定特定公路或远行地点",
+      "label": "正装旅人",
+      "audience": "喜欢正装与轻旅行叙事结合的男士",
+      "description": "以正装层次和行走关系表达出发感，服装与路线拍摄前确认。",
       "legacyThemeIds": [
         "travel"
       ],
@@ -1445,9 +1445,9 @@
       "id": "ST-OUT-04-10",
       "familyId": "OUT-04",
       "scene": "outdoor",
-      "label": "车旁街拍",
-      "audience": "偏好都市车感与自然人物状态的男士",
-      "description": "以人物为中心组织画面，车辆及合规拍摄条件需另行确认",
+      "label": "街头漫步",
+      "audience": "喜欢自然行走与城市日常状态的男士",
+      "description": "以街头环境和松弛动作组织画面，具体路线与场地拍摄前确认。",
       "legacyThemeIds": [
         "city-street"
       ],
@@ -1458,9 +1458,9 @@
       "id": "ST-OUT-04-11",
       "familyId": "OUT-04",
       "scene": "outdoor",
-      "label": "驾车绅士",
-      "audience": "喜欢成熟、从容人物气场的男士",
-      "description": "突出坐姿与视线表达，车辆和拍摄位置以实际安排为准",
+      "label": "围巾绅士",
+      "audience": "喜欢围巾层次与成熟旅人气质的男士",
+      "description": "以围巾、外套和侧面轮廓突出层次，服装搭配拍摄前确认。",
       "legacyThemeIds": [],
       "order": 11,
       "visibility": "published"
@@ -1469,9 +1469,9 @@
       "id": "ST-OUT-05-01",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "热血高校",
-      "audience": "喜欢热烈青春与团队感的年轻男生",
-      "description": "以投入神情和行动姿态表达活力，不承诺具体学校场地",
+      "label": "白衫学长",
+      "audience": "喜欢清爽白衫与校园日常感的男士",
+      "description": "以白色服装和自然动作呈现轻快少年感，服装拍摄前确认。",
       "legacyThemeIds": [
         "campus"
       ],
@@ -1508,9 +1508,9 @@
       "id": "ST-OUT-05-04",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "篮球少年",
-      "audience": "喜欢运动热情与力量感的男生",
-      "description": "捕捉篮球动作和身体节奏，球场、器材与安全条件需拍摄前确认。",
+      "label": "球衣少年",
+      "audience": "喜欢球衣造型与运动氛围的男士",
+      "description": "以球衣和运动姿态呈现青春活力，器材与场地拍摄前确认。",
       "legacyThemeIds": [
         "sport-documentary"
       ],
@@ -1521,9 +1521,9 @@
       "id": "ST-OUT-05-05",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "网球学长",
-      "audience": "偏好清爽运动与可靠气质的男生",
-      "description": "以运动准备状态呈现有序活力，场地资源需另行确认",
+      "label": "雨天学长",
+      "audience": "偏好雨天氛围与安静少年感的男士",
+      "description": "以雨伞和雨幕形成清冷层次，天气与安全条件拍摄前确认。",
       "legacyThemeIds": [
         "sport-style"
       ],
@@ -1534,9 +1534,9 @@
       "id": "ST-OUT-05-06",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "滑板少年",
-      "audience": "喜欢街头运动与自由表达的男生",
-      "description": "突出动作预备和个性神情，设备与安全条件需自行确认",
+      "label": "制服少年",
+      "audience": "喜欢利落制服感与阳光状态的男士",
+      "description": "以制服层次和自然站姿呈现清爽形象，服装搭配拍摄前确认。",
       "legacyThemeIds": [
         "sport-style"
       ],
@@ -1547,9 +1547,9 @@
       "id": "ST-OUT-05-07",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "足球少年",
-      "audience": "喜欢团队运动与阳光气质的男生",
-      "description": "以奔跑感和专注状态传递活力，具体场地需按实际安排",
+      "label": "雨伞少年",
+      "audience": "喜欢雨伞造型与清冷电影感的男士",
+      "description": "以雨伞和雨幕组织人物轮廓，天气与安全条件拍摄前确认。",
       "legacyThemeIds": [
         "sport-documentary"
       ],
@@ -1560,9 +1560,9 @@
       "id": "ST-OUT-05-08",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "骑行少年",
-      "audience": "想表达轻快出行与行动力的男生",
-      "description": "围绕自然骑行状态组织画面，车辆和路线需拍摄前确认。",
+      "label": "围巾少年",
+      "audience": "喜欢围巾层次与秋冬少年感的男士",
+      "description": "以围巾和外套突出温暖层次，服装与天气拍摄前确认。",
       "legacyThemeIds": [
         "daily-walk"
       ],
@@ -1573,9 +1573,9 @@
       "id": "ST-OUT-05-09",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "跑步少年",
-      "audience": "喜欢自律、轻盈运动感的男生",
-      "description": "以跑步节奏和自然呼吸感呈现人物状态，路线与场地条件需拍摄前确认。",
+      "label": "机车少年",
+      "audience": "喜欢机车结构和轻快街头状态的男士",
+      "description": "以机车和自然姿态表达行动感，车辆与安全条件拍摄前确认。",
       "legacyThemeIds": [
         "sport-documentary"
       ],
@@ -1586,9 +1586,9 @@
       "id": "ST-OUT-05-10",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "运动纪实",
-      "audience": "想记录真实运动片段的男士",
-      "description": "以连续运动动作保留纪实过程感，运动环境与安全条件需拍摄前确认。",
+      "label": "海风少年",
+      "audience": "喜欢水岸风感与开阔少年状态的男士",
+      "description": "以水岸栏杆和海风动作组织画面，地点与天气拍摄前确认。",
       "legacyThemeIds": [
         "sport-documentary"
       ],
@@ -1599,9 +1599,9 @@
       "id": "ST-OUT-05-11",
       "familyId": "OUT-05",
       "scene": "outdoor",
-      "label": "机长制服",
-      "audience": "喜欢职业制服感和整洁形象的男士",
-      "description": "以端正姿态表达专业气质，制服和使用许可需自行确认",
+      "label": "逆光少年",
+      "audience": "喜欢逆光轮廓与安静人物状态的男士",
+      "description": "以逆光勾勒人物和服装层次，光线与场地拍摄前确认。",
       "legacyThemeIds": [],
       "order": 11,
       "visibility": "published"
@@ -1649,9 +1649,9 @@
       "id": "ST-OUT-06-04",
       "familyId": "OUT-06",
       "scene": "outdoor",
-      "label": "藏地少年",
-      "audience": "喜欢高原旅行感和质朴人物状态的男生",
-      "description": "以自然环境叙事为方向，实际目的地与条件需另行规划",
+      "label": "白墙旅拍",
+      "audience": "喜欢白墙建筑与清爽旅行片段的男士",
+      "description": "以白墙、留白和自然动作表现轻旅行状态，具体建筑场地另行确认。",
       "legacyThemeIds": [
         "travel"
       ],
@@ -1662,9 +1662,9 @@
       "id": "ST-OUT-06-05",
       "familyId": "OUT-06",
       "scene": "outdoor",
-      "label": "港澳旅拍",
-      "audience": "想记录城市旅行片段的男士",
-      "description": "强调人物与陌生街景的关系，具体行程与许可需提前确认",
+      "label": "雨城旅拍",
+      "audience": "喜欢雨天城市和移动叙事的男士",
+      "description": "以雨伞、街景和人物关系记录雨城片段，天气与路线拍摄前确认。",
       "legacyThemeIds": [
         "travel"
       ],
@@ -1675,9 +1675,9 @@
       "id": "ST-OUT-06-06",
       "familyId": "OUT-06",
       "scene": "outdoor",
-      "label": "大理旅拍",
-      "audience": "偏好松弛旅行与自然光感的男生",
-      "description": "以轻盈人物状态为核心，具体目的地及交通安排另行确认",
+      "label": "建筑旅拍",
+      "audience": "喜欢现代建筑与空间构图的男士",
+      "description": "以建筑线条和人物比例记录旅行画面，目的地与场地拍摄前确认。",
       "legacyThemeIds": [
         "travel"
       ],
@@ -1688,9 +1688,9 @@
       "id": "ST-OUT-06-07",
       "familyId": "OUT-06",
       "scene": "outdoor",
-      "label": "城市地标",
-      "audience": "希望在熟悉城市留下纪念照的男士",
-      "description": "利用城市辨识性构图衬托人物，实际地标和拍摄许可需确认",
+      "label": "城市空间",
+      "audience": "希望在现代城市空间留下纪念照的男士",
+      "description": "利用建筑结构和留白组织人物画面，实际城市空间拍摄前确认。",
       "legacyThemeIds": [
         "city-street"
       ],
@@ -1714,9 +1714,9 @@
       "id": "ST-OUT-06-09",
       "familyId": "OUT-06",
       "scene": "outdoor",
-      "label": "游艇绅士",
-      "audience": "偏好开阔水面与成熟人物气场的男士",
-      "description": "以从容状态为画面核心，船只资源、天气与安全条件需确认",
+      "label": "水岸旅人",
+      "audience": "喜欢水岸开阔感与安静旅人气质的男士",
+      "description": "以水岸栏杆和远景关系形成叙事，地点与天气拍摄前确认。",
       "legacyThemeIds": [
         "travel"
       ],
@@ -1727,9 +1727,9 @@
       "id": "ST-OUT-06-10",
       "familyId": "OUT-06",
       "scene": "outdoor",
-      "label": "山水旅拍",
-      "audience": "喜欢人物与自然风景关系的男士",
-      "description": "以安静构图表达旅途心情，不承诺特定山水地点或天气",
+      "label": "林地旅拍",
+      "audience": "喜欢林地层次与自然电影感的男士",
+      "description": "以林地环境和人物关系记录旅途片段，实际绿地与天气不作固定承诺。",
       "legacyThemeIds": [
         "travel"
       ],

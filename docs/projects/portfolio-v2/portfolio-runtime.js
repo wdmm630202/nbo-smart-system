@@ -1,4 +1,4 @@
-import { buildStyleLibrary } from "./style-library.js?v=pv2-a3001ccc95d7";
+import { buildStyleLibrary } from "./style-library.js?v=pv2-05cb462d58a5";
 
 const defaultWarn = (...args) => console.warn(...args);
 

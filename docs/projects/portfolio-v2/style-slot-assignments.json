@@ -967,7 +967,7 @@
           "updatedAt": null
         },
         {
-          "assetId": 115,
+          "assetId": 12,
           "poseLabel": "拍摄参考 09",
           "source": "seed",
           "updatedAt": null
@@ -1834,7 +1834,7 @@
     "ST-IN-03-09": {
       "slots": [
         {
-          "assetId": 152,
+          "assetId": 147,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -1949,14 +1949,14 @@
           "updatedAt": null
         }
       ],
-      "coverPosition": 1,
+      "coverPosition": 7,
       "maturity": "reference",
       "updatedAt": null
     },
     "ST-IN-03-11": {
       "slots": [
         {
-          "assetId": 15,
+          "assetId": 152,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -2078,7 +2078,7 @@
     "ST-IN-04-02": {
       "slots": [
         {
-          "assetId": 35,
+          "assetId": 16,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -2200,7 +2200,7 @@
     "ST-IN-04-04": {
       "slots": [
         {
-          "assetId": 19,
+          "assetId": 121,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -2749,7 +2749,7 @@
     "ST-IN-05-02": {
       "slots": [
         {
-          "assetId": 2,
+          "assetId": 31,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -2871,7 +2871,7 @@
     "ST-IN-05-04": {
       "slots": [
         {
-          "assetId": 4,
+          "assetId": 103,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -3054,7 +3054,7 @@
     "ST-IN-05-07": {
       "slots": [
         {
-          "assetId": 93,
+          "assetId": 96,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -3237,7 +3237,7 @@
     "ST-IN-05-10": {
       "slots": [
         {
-          "assetId": 96,
+          "assetId": 32,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -3298,7 +3298,7 @@
     "ST-IN-05-11": {
       "slots": [
         {
-          "assetId": 15,
+          "assetId": 147,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -3664,7 +3664,7 @@
     "ST-IN-06-06": {
       "slots": [
         {
-          "assetId": 151,
+          "assetId": 119,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -3786,7 +3786,7 @@
     "ST-IN-06-08": {
       "slots": [
         {
-          "assetId": 117,
+          "assetId": 27,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -3847,7 +3847,7 @@
     "ST-IN-06-09": {
       "slots": [
         {
-          "assetId": 144,
+          "assetId": 96,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -3908,13 +3908,13 @@
     "ST-IN-06-10": {
       "slots": [
         {
-          "assetId": 1,
+          "assetId": 19,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
         },
         {
-          "assetId": 3,
+          "assetId": 1,
           "poseLabel": "拍摄参考 02",
           "source": "seed",
           "updatedAt": null
@@ -3969,7 +3969,7 @@
     "ST-IN-06-11": {
       "slots": [
         {
-          "assetId": 76,
+          "assetId": 123,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -4213,7 +4213,7 @@
     "ST-OUT-01-04": {
       "slots": [
         {
-          "assetId": 53,
+          "assetId": 55,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -4335,7 +4335,7 @@
     "ST-OUT-01-06": {
       "slots": [
         {
-          "assetId": 112,
+          "assetId": 37,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -4450,7 +4450,7 @@
           "updatedAt": null
         }
       ],
-      "coverPosition": 1,
+      "coverPosition": 2,
       "maturity": "reference",
       "updatedAt": null
     },
@@ -4640,7 +4640,7 @@
     "ST-OUT-01-11": {
       "slots": [
         {
-          "assetId": 88,
+          "assetId": 38,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -4762,7 +4762,7 @@
     "ST-OUT-02-02": {
       "slots": [
         {
-          "assetId": 46,
+          "assetId": 87,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -4823,7 +4823,7 @@
     "ST-OUT-02-03": {
       "slots": [
         {
-          "assetId": 43,
+          "assetId": 110,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -4945,7 +4945,7 @@
     "ST-OUT-02-05": {
       "slots": [
         {
-          "assetId": 44,
+          "assetId": 109,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5128,7 +5128,7 @@
     "ST-OUT-02-08": {
       "slots": [
         {
-          "assetId": 56,
+          "assetId": 88,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5189,7 +5189,7 @@
     "ST-OUT-02-09": {
       "slots": [
         {
-          "assetId": 57,
+          "assetId": 86,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5372,7 +5372,7 @@
     "ST-OUT-03-01": {
       "slots": [
         {
-          "assetId": 46,
+          "assetId": 77,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5433,7 +5433,7 @@
     "ST-OUT-03-02": {
       "slots": [
         {
-          "assetId": 60,
+          "assetId": 59,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5494,7 +5494,7 @@
     "ST-OUT-03-03": {
       "slots": [
         {
-          "assetId": 111,
+          "assetId": 60,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5616,7 +5616,7 @@
     "ST-OUT-03-05": {
       "slots": [
         {
-          "assetId": 87,
+          "assetId": 57,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5792,7 +5792,7 @@
           "updatedAt": null
         }
       ],
-      "coverPosition": 6,
+      "coverPosition": 7,
       "maturity": "reference",
       "updatedAt": null
     },
@@ -5860,7 +5860,7 @@
     "ST-OUT-03-09": {
       "slots": [
         {
-          "assetId": 110,
+          "assetId": 58,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5921,7 +5921,7 @@
     "ST-OUT-03-10": {
       "slots": [
         {
-          "assetId": 114,
+          "assetId": 109,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -5982,7 +5982,7 @@
     "ST-OUT-03-11": {
       "slots": [
         {
-          "assetId": 56,
+          "assetId": 54,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -6104,7 +6104,7 @@
     "ST-OUT-04-02": {
       "slots": [
         {
-          "assetId": 38,
+          "assetId": 112,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -6165,7 +6165,7 @@
     "ST-OUT-04-03": {
       "slots": [
         {
-          "assetId": 105,
+          "assetId": 47,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -6280,7 +6280,7 @@
           "updatedAt": null
         }
       ],
-      "coverPosition": 1,
+      "coverPosition": 4,
       "maturity": "reference",
       "updatedAt": null
     },
@@ -6348,7 +6348,7 @@
     "ST-OUT-04-06": {
       "slots": [
         {
-          "assetId": 79,
+          "assetId": 55,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -6409,7 +6409,7 @@
     "ST-OUT-04-07": {
       "slots": [
         {
-          "assetId": 45,
+          "assetId": 37,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -6470,7 +6470,7 @@
     "ST-OUT-04-08": {
       "slots": [
         {
-          "assetId": 60,
+          "assetId": 46,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -6775,7 +6775,7 @@
     "ST-OUT-05-02": {
       "slots": [
         {
-          "assetId": 37,
+          "assetId": 54,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -6890,14 +6890,14 @@
           "updatedAt": null
         }
       ],
-      "coverPosition": 1,
+      "coverPosition": 7,
       "maturity": "reference",
       "updatedAt": null
     },
     "ST-OUT-05-04": {
       "slots": [
         {
-          "assetId": 48,
+          "assetId": 114,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -7385,7 +7385,7 @@
     "ST-OUT-06-01": {
       "slots": [
         {
-          "assetId": 53,
+          "assetId": 41,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -7446,7 +7446,7 @@
     "ST-OUT-06-02": {
       "slots": [
         {
-          "assetId": 49,
+          "assetId": 79,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -7507,7 +7507,7 @@
     "ST-OUT-06-03": {
       "slots": [
         {
-          "assetId": 106,
+          "assetId": 80,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -7812,7 +7812,7 @@
     "ST-OUT-06-08": {
       "slots": [
         {
-          "assetId": 110,
+          "assetId": 46,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -7873,7 +7873,7 @@
     "ST-OUT-06-09": {
       "slots": [
         {
-          "assetId": 48,
+          "assetId": 43,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -7934,7 +7934,7 @@
     "ST-OUT-06-10": {
       "slots": [
         {
-          "assetId": 47,
+          "assetId": 77,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null
@@ -7995,7 +7995,7 @@
     "ST-OUT-06-11": {
       "slots": [
         {
-          "assetId": 113,
+          "assetId": 57,
           "poseLabel": "拍摄参考 01",
           "source": "seed",
           "updatedAt": null

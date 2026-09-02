@@ -158,6 +158,7 @@ async function createSyntheticPublishManager(t, {
 
   for (const path of [
     "tools/portfolio-manager-server.mjs",
+    "tools/portfolio-manager-api-errors.mjs",
     "tools/portfolio-photo-lib.mjs",
     "tools/portfolio-draft-store.mjs",
     "tools/portfolio-draft-photo-lib.mjs",
@@ -1205,8 +1206,12 @@ test("首次同步前已隐藏的成套客片可推送失败后原样重试", { 
   assert.equal((await server.status()).hasPendingPublication, true);
 
   const failed = await server.publish();
-  assert.equal(failed.status, 400);
-  assert.match((await failed.json()).error, /simulated push failure/);
+  assert.equal(failed.status, 500);
+  assert.deepEqual(await failed.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   assert.equal((await server.store.read()).photos[0].status, "archived");
   const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
   assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)).sort(), [
@@ -1233,8 +1238,12 @@ test("增量元数据推送失败恢复 Pages 副本且可安全重试", { timeo
   const server = await createSyntheticPublishManager(t, { failFirstPush: true, sourceChange: "metadata" });
 
   const failed = await server.publish();
-  assert.equal(failed.status, 400);
-  assert.match((await failed.json()).error, /simulated push failure/);
+  assert.equal(failed.status, 500);
+  assert.deepEqual(await failed.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   assert.equal((await server.store.read()).photos[0].status, "ready");
   const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
   assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)), [
@@ -1253,8 +1262,12 @@ test("提交前导出越界会恢复已知生成物且保留未知文件", { tim
   const server = await createSyntheticPublishManager(t, { sourceChange: "metadata", unexpectedExportOnce: true });
 
   const failed = await server.publish();
-  assert.equal(failed.status, 400);
-  assert.match((await failed.json()).error, /超出客片范围.*unexpected-export/);
+  assert.equal(failed.status, 500);
+  assert.deepEqual(await failed.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
   assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)).sort(), [
     "apps/portfolio-v2/catalog-additions.json",
@@ -1273,8 +1286,12 @@ test("推送失败只保留源照片和 ready 草稿且下次可成功", { timeo
   const server = await createSyntheticPublishManager(t, { failFirstPush: true, sourceChange: "photos" });
 
   const failed = await server.publish();
-  assert.equal(failed.status, 400);
-  assert.match((await failed.json()).error, /simulated push failure/);
+  assert.equal(failed.status, 500);
+  assert.deepEqual(await failed.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   assert.equal((await server.store.read()).photos[0].status, "ready");
   const { stdout: afterFailure } = await gitAt(server.repository, ["status", "--porcelain=v1"]);
   assert.deepEqual(afterFailure.split("\n").filter(Boolean).map((line) => line.slice(3)).sort(), [
@@ -1295,27 +1312,43 @@ test("发布修复不绕过分支、无关文件、未登记照片和远端领�
 
   await gitAt(server.repository, ["checkout", "-b", "feature-test"]);
   let response = await server.publish();
-  assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /当前分支.*feature-test/);
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   await gitAt(server.repository, ["checkout", "main"]);
 
   await writeFixture(join(server.repository, "unrelated.txt"), "do not stage\n");
   response = await server.publish();
-  assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /其他未提交文件/);
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   await rm(join(server.repository, "unrelated.txt"));
 
   await writeFixture(join(server.repository, "docs/i/not-allowed.html"), "do not stage\n");
   response = await server.publish();
-  assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /其他未提交文件/);
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   await rm(join(server.repository, "docs/i/not-allowed.html"));
 
   await writeFixture(join(server.publicPhotoRoot, "full/photo-999.jpg"), "arbitrary\n");
   await writeFixture(join(server.publicPhotoRoot, "thumbs/photo-999.webp"), "arbitrary\n");
   response = await server.publish();
-  assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /其他未提交文件|未登记|未记录/);
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
   await rm(join(server.publicPhotoRoot, "full/photo-999.jpg"));
   await rm(join(server.publicPhotoRoot, "thumbs/photo-999.webp"));
 
@@ -1328,8 +1361,12 @@ test("发布修复不绕过分支、无关文件、未登记照片和远端领�
   await gitAt(peer, ["commit", "-m", "remote change"]);
   await gitAt(peer, ["push", "origin", "main"]);
   response = await server.publish();
-  assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /线上仓库有更新/);
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
 });
 
 test("空增量保持 158 张、23 个主题和原顺序", async () => {

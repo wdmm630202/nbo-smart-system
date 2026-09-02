@@ -818,7 +818,7 @@ async function replacePhotoRequest(request, response, url) {
     const extension = extname(originalName).toLowerCase();
     const contentType = String(request.headers["content-type"] || "").split(";")[0];
     if (!allowedPhotoTypes.has(contentType) && !allowedPhotoExtensions.has(extension)) {
-      throw new Error("只支持 JPG、PNG 或 WebP 图片");
+      throw apiError("BAD_REQUEST", "只支持 JPG、PNG 或 WebP 图片");
     }
     const buffer = await readBody(request);
     const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".jpg");
@@ -878,6 +878,11 @@ async function draftUploadRequest(request, response) {
     } finally {
       await rm(temporary.directory, { recursive: true, force: true });
     }
+  } catch (error) {
+    if (/^图片实际格式 .+ 与 .+ 扩展名不一致$/.test(error?.message || "")) {
+      throw apiError("BAD_REQUEST", "图片格式与文件名不一致");
+    }
+    throw error;
   } finally {
     finishMutation();
   }
@@ -888,28 +893,28 @@ async function draftUpdateRequest(request, response, url) {
   try {
     const id = numericDraftId(url);
     const patch = await readJsonBody(request);
-    if (!patch || Array.isArray(patch) || typeof patch !== "object") throw new Error("草稿更新数据无效");
+    if (!patch || Array.isArray(patch) || typeof patch !== "object") throw apiError("BAD_REQUEST", "草稿更新数据无效");
     const allowedKeys = new Set(["scene", "theme", "category", "approvedForPublicUse", "featured"]);
     const invalidKey = Object.keys(patch).find((key) => !allowedKeys.has(key));
-    if (invalidKey) throw new Error(`不允许通过草稿更新修改 ${invalidKey}`);
+    if (invalidKey) throw apiError("BAD_REQUEST", "草稿更新字段无效");
     for (const key of ["scene", "theme", "category"]) {
-      if (key in patch && typeof patch[key] !== "string") throw new Error(`草稿${key}必须是文本`);
+      if (key in patch && typeof patch[key] !== "string") throw apiError("BAD_REQUEST", "草稿更新字段类型无效");
     }
     for (const key of ["approvedForPublicUse", "featured"]) {
-      if (key in patch && typeof patch[key] !== "boolean") throw new Error(`草稿${key}必须是布尔值`);
+      if (key in patch && typeof patch[key] !== "boolean") throw apiError("BAD_REQUEST", "草稿更新字段类型无效");
     }
     const [state, additions] = await Promise.all([draftStore.read(), readPublicAdditions()]);
     const current = state.photos.find((photo) => photo.id === id);
-    if (!current) throw new Error(`找不到草稿 ${slotCode(id)}`);
+    if (!current) throw apiError("BAD_REQUEST", "找不到对应草稿");
     const next = { ...current, ...patch };
     const scenes = new Set(portfolioCatalog.scenes.filter(({ id: sceneId }) => sceneId !== "all").map(({ id: sceneId }) => sceneId));
     const categories = new Set(portfolioCatalog.categories.map(({ id: categoryId }) => categoryId));
     const themes = [...portfolioCatalog.themes, ...additions.themes, ...state.themes];
-    if (next.scene && !scenes.has(next.scene)) throw new Error(`草稿场景 ${next.scene} 无效`);
-    if (next.category && !categories.has(next.category)) throw new Error(`草稿风格 ${next.category} 无效`);
+    if (next.scene && !scenes.has(next.scene)) throw apiError("BAD_REQUEST", "草稿场景无效");
+    if (next.category && !categories.has(next.category)) throw apiError("BAD_REQUEST", "草稿风格无效");
     const theme = next.theme ? themes.find(({ id: themeId }) => themeId === next.theme) : null;
-    if (next.theme && !theme) throw new Error(`草稿主题 ${next.theme} 无效`);
-    if (theme && next.scene && theme.scene !== next.scene) throw new Error(`草稿主题 ${next.theme} 与场景不一致`);
+    if (next.theme && !theme) throw apiError("BAD_REQUEST", "草稿主题无效");
+    if (theme && next.scene && theme.scene !== next.scene) throw apiError("BAD_REQUEST", "草稿主题与场景不一致");
     const result = await draftStore.updatePhoto(id, patch);
     json(response, 200, { ok: true, result, catalog: await catalogPayload() });
   } finally {
@@ -947,19 +952,19 @@ async function draftThemeRequest(request, response) {
     const body = await readJsonBody(request);
     const allowedKeys = new Set(["id", "label", "scene", "description"]);
     const extraKey = Object.keys(body).find((key) => !allowedKeys.has(key));
-    if (extraKey) throw new Error(`不允许保存主题字段 ${extraKey}`);
+    if (extraKey) throw apiError("BAD_REQUEST", "主题字段无效");
     const id = typeof body.id === "string" ? body.id.trim() : "";
     const label = typeof body.label === "string" ? body.label.trim() : "";
     const scene = typeof body.scene === "string" ? body.scene.trim() : "";
     const description = typeof body.description === "string" ? body.description.trim() : "";
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error("主题英文标识只能使用小写字母、数字和中划线");
-    if (stringLength(label) < 2 || stringLength(label) > 12) throw new Error("主题名称需要 2–12 个字符");
-    if (!portfolioCatalog.scenes.some((item) => item.id === scene && item.id !== "all")) throw new Error("主题场景无效");
-    if (stringLength(description) < 2 || stringLength(description) > 30) throw new Error("主题描述需要 2–30 个字符");
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw apiError("BAD_REQUEST", "主题英文标识只能使用小写字母、数字和中划线");
+    if (stringLength(label) < 2 || stringLength(label) > 12) throw apiError("BAD_REQUEST", "主题名称需要 2–12 个字符");
+    if (!portfolioCatalog.scenes.some((item) => item.id === scene && item.id !== "all")) throw apiError("BAD_REQUEST", "主题场景无效");
+    if (stringLength(description) < 2 || stringLength(description) > 30) throw apiError("BAD_REQUEST", "主题描述需要 2–30 个字符");
     const [draftState, additions] = await Promise.all([draftStore.read(), readPublicAdditions()]);
     const allThemes = [...portfolioCatalog.themes, ...additions.themes, ...draftState.themes];
-    if (allThemes.some((theme) => theme.id === id)) throw new Error(`主题编号 ${id} 已存在`);
-    if (allThemes.some((theme) => theme.label === label)) throw new Error(`主题名称 ${label} 已存在`);
+    if (allThemes.some((theme) => theme.id === id)) throw apiError("BAD_REQUEST", "主题编号已存在");
+    if (allThemes.some((theme) => theme.label === label)) throw apiError("BAD_REQUEST", "主题名称已存在");
     const result = await draftStore.addTheme({ id, label, scene, description });
     json(response, 200, { ok: true, result, catalog: await catalogPayload() });
   } finally {

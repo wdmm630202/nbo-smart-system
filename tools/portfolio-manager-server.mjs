@@ -134,12 +134,22 @@ function apiError(code, message, status = 400) {
   return error;
 }
 
+function safeApiErrorMessage(error, status) {
+  const message = error instanceof Error ? error.message : String(error);
+  const unsafeDetail = /(?:\b(?:EACCES|EISDIR|ENOENT|ENOTDIR|EPERM)\b|(?:^|[\s"'(])\/(?!\/)[^\s"')]+|[A-Za-z]:\\|\\\\)/;
+  if (!unsafeDetail.test(message)) return message;
+  const safeLine = message.split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line && !unsafeDetail.test(line) && !/^(?:fatal|error):/i.test(line));
+  if (safeLine) return safeLine.replace(/^remote:\s*/i, "");
+  return status >= 500 ? "操作未完成，请稍后重试" : "文件处理失败，请检查图片后重试";
+}
+
 function errorJson(response, error, status = 400) {
   const code = typeof error?.apiCode === "string"
     ? error.apiCode
     : (status >= 500 ? "INTERNAL_ERROR" : "BAD_REQUEST");
-  const message = error instanceof Error ? error.message : String(error);
-  json(response, status, { ok: false, code, error: message });
+  json(response, status, { ok: false, code, error: safeApiErrorMessage(error, status) });
 }
 
 function beginMutation(label) {

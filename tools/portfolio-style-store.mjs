@@ -440,6 +440,12 @@ export function createPortfolioStyleStore({
   function assertAllowedTarget(path) {
     const target = resolve(path);
     if (allowedManifestPaths.has(target)) return;
+    const batchPath = relative(resolve(batchRoot), target).split(sep);
+    if (batchPath.length === 2
+      && batchIdPattern.test(batchPath[0])
+      && (batchPath[1] === "meta.json" || /^position-0[1-9]\.(?:jpg|webp)$/.test(batchPath[1]))) {
+      return;
+    }
     const photoPath = relative(resolve(photoRoot), target).split(sep).join("/");
     const match = photoPath.match(/^(?:full\/photo-(\d{3,})\.jpg|thumbs\/photo-(\d{3,})\.webp)$/);
     const assetId = Number(match?.[1] || match?.[2]);
@@ -1088,28 +1094,18 @@ export function createPortfolioStyleStore({
         }
         throw new Error("操作编号与重试内容不一致");
       }
-      if (batch.meta.positions[position]) throw new Error(`整组第 ${position} 张已经暂存，不能重复写入`);
+      const previousEntry = batch.meta.positions[position];
+      if (previousEntry && !operationId) throw new Error(`整组第 ${position} 张已经暂存，不能重复写入`);
       const targets = batchAssetPaths(batch.directory, position);
       for (const [kind, target] of Object.entries(targets)) {
         await assertInsideRealRoot(target, `整组第 ${position} 张${kind}`);
         const targetState = await noFollowKind(target, `整组第 ${position} 张${kind}`);
-        if (targetState.kind !== "missing") throw new Error(`整组第 ${position} 张已经暂存`);
+        if (targetState.kind !== "missing" && (!previousEntry || targetState.kind !== "file")) {
+          throw new Error(`整组第 ${position} 张已经暂存`);
+        }
       }
       const prepared = await prepareNewAsset(portfolioCatalog.photoCount + position, inputPath);
-      const token = randomBytes(6).toString("hex");
-      const temporary = {
-        full: `${targets.full}.tmp-style-batch-${token}`,
-        thumb: `${targets.thumb}.tmp-style-batch-${token}`,
-      };
       try {
-        await Promise.all(Object.entries(temporary).map(([kind, path]) =>
-          assertInsideRealRoot(path, `整组第 ${position} 张${kind}临时文件`)));
-        await Promise.all([
-          copyFile(prepared.generated.full, temporary.full),
-          copyFile(prepared.generated.thumb, temporary.thumb),
-        ]);
-        await rename(temporary.full, targets.full);
-        await rename(temporary.thumb, targets.thumb);
         const nextMeta = clone(batch.meta);
         nextMeta.positions[position] = {
           width: prepared.sourceInfo.width,
@@ -1118,14 +1114,20 @@ export function createPortfolioStyleStore({
           stagedAt: new Date().toISOString(),
           ...(operationId ? { operationId, operationFingerprint } : {}),
         };
-        await writeJsonAtomic(batch.metaPath, nextMeta);
+        await commitTransaction({
+          operation: "stage-style-batch-file",
+          context: {
+            batchId,
+            position,
+            ...(operationId ? { operationId, operationFingerprint } : {}),
+          },
+          outputs: [
+            { key: "batch-full", action: "write", target: targets.full, sourcePath: prepared.generated.full },
+            { key: "batch-thumb", action: "write", target: targets.thumb, sourcePath: prepared.generated.thumb },
+            { key: "batch-meta", action: "write", target: batch.metaPath, content: `${JSON.stringify(nextMeta, null, 2)}\n` },
+          ],
+        });
         return { batchId, position };
-      } catch (error) {
-        await Promise.all([
-          ...Object.values(temporary).map((path) => rm(path, { force: true }).catch(() => {})),
-          ...Object.values(targets).map((path) => rm(path, { force: true }).catch(() => {})),
-        ]);
-        throw error;
       } finally {
         await rm(prepared.directory, { recursive: true, force: true });
       }

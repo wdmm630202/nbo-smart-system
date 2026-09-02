@@ -100,6 +100,7 @@ function photoStoreOptions(options = {}) {
     photoRoot: options.photoRoot || sourcePhotoRoot,
     backupRoot: options.backupRoot || join(localStateRoot, "portfolio-photo-backups"),
     transactionRoot: options.transactionRoot || join(localStateRoot, "portfolio-photo-transactions"),
+    faults: options.faults || {},
   };
 }
 
@@ -320,6 +321,7 @@ async function runAssetTransaction(id, desired, operation, historyMetaPath = "",
     await copyExistingAssets(desired, join(transactionDir, "next"));
     await persistTransactionStatus(metaPath, meta, "prepared");
     await persistTransactionStatus(metaPath, meta, "committing");
+    await configured.faults.beforeAssetInstall?.({ id: numericId, operation });
     await installAssetDirectory(join(transactionDir, "next"), targets);
     await persistTransactionStatus(metaPath, meta, "committed");
   } catch (error) {
@@ -339,7 +341,10 @@ async function runAssetTransaction(id, desired, operation, historyMetaPath = "",
   // 资产已完整安装且 committed 标记已落盘。之后的记账或清理失败不应
   // 把已成功的换图误报为失败；保留事务目录，下次启动会再完成记账。
   const historyUpdated = await updateHistoryAfterTransaction(meta, true);
-  if (historyUpdated) await rm(transactionDir, { recursive: true, force: true }).catch(() => {});
+  if (historyUpdated) {
+    await configured.faults.afterAssetHistoryCommit?.({ id: numericId, operation });
+    await rm(transactionDir, { recursive: true, force: true }).catch(() => {});
+  }
   return { committed: true, reconciliationPending: !historyUpdated };
 }
 
@@ -392,13 +397,14 @@ export async function recoverIncompletePhotoTransactions(options = {}) {
   return recovered;
 }
 
-async function findPhotoOperation(configured, operationId) {
+async function findPhotoOperations(configured, operationId) {
   let slots = [];
   try {
     slots = (await readdir(configured.backupRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory());
   } catch {
-    return null;
+    return [];
   }
+  const matches = [];
   for (const slot of slots) {
     const slotRoot = join(configured.backupRoot, slot.name);
     let entries = [];
@@ -417,11 +423,13 @@ async function findPhotoOperation(configured, operationId) {
       }
       for (const type of ["replace", "undo"]) {
         const record = meta[`${type}Operation`];
-        if (record?.operationId === operationId) return { directory: join(slotRoot, entry.name), meta, metaPath, record, type };
+        if (record?.operationId === operationId) {
+          matches.push({ directory: join(slotRoot, entry.name), meta, metaPath, record, type });
+        }
       }
     }
   }
-  return null;
+  return matches;
 }
 
 function rejectPhotoOperationMismatch() {
@@ -436,15 +444,19 @@ export async function replacePhoto(id, inputPath, originalName = "", options = {
   let requestFingerprint = "";
   if (operationId) {
     requestFingerprint = photoOperationFingerprint("replace-photo-request", [numericId, originalName, await fileDigest(inputPath)]);
-    const existing = await findPhotoOperation(configured, operationId);
-    if (existing) {
+    const existing = await findPhotoOperations(configured, operationId);
+    if (existing.length) {
+      if (existing.some((match) => match.type !== "replace"
+        || match.meta.id !== numericId
+        || match.record.requestFingerprint !== requestFingerprint)) rejectPhotoOperationMismatch();
       const currentStateFingerprint = await assetStateFingerprint(targets);
-      if (existing.type !== "replace"
-        || existing.meta.id !== numericId
-        || existing.record.requestFingerprint !== requestFingerprint
-        || existing.record.resultStateFingerprint !== currentStateFingerprint
-        || !existing.record.result) rejectPhotoOperationMismatch();
-      return existing.record.result;
+      const committed = existing.find((match) => match.meta.status === "available"
+        && match.record.resultStateFingerprint === currentStateFingerprint
+        && match.record.result);
+      if (committed) return committed.record.result;
+      const allRolledBack = existing.every((match) => match.meta.status === "failed"
+        && match.record.expectedStateFingerprint === currentStateFingerprint);
+      if (!allRolledBack) rejectPhotoOperationMismatch();
     }
   }
   const sourceInfo = await probeImage(inputPath);
@@ -483,12 +495,17 @@ export async function replacePhoto(id, inputPath, originalName = "", options = {
       status: "pending",
     };
     if (operationId) {
+      const sizes = {};
+      for (const [name, path] of Object.entries(generated)) {
+        if (path) sizes[name] = (await stat(path)).size;
+      }
+      const result = { id: numericId, code: slotCode(numericId), sourceInfo, sizes };
       history.replaceOperation = {
         operationId,
         requestFingerprint,
         expectedStateFingerprint: await assetStateFingerprint(targets),
-        resultStateFingerprint: "",
-        result: null,
+        resultStateFingerprint: await assetStateFingerprint(generated),
+        result,
       };
     }
     await writeJson(pendingHistoryMetaPath, history);
@@ -496,21 +513,11 @@ export async function replacePhoto(id, inputPath, originalName = "", options = {
     const historyMetaPath = join(backupDir, "meta.json");
     await runAssetTransaction(numericId, generated, "replace", historyMetaPath, configured);
 
-    const sizes = {};
-    for (const [name, path] of Object.entries(targets)) {
-      if (path) sizes[name] = (await stat(path)).size;
-    }
-    const result = { id: numericId, code: slotCode(numericId), sourceInfo, sizes, backupDir };
-    if (operationId) {
-      const committedHistory = await readJson(historyMetaPath);
-      committedHistory.replaceOperation = {
-        ...committedHistory.replaceOperation,
-        resultStateFingerprint: await assetStateFingerprint(targets),
-        result,
-      };
-      await writeJson(historyMetaPath, committedHistory);
-    }
-    return result;
+    return operationId
+      ? history.replaceOperation.result
+      : { id: numericId, code: slotCode(numericId), sourceInfo, sizes: Object.fromEntries(await Promise.all(Object.entries(targets)
+        .filter(([, path]) => path)
+        .map(async ([name, path]) => [name, (await stat(path)).size]))) };
   } finally {
     await rm(temporaryDir, { recursive: true, force: true });
     await rm(pendingBackupDir, { recursive: true, force: true });
@@ -526,15 +533,19 @@ export async function undoLatestPhotoReplacement(id, options = {}) {
     : "";
   const targets = assetPathsAt(numericId, configured.photoRoot);
   if (operationId) {
-    const existing = await findPhotoOperation(configured, operationId);
-    if (existing) {
-      if (existing.type !== "undo"
-        || existing.meta.id !== numericId
-        || existing.record.requestFingerprint !== requestFingerprint
-        || !existing.record.result) rejectPhotoOperationMismatch();
+    const existing = await findPhotoOperations(configured, operationId);
+    if (existing.length) {
+      if (existing.some((match) => match.type !== "undo"
+        || match.meta.id !== numericId
+        || match.record.requestFingerprint !== requestFingerprint)) rejectPhotoOperationMismatch();
       const currentStateFingerprint = await assetStateFingerprint(targets);
-      if (existing.record.resultStateFingerprint !== currentStateFingerprint) rejectPhotoOperationMismatch();
-      return existing.record.result;
+      const committed = existing.find((match) => match.meta.status === "restored"
+        && match.record.resultStateFingerprint === currentStateFingerprint
+        && match.record.result);
+      if (committed) return committed.record.result;
+      const allRolledBack = existing.every((match) => match.meta.status === "available"
+        && match.record.expectedStateFingerprint === currentStateFingerprint);
+      if (!allRolledBack) rejectPhotoOperationMismatch();
     }
   }
   const slotBackupRoot = join(configured.backupRoot, slotFilename(numericId));
@@ -566,31 +577,27 @@ export async function undoLatestPhotoReplacement(id, options = {}) {
       continue;
     }
     if (operationId) {
+      const desired = {
+        full: join(directory, "full.jpg"),
+        thumb: join(directory, "thumb.webp"),
+        featured: targets.featured ? join(directory, "featured.webp") : null,
+      };
       meta.undoOperation = {
         operationId,
         requestFingerprint,
         expectedStateFingerprint: await assetStateFingerprint(targets),
-        resultStateFingerprint: "",
-        result: null,
+        resultStateFingerprint: await assetStateFingerprint(desired),
+        result: { id: numericId, code: slotCode(numericId) },
       };
       await writeJson(metaPath, meta);
     }
-    await runAssetTransaction(numericId, {
+    const desired = {
       full: join(directory, "full.jpg"),
       thumb: join(directory, "thumb.webp"),
       featured: targets.featured ? join(directory, "featured.webp") : null,
-    }, "undo", metaPath, configured);
-    const result = { id: numericId, code: slotCode(numericId), backupDir: directory };
-    if (operationId) {
-      const committedHistory = await readJson(metaPath);
-      committedHistory.undoOperation = {
-        ...committedHistory.undoOperation,
-        resultStateFingerprint: await assetStateFingerprint(targets),
-        result,
-      };
-      await writeJson(metaPath, committedHistory);
-    }
-    return result;
+    };
+    await runAssetTransaction(numericId, desired, "undo", metaPath, configured);
+    return operationId ? meta.undoOperation.result : { id: numericId, code: slotCode(numericId) };
   }
   throw new Error(`${slotCode(numericId)} 没有更早的可用备份`);
 }

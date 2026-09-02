@@ -15,6 +15,7 @@ import {
 } from "../apps/portfolio-v2/catalog.js";
 import {
   assetPaths,
+  backupRoot,
   buildPortfolioVersion,
   createPortfolioPhotoStore,
   onlinePortfolioUrl,
@@ -35,6 +36,15 @@ async function hashes(paths) {
   return Object.fromEntries(await Promise.all(Object.entries(paths)
     .filter(([, path]) => path)
     .map(async ([key, path]) => [key, await fileHash(path)])));
+}
+
+function assertPublicPhotoMutationRecord(value, privateRoots = []) {
+  const serialized = JSON.stringify(value);
+  assert.doesNotMatch(serialized, /"backupDir"\s*:/);
+  assert.doesNotMatch(serialized, /(?:\/(?:Users|private|var|tmp)\/|[A-Za-z]:\\\\|\\\\\\\\)/);
+  for (const privateRoot of privateRoots) {
+    assert.equal(serialized.includes(privateRoot), false, `公开换图记录泄露了本机路径 ${privateRoot}`);
+  }
 }
 
 async function createAdditionsLibraryFixture(t, additions) {
@@ -790,18 +800,22 @@ test("换图可撤销，且会跳过损坏的较新备份", { timeout: 60_000 },
     thumb: join(safetyDir, "thumb.webp"),
   };
   const originalHashes = await hashes(targets);
-  let result;
+  let createdBackup = "";
   let corruptBackup = "";
+  const historyDirectory = join(backupRoot, "photo-158");
+  const beforeBackups = await readdir(historyDirectory).catch(() => []);
   await copyFile(targets.full, safetyPaths.full);
   await copyFile(targets.thumb, safetyPaths.thumb);
 
   try {
-    result = await replacePhoto(id, candidate, "portfolio-workflow-test.jpg");
+    await replacePhoto(id, candidate, "portfolio-workflow-test.jpg");
     const replacedHashes = await hashes(targets);
     assert.notEqual(replacedHashes.full, originalHashes.full);
     assert.notEqual(replacedHashes.thumb, originalHashes.thumb);
 
-    corruptBackup = join(result.backupDir, "..", "zzzz-corrupt-test");
+    createdBackup = (await readdir(historyDirectory)).find((name) => !beforeBackups.includes(name) && !name.startsWith(".pending-")) || "";
+    assert.ok(createdBackup, "换图应创建一个本机备份");
+    corruptBackup = join(historyDirectory, "zzzz-corrupt-test");
     await mkdir(corruptBackup, { recursive: true });
     await writeFile(join(corruptBackup, "meta.json"), "{损坏的记录\n");
 
@@ -811,10 +825,53 @@ test("换图可撤销，且会跳过损坏的较新备份", { timeout: 60_000 },
     // 即使断言失败，也把用户原图按字节恢复。
     await copyFile(safetyPaths.full, targets.full);
     await copyFile(safetyPaths.thumb, targets.thumb);
-    if (result?.backupDir) await rm(result.backupDir, { recursive: true, force: true });
+    if (createdBackup) await rm(join(historyDirectory, createdBackup), { recursive: true, force: true });
     if (corruptBackup) await rm(corruptBackup, { recursive: true, force: true });
     await rm(safetyDir, { recursive: true, force: true });
   }
+});
+
+test("global operation journals keep public replay records free of backup paths", { timeout: 90_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-photo-public-replay-"));
+  const photoRoot = join(directory, "photos");
+  const localStateRoot = join(directory, ".local");
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+  ]);
+  await Promise.all([
+    copyFile(assetPaths(158).full, join(photoRoot, "full/photo-158.jpg")),
+    copyFile(assetPaths(158).thumb, join(photoRoot, "thumbs/photo-158.webp")),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const replaceOperationId = "62345678-1234-4234-8234-1234567890ab";
+  const undoOperationId = "72345678-1234-4234-8234-1234567890ab";
+  const store = createPortfolioPhotoStore({ photoRoot, localStateRoot });
+  const replace = await store.replacePhoto({
+    id: 158,
+    inputPath: assetPaths(157).full,
+    originalName: "public-replay.jpg",
+    operationId: replaceOperationId,
+  });
+  const replaceReplay = await createPortfolioPhotoStore({ photoRoot, localStateRoot }).replacePhoto({
+    id: 158,
+    inputPath: assetPaths(157).full,
+    originalName: "public-replay.jpg",
+    operationId: replaceOperationId,
+  });
+  const historyDirectory = join(localStateRoot, "portfolio-photo-backups/photo-158");
+  const [historyName] = await readdir(historyDirectory);
+  const afterReplace = JSON.parse(await readFile(join(historyDirectory, historyName, "meta.json"), "utf8"));
+  assert.deepEqual(replaceReplay, replace);
+  assertPublicPhotoMutationRecord(replace, [directory, photoRoot, localStateRoot]);
+  assertPublicPhotoMutationRecord(afterReplace, [directory, photoRoot, localStateRoot]);
+
+  const undo = await store.undoLatestPhotoReplacement({ id: 158, operationId: undoOperationId });
+  const undoReplay = await createPortfolioPhotoStore({ photoRoot, localStateRoot }).undoLatestPhotoReplacement({ id: 158, operationId: undoOperationId });
+  const afterUndo = JSON.parse(await readFile(join(historyDirectory, historyName, "meta.json"), "utf8"));
+  assert.deepEqual(undoReplay, undo);
+  assertPublicPhotoMutationRecord(undo, [directory, photoRoot, localStateRoot]);
+  assertPublicPhotoMutationRecord(afterUndo, [directory, photoRoot, localStateRoot]);
 });
 
 test("global photo replacement durably replays one committed operation", { timeout: 60_000 }, async (t) => {
@@ -897,6 +954,177 @@ test("global photo undo durably replays one committed transition", { timeout: 60
     () => store.undoLatestPhotoReplacement({ id: 157, operationId }),
     /操作编号|重试内容|不一致/,
   );
+});
+
+test("global replace survives a crash after asset and history commit without a second history", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-photo-replace-finalize-crash-"));
+  const photoRoot = join(directory, "photos");
+  const localStateRoot = join(directory, ".local");
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+  ]);
+  await Promise.all([
+    copyFile(assetPaths(158).full, join(photoRoot, "full/photo-158.jpg")),
+    copyFile(assetPaths(158).thumb, join(photoRoot, "thumbs/photo-158.webp")),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const operationId = "12345678-1234-4234-8234-1234567890ab";
+  const crashingStore = createPortfolioPhotoStore({
+    photoRoot,
+    localStateRoot,
+    faults: {
+      afterAssetHistoryCommit({ operation }) {
+        if (operation === "replace") throw new Error("injected replace finalization crash");
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => crashingStore.replacePhoto({
+      id: 158,
+      inputPath: assetPaths(157).full,
+      originalName: "replace-finalize-crash.jpg",
+      operationId,
+    }),
+    /injected replace finalization crash/,
+  );
+
+  const transactionDirectory = join(localStateRoot, "portfolio-photo-transactions");
+  assert.equal((await readdir(transactionDirectory)).length, 1);
+  const historyDirectory = join(localStateRoot, "portfolio-photo-backups/photo-158");
+  const historyNames = await readdir(historyDirectory);
+  assert.equal(historyNames.length, 1);
+  const committedMeta = JSON.parse(await readFile(join(historyDirectory, historyNames[0], "meta.json"), "utf8"));
+  assert.equal(committedMeta.status, "available");
+  assert.ok(committedMeta.replaceOperation?.result);
+  assert.match(committedMeta.replaceOperation?.resultStateFingerprint || "", /^[0-9a-f]{64}$/);
+
+  const restartedStore = createPortfolioPhotoStore({ photoRoot, localStateRoot });
+  await restartedStore.recoverIncompletePhotoTransactions();
+  const replay = await restartedStore.replacePhoto({
+    id: 158,
+    inputPath: assetPaths(157).full,
+    originalName: "replace-finalize-crash.jpg",
+    operationId,
+  });
+  assert.deepEqual(replay, committedMeta.replaceOperation.result);
+  assert.equal((await readdir(historyDirectory)).length, 1);
+  assert.equal((await readdir(transactionDirectory)).length, 0);
+});
+
+test("global undo survives a crash after asset and history commit without a second transition", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-photo-undo-finalize-crash-"));
+  const photoRoot = join(directory, "photos");
+  const localStateRoot = join(directory, ".local");
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+  ]);
+  await Promise.all([
+    copyFile(assetPaths(158).full, join(photoRoot, "full/photo-158.jpg")),
+    copyFile(assetPaths(158).thumb, join(photoRoot, "thumbs/photo-158.webp")),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const initialStore = createPortfolioPhotoStore({ photoRoot, localStateRoot });
+  await initialStore.replacePhoto({
+    id: 158,
+    inputPath: assetPaths(157).full,
+    originalName: "before-undo-finalize-crash.jpg",
+    operationId: "22345678-1234-4234-8234-1234567890ab",
+  });
+  const operationId = "32345678-1234-4234-8234-1234567890ab";
+  const crashingStore = createPortfolioPhotoStore({
+    photoRoot,
+    localStateRoot,
+    faults: {
+      afterAssetHistoryCommit({ operation }) {
+        if (operation === "undo") throw new Error("injected undo finalization crash");
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => crashingStore.undoLatestPhotoReplacement({ id: 158, operationId }),
+    /injected undo finalization crash/,
+  );
+
+  const transactionDirectory = join(localStateRoot, "portfolio-photo-transactions");
+  assert.equal((await readdir(transactionDirectory)).length, 1);
+  const historyDirectory = join(localStateRoot, "portfolio-photo-backups/photo-158");
+  const [historyName] = await readdir(historyDirectory);
+  const committedMeta = JSON.parse(await readFile(join(historyDirectory, historyName, "meta.json"), "utf8"));
+  assert.equal(committedMeta.status, "restored");
+  assert.ok(committedMeta.undoOperation?.result);
+  assert.match(committedMeta.undoOperation?.resultStateFingerprint || "", /^[0-9a-f]{64}$/);
+
+  const restartedStore = createPortfolioPhotoStore({ photoRoot, localStateRoot });
+  await restartedStore.recoverIncompletePhotoTransactions();
+  const replay = await restartedStore.undoLatestPhotoReplacement({ id: 158, operationId });
+  assert.deepEqual(replay, committedMeta.undoOperation.result);
+  assert.equal((await readdir(historyDirectory)).length, 1);
+  assert.equal((await readdir(transactionDirectory)).length, 0);
+});
+
+test("fully rolled-back global replace and undo operations can retry with the same ids", { timeout: 90_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-photo-rolled-back-retry-"));
+  const photoRoot = join(directory, "photos");
+  const localStateRoot = join(directory, ".local");
+  const targets = {
+    full: join(photoRoot, "full/photo-158.jpg"),
+    thumb: join(photoRoot, "thumbs/photo-158.webp"),
+  };
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+  ]);
+  await Promise.all([
+    copyFile(assetPaths(158).full, targets.full),
+    copyFile(assetPaths(158).thumb, targets.thumb),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const original = await hashes(targets);
+  const replaceOperationId = "42345678-1234-4234-8234-1234567890ab";
+  const crashingReplaceStore = createPortfolioPhotoStore({
+    photoRoot,
+    localStateRoot,
+    faults: {
+      beforeAssetInstall({ operation }) {
+        if (operation === "replace") throw new Error("injected rolled-back replace");
+      },
+    },
+  });
+  const replaceRequest = {
+    id: 158,
+    inputPath: assetPaths(157).full,
+    originalName: "rolled-back-replace.jpg",
+    operationId: replaceOperationId,
+  };
+
+  await assert.rejects(() => crashingReplaceStore.replacePhoto(replaceRequest), /injected rolled-back replace/);
+  assert.deepEqual(await hashes(targets), original);
+  const restartedStore = createPortfolioPhotoStore({ photoRoot, localStateRoot });
+  await restartedStore.recoverIncompletePhotoTransactions();
+  await restartedStore.replacePhoto(replaceRequest);
+  assert.notDeepEqual(await hashes(targets), original);
+
+  const undoOperationId = "52345678-1234-4234-8234-1234567890ab";
+  const crashingUndoStore = createPortfolioPhotoStore({
+    photoRoot,
+    localStateRoot,
+    faults: {
+      beforeAssetInstall({ operation }) {
+        if (operation === "undo") throw new Error("injected rolled-back undo");
+      },
+    },
+  });
+  await assert.rejects(
+    () => crashingUndoStore.undoLatestPhotoReplacement({ id: 158, operationId: undoOperationId }),
+    /injected rolled-back undo/,
+  );
+  assert.notDeepEqual(await hashes(targets), original);
+  await createPortfolioPhotoStore({ photoRoot, localStateRoot }).undoLatestPhotoReplacement({ id: 158, operationId: undoOperationId });
+  assert.deepEqual(await hashes(targets), original);
 });
 
 test("启动恢复会修复中断的首页图事务", { timeout: 30_000 }, async () => {

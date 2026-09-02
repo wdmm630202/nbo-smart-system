@@ -3,22 +3,22 @@ import {
   buildPortfolioThemes,
   emptyPortfolioAdditions,
   portfolioCatalog,
-} from "./catalog.js?v=pv2-ef8b6833bf6c";
+} from "./catalog.js?v=pv2-a1fe7ad12d7e";
 import {
   buildCustomerPortfolio,
   buildCustomerStyleLibrary,
   loadPortfolioAdditions,
   loadPortfolioDocument,
-} from "./portfolio-runtime.js?v=pv2-ef8b6833bf6c";
-import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=pv2-ef8b6833bf6c";
-import { createStyleExplorer } from "./style-explorer.js?v=pv2-ef8b6833bf6c";
+} from "./portfolio-runtime.js?v=pv2-a1fe7ad12d7e";
+import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=pv2-a1fe7ad12d7e";
+import { createStyleExplorer } from "./style-explorer.js?v=pv2-a1fe7ad12d7e";
 import {
   buildPoseBrief,
   readStylePreferences,
   writeStylePreferences,
-} from "./style-preferences.js?v=pv2-ef8b6833bf6c";
+} from "./style-preferences.js?v=pv2-a1fe7ad12d7e";
 
-const embeddedBuildVersion = "pv2-ef8b6833bf6c";
+const embeddedBuildVersion = "pv2-a1fe7ad12d7e";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;

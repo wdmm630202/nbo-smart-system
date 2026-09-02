@@ -41,8 +41,10 @@ function createOperationId() {
   return globalThis.crypto.randomUUID();
 }
 
-function fileRetrySignature(file) {
-  return JSON.stringify([file.name, file.type, file.size, file.lastModified]);
+async function fileRetrySignature(file) {
+  if (!globalThis.crypto?.subtle?.digest) return file;
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return `${file.name}\0${file.type}\0${[...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
 }
 
 function moveSelection(event, elements, selectedIndex, choose) {
@@ -670,10 +672,11 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function stageBatchPosition(position, file) {
     const entry = state.batchEntries.get(position);
     if (!entry || !state.batchId) return;
-    const retrySignature = fileRetrySignature(file);
+    const retrySignature = await fileRetrySignature(file);
     if (entry.retrySignature !== retrySignature) {
       entry.operationId = createOperationId();
       entry.retrySignature = retrySignature;
+      entry.file = file;
       state.batchCommitOperationId = "";
     } else if (!entry.operationId) {
       entry.operationId = createOperationId();
@@ -710,9 +713,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     const entry = state.batchEntries.get(position);
     if (!entry || entry.status !== "error") return;
     if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
-    entry.file = file;
     entry.objectUrl = URL.createObjectURL(file);
-    if (entry.retrySignature !== fileRetrySignature(file)) entry.operationId = "";
     setBusy(true);
     try {
       await stageBatchPosition(position, file);
@@ -762,7 +763,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
           status: error ? "error" : "checking",
           error,
           operationId: "",
-          retrySignature: fileRetrySignature(file),
+          retrySignature: null,
         });
         state.batchOrder.push(position);
       });
@@ -1041,6 +1042,10 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
         },
         body: file,
       });
+      // A previously committed undo can have lost its response. Once this
+      // slot receives a later replacement, that undo id must not replay
+      // against the new state on the next click.
+      undoOperations.delete(slotId);
       await refresh();
       clearExternalReplacementOperations();
       showToast("只替换了当前照片位，其他复用位置不变", "success");

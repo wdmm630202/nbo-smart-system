@@ -88,7 +88,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--green); outline
 .section-title > a, .section-title > span { flex: 0 0 auto; color: var(--subtle); font-size: .6rem; line-height: 1.6; text-align: right; }
 .style-explorer[hidden], .style-album[hidden] { display: none; }
 .style-explorer { padding-inline: 1rem; }
-.style-explorer-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.style-explorer-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; scroll-margin-top: calc(4.2rem + 1.25rem); }
 .style-explorer-heading p { margin: 0 0 .5rem; color: var(--gold); font-size: .52rem; font-weight: 720; letter-spacing: .2em; }
 .style-explorer-heading h2 { margin: 0; font-family: Georgia,"Songti SC",serif; font-size: clamp(2rem,8vw,3.3rem); font-weight: 400; letter-spacing: -.045em; line-height: 1.08; }
 .style-explorer-heading > span { max-width: 8rem; flex: 0 0 auto; color: var(--subtle); font-size: .58rem; line-height: 1.65; text-align: right; }

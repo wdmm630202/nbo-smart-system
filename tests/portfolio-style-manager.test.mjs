@@ -2109,6 +2109,71 @@ test("style manager retries a dropped undo response with one operation id", { sk
   assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "undo-slot").length, 1);
 });
 
+test("a successful same-slot replacement rotates a dropped undo operation before the next undo", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const slotId = "ST-IN-01-01-P01";
+  const replace = await fetch(new URL(`api/style-slots/replace?slot=${slotId}`, server.url), {
+    method: "POST",
+    body: await readFile(validPhoto),
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "undo-then-replace-browser.jpg",
+      "x-nanbo-operation-id": "67777777-7777-4777-8777-777777777777",
+      "x-nanbo-token": server.token,
+    },
+  });
+  assert.equal(replace.status, 200);
+
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const input = document.querySelector('input[name="library-mode"][value="styles"]');
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor(`document.querySelector('[data-style-slot-id="${slotId}"] [data-asset-code="NB-159"]')`);
+  await browser.evaluate(`(() => {
+    window.__rotatedStyleUndoOperationIds = [];
+    window.__dropFirstRotatedUndoResponse = true;
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      const isUndo = (init.method || "GET") === "POST" && String(url).includes("/api/style-slots/undo");
+      if (isUndo) window.__rotatedStyleUndoOperationIds.push(new Headers(init.headers).get("x-nanbo-operation-id"));
+      const response = await nativeFetch(input, init);
+      if (isUndo && response.ok && window.__dropFirstRotatedUndoResponse) {
+        window.__dropFirstRotatedUndoResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟旧撤销响应丢失");
+      }
+      return response;
+    };
+    document.querySelector('[data-style-slot-id="${slotId}"] .style-slot-undo').click();
+  })()`);
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("模拟旧撤销响应丢失")', 30_000);
+
+  await browser.evaluate(`document.querySelector('[data-style-slot-id="${slotId}"] .style-slot-replace').click()`);
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open');
+  await browser.setFileInput("#style-slot-file", newerValidPhoto);
+  await browser.waitFor('document.querySelector("#style-slot-confirm")?.disabled === false');
+  await browser.evaluate('document.querySelector("#style-slot-confirm").click()');
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open === false', 30_000);
+
+  await browser.evaluate(`document.querySelector('[data-style-slot-id="${slotId}"] .style-slot-undo').click()`);
+  await browser.waitFor("window.__rotatedStyleUndoOperationIds.length === 2", 30_000);
+  await browser.evaluate("new Promise((resolve) => setTimeout(resolve, 750))");
+  const result = await browser.evaluate(`(() => ({
+    assetCode: document.querySelector('[data-style-slot-id="${slotId}"] [data-asset-code]')?.dataset.assetCode,
+    operationIds: [...window.__rotatedStyleUndoOperationIds],
+  }))()`);
+  assert.equal(result.assetCode, "NB-137");
+  assert.equal(result.operationIds.length, 2);
+  assert.notEqual(result.operationIds[1], result.operationIds[0]);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-slot").length, 2);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "undo-slot").length, 2);
+});
+
 test("global replace and undo APIs replay committed results only after auth and exact-origin checks", { timeout: 120_000 }, async (t) => {
   const server = await startManagerFixture(t);
   const image = await readFile(validPhoto);
@@ -2160,6 +2225,42 @@ test("global replace and undo APIs replay committed results only after auth and 
   const mismatchedUndo = await undoRequest(157);
   assert.equal(mismatchedUndo.status, 400);
   assert.match((await mismatchedUndo.json()).error, /操作编号|重试内容|不一致/);
+});
+
+test("global photo API responses and upload errors never expose private filesystem paths", { timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const assertPublicResponse = (value) => {
+    const serialized = JSON.stringify(value);
+    assert.doesNotMatch(serialized, /"backupDir"\s*:/);
+    assert.doesNotMatch(serialized, /(?:\/(?:Users|private|var|tmp)\/|[A-Za-z]:\\\\|\\\\\\\\)/);
+    assert.equal(serialized.includes(server.sandbox), false, "管理接口泄露了测试沙箱路径");
+  };
+  const request = (body, operationId) => fetch(new URL("api/replace?id=158", server.url), {
+    method: "POST",
+    body,
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "public-api.jpg",
+      "x-nanbo-operation-id": operationId,
+      "x-nanbo-token": server.token,
+    },
+  });
+  const operationId = "dccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const image = await readFile(validPhoto);
+  const first = await request(image, operationId);
+  assert.equal(first.status, 200);
+  const firstPayload = await first.json();
+  const replay = await request(image, operationId);
+  assert.equal(replay.status, 200);
+  const replayPayload = await replay.json();
+  assertPublicResponse(firstPayload);
+  assertPublicResponse(replayPayload);
+  assert.deepEqual(replayPayload.result, firstPayload.result);
+
+  const invalid = await request(Buffer.from("not-a-readable-image"), "eccccccc-cccc-4ccc-8ccc-cccccccccccc");
+  assert.notEqual(invalid.status, 200);
+  assertPublicResponse(await invalid.json());
 });
 
 test("legacy manager retries dropped global replace and undo responses without a second transition", { skip: !hasChrome, timeout: 180_000 }, async (t) => {
@@ -2496,6 +2597,102 @@ test("batch manager retries dropped stage and commit responses with stable opera
   assert.equal(commitOperations[1], commitOperations[0]);
   const state = await (await fetch(new URL("api/style-library", server.url))).json();
   assert.equal(state.counts.assets, 167);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-style-batch").length, 1);
+});
+
+test("batch retry gives equal-metadata files with different bytes separate stage identities", { skip: !hasChrome, timeout: 180_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const [firstBytes, replacementBytes] = await Promise.all([readFile(validPhoto), readFile(newerValidPhoto)]);
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const input = document.querySelector('input[name="library-mode"][value="styles"]');
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.evaluate('document.querySelector("#style-batch-open").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open');
+  await browser.evaluate(`(() => {
+    const decode = (base64) => Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const first = decode(${JSON.stringify(firstBytes.toString("base64"))});
+    const replacement = decode(${JSON.stringify(replacementBytes.toString("base64"))});
+    const targetSize = Math.max(first.length, replacement.length);
+    const pad = (bytes) => {
+      const padded = new Uint8Array(targetSize);
+      padded.set(bytes);
+      return padded;
+    };
+    const options = { type: "image/jpeg", lastModified: 1_725_000_000_000 };
+    const firstFile = new File([pad(first)], "same.jpg", options);
+    const replacementFile = new File([pad(replacement)], "same.jpg", options);
+    const toFiles = (files) => {
+      const transfer = new DataTransfer();
+      files.forEach((file) => transfer.items.add(file));
+      return transfer.files;
+    };
+    const setFiles = (input, files) => {
+      Object.defineProperty(input, "files", { configurable: true, value: toFiles(files) });
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    window.__batchMetadataCollision = { firstFile, replacementFile, setFiles, operationIds: [] };
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      const isFirstPosition = (init.method || "GET") === "PUT"
+        && String(url).includes("/api/style-batches/")
+        && String(url).endsWith("/files/1");
+      if (isFirstPosition) window.__batchMetadataCollision.operationIds.push(new Headers(init.headers).get("x-nanbo-operation-id"));
+      const response = await nativeFetch(input, init);
+      if (isFirstPosition && response.ok && !window.__batchMetadataCollision.dropped) {
+        window.__batchMetadataCollision.dropped = true;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟元数据相同文件的首次暂存响应丢失");
+      }
+      return response;
+    };
+    const remaining = Array.from({ length: 8 }, (_, index) => new File([pad(first)], "other-" + (index + 2) + ".jpg", options));
+    window.__batchMetadataCollision.setFiles(document.querySelector("#style-batch-files"), [firstFile, ...remaining]);
+  })()`);
+  await browser.waitFor('document.querySelector("[data-batch-position=\\"1\\"]")?.dataset.batchStatus === "error"', 30_000);
+  await browser.waitFor('document.querySelector("[data-batch-position=\\"9\\"]")?.dataset.batchStatus === "ready"', 30_000);
+
+  await browser.evaluate(`(() => {
+    const { replacementFile, setFiles } = window.__batchMetadataCollision;
+    setFiles(document.querySelector('[data-batch-position="1"] .style-batch-retry input'), [replacementFile]);
+  })()`);
+  try {
+    await browser.waitFor('document.querySelector("[data-batch-position=\\"1\\"]")?.dataset.batchStatus === "ready"', 30_000);
+  } catch (error) {
+    const diagnostic = await browser.evaluate(`(() => ({
+      operationIds: [...window.__batchMetadataCollision.operationIds],
+      row: document.querySelector('[data-batch-position="1"]')?.dataset.batchStatus,
+      text: document.querySelector('[data-batch-position="1"]')?.textContent.replace(/\\s+/g, " ").trim(),
+    }))()`);
+    throw new Error(`${error.message}；诊断=${JSON.stringify(diagnostic)}`);
+  }
+  await browser.waitFor('document.querySelector("#style-batch-commit")?.disabled === false', 30_000);
+  const identity = await browser.evaluate(`(async () => {
+    const state = window.__batchMetadataCollision;
+    const [first, replacement] = await Promise.all([state.firstFile.arrayBuffer(), state.replacementFile.arrayBuffer()]);
+    const firstBytes = new Uint8Array(first);
+    const replacementBytes = new Uint8Array(replacement);
+    return {
+      sameMetadata: state.firstFile.name === state.replacementFile.name
+        && state.firstFile.type === state.replacementFile.type
+        && state.firstFile.size === state.replacementFile.size
+        && state.firstFile.lastModified === state.replacementFile.lastModified,
+      differentBytes: firstBytes.some((value, index) => value !== replacementBytes[index]),
+      operationIds: [...state.operationIds],
+    };
+  })()`);
+  assert.equal(identity.sameMetadata, true);
+  assert.equal(identity.differentBytes, true);
+  assert.equal(identity.operationIds.length, 2);
+  assert.notEqual(identity.operationIds[1], identity.operationIds[0]);
+
+  await browser.evaluate('document.querySelector("#style-batch-commit").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open === false', 30_000);
   assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-style-batch").length, 1);
 });
 

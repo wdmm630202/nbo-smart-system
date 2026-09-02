@@ -713,6 +713,73 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
   return measurement;
 }
 
+async function measureStyleSelectorHeadingGeometry(width, height) {
+  const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    window.addEventListener("load", () => window.setTimeout(async () => {
+      const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+      const waitFor = async (condition) => {
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          if (condition()) return true;
+          await wait(50);
+        }
+        return false;
+      };
+      await waitFor(() => document.querySelectorAll("#style-card-grid .portrait-style-card").length === 11);
+      await (document.fonts?.ready || Promise.resolve());
+      await Promise.race([
+        Promise.all([...document.querySelectorAll("#style-card-grid img")]
+          .map((image) => image.decode?.().catch(() => {}))),
+        wait(1000),
+      ]);
+      const stickyHeader = document.querySelector(".mini-header");
+      const heading = document.querySelector(".style-explorer-heading");
+      const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = "auto";
+      heading?.scrollIntoView({ block: "start" });
+      document.documentElement.style.scrollBehavior = previousScrollBehavior;
+      await wait(80);
+      const headerRect = stickyHeader?.getBoundingClientRect();
+      const headingRect = heading?.getBoundingClientRect();
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
+        viewport: window.innerWidth + "x" + window.innerHeight,
+        headerBottom: headerRect?.bottom || 0,
+        headingTop: headingRect?.top || 0,
+        headingBottom: headingRect?.bottom || 0,
+      });
+    }, 180));
+  </script>`;
+  const page = sourceHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace("</body>", `${probe}</body>`);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      const asset = await readFile(new URL(`../apps${url.pathname}`, import.meta.url));
+      response.writeHead(200, { "Content-Type": contentType(url.pathname) });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(`http://127.0.0.1:${port}/portfolio-v2/index.html?v=heading-geometry`, width, [], height);
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 async function measureDirectAlbumEntry(width = 390) {
   const sourceHtml = await readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8");
   const prelude = `<script>
@@ -1817,6 +1884,24 @@ test("compact style cards keep computed 2:3 card and 3:4 image geometry across p
   assert.equal(desktop.viewportWidth, 1100, "桌面几何测试没有运行在真实 1100px CSS viewport");
   assert.equal(phone.gridColumns, 2, "390px 应为两列");
   assert.equal(desktop.gridColumns, 3, "桌面应为三列");
+});
+
+test("selector heading clears the sticky header at screenshot viewports", { skip: !hasChrome }, async () => {
+  const viewports = [
+    ["390×844", 390, 844],
+    ["1440×1200", 1440, 1200],
+  ];
+  const measurements = await Promise.all(viewports.map(([, width, height]) =>
+    measureStyleSelectorHeadingGeometry(width, height)));
+  for (let index = 0; index < viewports.length; index += 1) {
+    const [label, width, height] = viewports[index];
+    const metrics = measurements[index];
+    assert.equal(metrics.viewport, `${width}x${height}`, `${label} 截图视口不准确`);
+    assert.ok(metrics.headingTop >= metrics.headerBottom + 16,
+      `${label} 标题被粘性顶栏遮住：${JSON.stringify(metrics)}`);
+    assert.ok(metrics.headingBottom <= height,
+      `${label} 标题未完整落在截图视口内：${JSON.stringify(metrics)}`);
+  }
 });
 
 test("style controls respond on press, clear stale images on family change, and expose readable image fallback", { skip: !hasChrome }, async () => {

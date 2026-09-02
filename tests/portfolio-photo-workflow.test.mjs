@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { once } from "node:events";
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import test from "node:test";
 
 import {
@@ -45,6 +45,32 @@ function assertPublicPhotoMutationRecord(value, privateRoots = []) {
   for (const privateRoot of privateRoots) {
     assert.equal(serialized.includes(privateRoot), false, `公开换图记录泄露了本机路径 ${privateRoot}`);
   }
+}
+
+async function createGlobalPhotoTransactionFixture(t, label) {
+  const directory = await mkdtemp(join(tmpdir(), `nanbo-photo-${label}-`));
+  const photoRoot = join(directory, "photos");
+  const localStateRoot = join(directory, ".local");
+  const targets = {
+    full: join(photoRoot, "full/photo-158.jpg"),
+    thumb: join(photoRoot, "thumbs/photo-158.webp"),
+  };
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+  ]);
+  await Promise.all([
+    copyFile(assetPaths(158).full, targets.full),
+    copyFile(assetPaths(158).thumb, targets.thumb),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  return {
+    localStateRoot,
+    photoRoot,
+    targets,
+    transactionRoot: join(localStateRoot, "portfolio-photo-transactions"),
+    historyRoot: join(localStateRoot, "portfolio-photo-backups/photo-158"),
+  };
 }
 
 async function createAdditionsLibraryFixture(t, additions) {
@@ -1127,13 +1153,187 @@ test("fully rolled-back global replace and undo operations can retry with the sa
   assert.deepEqual(await hashes(targets), original);
 });
 
+test("a rollback history-write fault retains its journal until restart can mark the operation failed", { timeout: 90_000 }, async (t) => {
+  const fixture = await createGlobalPhotoTransactionFixture(t, "rollback-history-write");
+  const request = {
+    id: 158,
+    inputPath: assetPaths(157).full,
+    originalName: "rollback-history-write.jpg",
+    operationId: "53333333-3333-4333-8333-333333333333",
+  };
+  const original = await hashes(fixture.targets);
+  const failingStore = createPortfolioPhotoStore({
+    photoRoot: fixture.photoRoot,
+    localStateRoot: fixture.localStateRoot,
+    faults: {
+      beforeAssetInstall() {
+        throw new Error("injected asset install failure");
+      },
+      beforeRollbackHistoryWrite() {
+        throw new Error("injected rollback history write failure");
+      },
+    },
+  });
+
+  await assert.rejects(() => failingStore.replacePhoto(request), /injected asset install failure/);
+  assert.deepEqual(await hashes(fixture.targets), original, "asset rollback must finish before history reconciliation");
+  assert.equal((await readdir(fixture.transactionRoot)).length, 1, "unfinalized rollback evidence must survive");
+  const [transactionName] = await readdir(fixture.transactionRoot);
+  const transactionMeta = JSON.parse(await readFile(join(fixture.transactionRoot, transactionName, "transaction.json"), "utf8"));
+  assert.match(transactionMeta.historyBackupId || "", /^[A-Za-z0-9][A-Za-z0-9._-]*$/);
+  assert.equal(Object.hasOwn(transactionMeta, "historyMetaPath"), false, "new journals must not persist absolute backup paths");
+
+  const [historyName] = await readdir(fixture.historyRoot);
+  const pendingMeta = JSON.parse(await readFile(join(fixture.historyRoot, historyName, "meta.json"), "utf8"));
+  assert.equal(pendingMeta.status, "pending");
+
+  const restartedStore = createPortfolioPhotoStore({
+    photoRoot: fixture.photoRoot,
+    localStateRoot: fixture.localStateRoot,
+  });
+  assert.deepEqual(await restartedStore.recoverIncompletePhotoTransactions(), ["NB-158"]);
+  assert.equal((await readdir(fixture.transactionRoot)).length, 0);
+  const failedMeta = JSON.parse(await readFile(join(fixture.historyRoot, historyName, "meta.json"), "utf8"));
+  assert.equal(failedMeta.status, "failed");
+
+  const retried = await restartedStore.replacePhoto(request);
+  const replay = await restartedStore.replacePhoto(request);
+  assert.deepEqual(replay, retried);
+  assert.notDeepEqual(await hashes(fixture.targets), original);
+  const historyMetas = await Promise.all((await readdir(fixture.historyRoot)).map(async (name) =>
+    JSON.parse(await readFile(join(fixture.historyRoot, name, "meta.json"), "utf8"))));
+  assert.equal(historyMetas.filter(({ status }) => status === "failed").length, 1);
+  assert.equal(historyMetas.filter(({ status }) => status === "available").length, 1);
+  assert.equal((await readdir(fixture.historyRoot)).length, 2, "exact retry and replay must not add duplicate history");
+  assert.deepEqual(await readdir(join(fixture.photoRoot, "full")), ["photo-158.jpg"]);
+  assert.deepEqual(await readdir(join(fixture.photoRoot, "thumbs")), ["photo-158.webp"]);
+});
+
+test("a commit history-write fault retains its journal until restart can mark the operation available", { timeout: 90_000 }, async (t) => {
+  const fixture = await createGlobalPhotoTransactionFixture(t, "commit-history-write");
+  const request = {
+    id: 158,
+    inputPath: assetPaths(157).full,
+    originalName: "commit-history-write.jpg",
+    operationId: "63333333-3333-4333-8333-333333333333",
+  };
+  const original = await hashes(fixture.targets);
+  const faultingStore = createPortfolioPhotoStore({
+    photoRoot: fixture.photoRoot,
+    localStateRoot: fixture.localStateRoot,
+    faults: {
+      beforeCommitHistoryWrite() {
+        throw new Error("injected commit history write failure");
+      },
+    },
+  });
+
+  const committed = await faultingStore.replacePhoto(request);
+  assert.notDeepEqual(await hashes(fixture.targets), original);
+  assert.equal((await readdir(fixture.transactionRoot)).length, 1, "unfinalized committed evidence must survive");
+  const [historyName] = await readdir(fixture.historyRoot);
+  assert.equal(JSON.parse(await readFile(join(fixture.historyRoot, historyName, "meta.json"), "utf8")).status, "pending");
+
+  const restartedStore = createPortfolioPhotoStore({
+    photoRoot: fixture.photoRoot,
+    localStateRoot: fixture.localStateRoot,
+  });
+  assert.deepEqual(await restartedStore.recoverIncompletePhotoTransactions(), []);
+  assert.equal((await readdir(fixture.transactionRoot)).length, 0);
+  assert.equal(JSON.parse(await readFile(join(fixture.historyRoot, historyName, "meta.json"), "utf8")).status, "available");
+  assert.deepEqual(await restartedStore.replacePhoto(request), committed);
+  assert.equal((await readdir(fixture.historyRoot)).length, 1, "committed replay must not add duplicate history");
+  assert.deepEqual(await readdir(join(fixture.photoRoot, "full")), ["photo-158.jpg"]);
+  assert.deepEqual(await readdir(join(fixture.photoRoot, "thumbs")), ["photo-158.webp"]);
+});
+
+test("photo recovery rejects untrusted history journal paths without touching foreign files", async (t) => {
+  const cases = [
+    {
+      name: "foreign absolute path",
+      async setup({ outsidePath }) { return { historyMetaPath: outsidePath }; },
+    },
+    {
+      name: "parent traversal path",
+      async setup({ fixture, outsidePath }) {
+        return { historyMetaPath: `${fixture.historyRoot}/${relative(fixture.historyRoot, outsidePath)}` };
+      },
+    },
+    {
+      name: "symlinked history file",
+      async setup({ fixture, outsidePath }) {
+        const historyDirectory = join(fixture.historyRoot, "symlink-file");
+        await mkdir(historyDirectory, { recursive: true });
+        const historyMetaPath = join(historyDirectory, "meta.json");
+        await symlink(outsidePath, historyMetaPath);
+        return { historyMetaPath };
+      },
+    },
+    {
+      name: "symlinked history parent",
+      async setup({ fixture, outsideDirectory, outsideBefore }) {
+        const historyParent = join(fixture.historyRoot, "symlink-parent");
+        await mkdir(outsideDirectory, { recursive: true });
+        const watchedPath = join(outsideDirectory, "meta.json");
+        await writeFile(watchedPath, outsideBefore);
+        await symlink(outsideDirectory, historyParent);
+        return { historyMetaPath: join(historyParent, "meta.json"), watchedPath };
+      },
+    },
+    {
+      name: "history record for another slot",
+      async setup({ fixture }) {
+        const historyBackupId = "wrong-slot-history";
+        const historyDirectory = join(fixture.historyRoot, historyBackupId);
+        await mkdir(historyDirectory, { recursive: true });
+        await writeFile(join(historyDirectory, "meta.json"), `${JSON.stringify({ id: 157, status: "pending" })}\n`);
+        return { historyBackupId };
+      },
+    },
+  ];
+
+  for (const scenario of cases) {
+    await t.test(scenario.name, async (subtest) => {
+      const fixture = await createGlobalPhotoTransactionFixture(subtest, `unsafe-history-${scenario.name.replaceAll(" ", "-")}`);
+      await mkdir(fixture.historyRoot, { recursive: true });
+      const outsideDirectory = await mkdtemp(join(tmpdir(), "nanbo-photo-history-outside-"));
+      const outsidePath = join(outsideDirectory, "outside.json");
+      const outsideBefore = '{"keep":"outside bytes unchanged"}\n';
+      await writeFile(outsidePath, outsideBefore);
+      subtest.after(() => rm(outsideDirectory, { recursive: true, force: true }));
+      const journal = await scenario.setup({ fixture, outsideDirectory, outsidePath, outsideBefore });
+      const transactionName = "photo-158-2026-09-02T00-00-00-000Z-deadbeef00";
+      const transactionDirectory = join(fixture.transactionRoot, transactionName);
+      await mkdir(transactionDirectory, { recursive: true });
+      await writeFile(join(transactionDirectory, "transaction.json"), `${JSON.stringify({
+        schemaVersion: 1,
+        id: 158,
+        operation: "replace",
+        status: "committed",
+        createdAt: "2026-09-02T00:00:00.000Z",
+        ...journal,
+      }, null, 2)}\n`);
+
+      await assert.rejects(
+        () => recoverIncompletePhotoTransactions({ photoRoot: fixture.photoRoot, localStateRoot: fixture.localStateRoot }),
+        /事务|备份|记录|客片/,
+      );
+      assert.equal(await readFile(journal.watchedPath || outsidePath, "utf8"), outsideBefore, "foreign file must remain byte-identical");
+      assert.equal((await readdir(fixture.transactionRoot)).includes(transactionName), true, "unsafe journal evidence must remain for inspection");
+    });
+  }
+});
+
 test("启动恢复会修复中断的首页图事务", { timeout: 30_000 }, async () => {
   const id = 137;
   const targets = assetPaths(id);
   const other = assetPaths(127);
   const safetyDir = await mkdtemp(join(tmpdir(), "nanbo-recovery-test-"));
   const beforeDir = join(safetyDir, "before");
-  const transactionDir = join(transactionRoot, `test-${Date.now()}-${randomBytes(4).toString("hex")}`);
+  const transactionDir = join(
+    transactionRoot,
+    `photo-137-${new Date().toISOString().replace(/[:.]/g, "-")}-${randomBytes(5).toString("hex")}`,
+  );
   const originalHashes = await hashes(targets);
   await mkdir(beforeDir, { recursive: true });
   await copyFile(targets.full, join(beforeDir, "full.jpg"));

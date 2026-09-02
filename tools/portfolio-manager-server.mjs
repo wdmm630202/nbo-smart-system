@@ -37,6 +37,7 @@ import {
   validatePortfolioLibrary,
   writeUploadToTemporaryFile,
 } from "./portfolio-photo-lib.mjs";
+import { toApiErrorPayload } from "./portfolio-manager-api-errors.mjs";
 
 const host = "127.0.0.1";
 const requestedPort = Number(process.env.NANBO_PORTFOLIO_PORT || 4174);
@@ -134,22 +135,9 @@ function apiError(code, message, status = 400) {
   return error;
 }
 
-function safeApiErrorMessage(error, status) {
-  const message = error instanceof Error ? error.message : String(error);
-  const unsafeDetail = /(?:\b(?:EACCES|EISDIR|ENOENT|ENOTDIR|EPERM)\b|(?:^|[\s"'(])\/(?!\/)[^\s"')]+|[A-Za-z]:\\|\\\\)/;
-  if (!unsafeDetail.test(message)) return message;
-  const safeLine = message.split(/\r?\n/)
-    .map((line) => line.trim())
-    .find((line) => line && !unsafeDetail.test(line) && !/^(?:fatal|error):/i.test(line));
-  if (safeLine) return safeLine.replace(/^remote:\s*/i, "");
-  return status >= 500 ? "操作未完成，请稍后重试" : "文件处理失败，请检查图片后重试";
-}
-
 function errorJson(response, error, status = 400) {
-  const code = typeof error?.apiCode === "string"
-    ? error.apiCode
-    : (status >= 500 ? "INTERNAL_ERROR" : "BAD_REQUEST");
-  json(response, status, { ok: false, code, error: safeApiErrorMessage(error, status) });
+  const payload = toApiErrorPayload(error, status);
+  json(response, payload.status, payload.body);
 }
 
 function beginMutation(label) {
@@ -840,6 +828,11 @@ async function replacePhotoRequest(request, response, url) {
     } finally {
       await rm(temporary.directory, { recursive: true, force: true });
     }
+  } catch (error) {
+    if (error?.message === "操作编号与重试内容或当前客片状态不一致") {
+      throw apiError("OPERATION_MISMATCH", error.message);
+    }
+    throw error;
   } finally {
     finishMutation();
   }
@@ -853,6 +846,11 @@ async function undoPhotoRequest(request, response, url) {
     if (!operationId) throw apiError("INVALID_OPERATION_ID", "缺少操作编号");
     const result = await photoStore.undoLatestPhotoReplacement({ id: Number(url.searchParams.get("id")), operationId });
     json(response, 200, { ok: true, result, status: await repositoryStatus() });
+  } catch (error) {
+    if (error?.message === "操作编号与重试内容或当前客片状态不一致") {
+      throw apiError("OPERATION_MISMATCH", error.message);
+    }
+    throw error;
   } finally {
     finishMutation();
   }

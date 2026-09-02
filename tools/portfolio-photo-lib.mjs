@@ -5,15 +5,17 @@ import {
   copyFile,
   mkdir,
   mkdtemp,
+  lstat,
   readFile,
   readdir,
+  realpath,
   rename,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -272,13 +274,105 @@ async function restoreTransaction(transactionDir, targets) {
   await installAssetDirectory(restoreDir, targets);
 }
 
-async function updateHistoryAfterTransaction(meta, completed) {
-  if (!meta.historyMetaPath) return true;
+const photoTransactionStatuses = new Set(["preparing", "prepared", "committing", "recovering", "committed"]);
+const photoTransactionOperations = new Set(["replace", "undo"]);
+
+function isPathInside(base, target) {
+  const resolvedBase = resolve(base);
+  const resolvedTarget = resolve(target);
+  return resolvedTarget === resolvedBase || resolvedTarget.startsWith(`${resolvedBase}${sep}`);
+}
+
+function requirePhotoHistoryBackupId(value) {
+  if (typeof value !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value)) {
+    throw new Error("客片事务备份标识无效");
+  }
+  return value;
+}
+
+function assertPhotoTransactionDirectoryName(name, id) {
+  const pattern = new RegExp(`^${slotFilename(id)}-\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}-\\d{3}Z-[0-9a-f]{10}$`);
+  if (typeof name !== "string" || !pattern.test(name)) {
+    throw new Error("客片事务目录与照片位不匹配");
+  }
+}
+
+function validatePhotoTransactionMeta(value) {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    throw new Error("客片事务记录格式无效");
+  }
+  const allowed = new Set(["schemaVersion", "id", "operation", "status", "historyBackupId", "historyMetaPath", "createdAt"]);
+  const unknown = Object.keys(value).find((key) => !allowed.has(key));
+  if (unknown) throw new Error(`客片事务记录不允许字段 ${unknown}`);
+  if (value.schemaVersion !== undefined && value.schemaVersion !== 1) {
+    throw new Error("客片事务记录版本无效");
+  }
+  const id = assertPhotoId(value.id);
+  if (!photoTransactionOperations.has(value.operation) || !photoTransactionStatuses.has(value.status)) {
+    throw new Error("客片事务记录操作或状态无效");
+  }
+  if (typeof value.createdAt !== "string" || !Number.isFinite(Date.parse(value.createdAt))) {
+    throw new Error("客片事务记录时间无效");
+  }
+  if (value.historyBackupId !== undefined && value.historyMetaPath !== undefined) {
+    throw new Error("客片事务记录不能同时保存备份标识和路径");
+  }
+  if (value.historyBackupId !== undefined) requirePhotoHistoryBackupId(value.historyBackupId);
+  if (value.historyMetaPath !== undefined && typeof value.historyMetaPath !== "string") {
+    throw new Error("客片事务旧备份路径无效");
+  }
+  return { ...value, id };
+}
+
+async function assertExistingPhotoPathInside(rootPath, path, label, kind = "file") {
+  const resolvedRoot = resolve(rootPath);
+  const resolvedPath = resolve(path);
+  if (!isPathInside(resolvedRoot, resolvedPath)) throw new Error(`${label}越出客片本地目录`);
+  const segments = relative(resolvedRoot, resolvedPath).split(sep).filter(Boolean);
+  let cursor = resolvedRoot;
+  for (let index = -1; index < segments.length; index += 1) {
+    if (index >= 0) cursor = join(cursor, segments[index]);
+    const info = await lstat(cursor);
+    if (info.isSymbolicLink()) throw new Error(`${label}不能是符号链接`);
+    if (index < segments.length - 1 && !info.isDirectory()) throw new Error(`${label}父目录无效`);
+    if (index === segments.length - 1 && kind === "file" && !info.isFile()) throw new Error(`${label}必须是普通文件`);
+    if (index === segments.length - 1 && kind === "directory" && !info.isDirectory()) throw new Error(`${label}必须是目录`);
+  }
+  const [canonicalRoot, canonicalPath] = await Promise.all([realpath(resolvedRoot), realpath(resolvedPath)]);
+  if (!isPathInside(canonicalRoot, canonicalPath)) throw new Error(`${label}通过符号链接越界`);
+  return canonicalPath;
+}
+
+async function photoHistoryMetaPath(meta, configured) {
+  if (meta.historyBackupId === undefined && !meta.historyMetaPath) return "";
+  const slotRoot = join(configured.backupRoot, slotFilename(meta.id));
+  let backupId = meta.historyBackupId;
+  if (backupId === undefined) {
+    if (meta.historyMetaPath.split(/[\\/]+/).includes("..")) {
+      throw new Error("客片事务旧备份路径不能包含上级目录");
+    }
+    const legacyPath = resolve(meta.historyMetaPath);
+    if (basename(legacyPath) !== "meta.json" || resolve(dirname(dirname(legacyPath))) !== resolve(slotRoot)) {
+      throw new Error("客片事务旧备份路径与照片位不匹配");
+    }
+    backupId = basename(dirname(legacyPath));
+  }
+  const expectedPath = join(slotRoot, requirePhotoHistoryBackupId(backupId), "meta.json");
+  await assertExistingPhotoPathInside(configured.backupRoot, expectedPath, "客片事务备份记录");
+  return expectedPath;
+}
+
+async function updateHistoryAfterTransaction(meta, completed, configured) {
+  const historyMetaPath = await photoHistoryMetaPath(meta, configured);
+  if (!historyMetaPath) return true;
   let history;
   try {
-    history = await readJson(meta.historyMetaPath);
+    history = await readJson(historyMetaPath);
   } catch {
     return false;
+  }
+  if (!history || Array.isArray(history) || history.id !== meta.id) {
+    throw new Error("客片事务备份记录与照片位不匹配");
   }
   if (meta.operation === "replace") {
     history.status = completed ? "available" : "failed";
@@ -287,7 +381,12 @@ async function updateHistoryAfterTransaction(meta, completed) {
     history.restoredAt = history.restoredAt || new Date().toISOString();
   }
   try {
-    await writeJson(meta.historyMetaPath, history);
+    await (completed ? configured.faults.beforeCommitHistoryWrite : configured.faults.beforeRollbackHistoryWrite)?.({
+      id: meta.id,
+      operation: meta.operation,
+    });
+    await assertExistingPhotoPathInside(configured.backupRoot, historyMetaPath, "客片事务备份记录");
+    await writeJson(historyMetaPath, history);
     return true;
   } catch {
     return false;
@@ -300,7 +399,7 @@ async function persistTransactionStatus(metaPath, meta, status) {
   Object.assign(meta, next);
 }
 
-async function runAssetTransaction(id, desired, operation, historyMetaPath = "", options = {}) {
+async function runAssetTransaction(id, desired, operation, historyBackupId = "", options = {}) {
   const numericId = assertPhotoId(id);
   const configured = photoStoreOptions(options);
   const token = randomBytes(5).toString("hex");
@@ -308,11 +407,12 @@ async function runAssetTransaction(id, desired, operation, historyMetaPath = "",
   const metaPath = join(transactionDir, "transaction.json");
   const targets = assetPathsAt(numericId, configured.photoRoot);
   const meta = {
+    schemaVersion: 1,
     id: numericId,
     operation,
     status: "preparing",
-    historyMetaPath,
     createdAt: new Date().toISOString(),
+    ...(historyBackupId ? { historyBackupId: requirePhotoHistoryBackupId(historyBackupId) } : {}),
   };
   await mkdir(transactionDir, { recursive: true });
 
@@ -333,14 +433,14 @@ async function runAssetTransaction(id, desired, operation, historyMetaPath = "",
         throw new Error(`${error.message}；自动恢复未完成，请立即交给 Codex 处理 ${transactionDir}`);
       }
     }
-    await updateHistoryAfterTransaction(meta, false);
-    await rm(transactionDir, { recursive: true, force: true });
+    const historyUpdated = await updateHistoryAfterTransaction(meta, false, configured);
+    if (historyUpdated) await rm(transactionDir, { recursive: true, force: true });
     throw error;
   }
 
   // 资产已完整安装且 committed 标记已落盘。之后的记账或清理失败不应
   // 把已成功的换图误报为失败；保留事务目录，下次启动会再完成记账。
-  const historyUpdated = await updateHistoryAfterTransaction(meta, true);
+  const historyUpdated = await updateHistoryAfterTransaction(meta, true, configured);
   if (historyUpdated) {
     await configured.faults.afterAssetHistoryCommit?.({ id: numericId, operation });
     await rm(transactionDir, { recursive: true, force: true }).catch(() => {});
@@ -352,8 +452,10 @@ export async function recoverIncompletePhotoTransactions(options = {}) {
   const configured = photoStoreOptions(options);
   let entries = [];
   try {
+    await assertExistingPhotoPathInside(configured.transactionRoot, configured.transactionRoot, "客片事务目录", "directory");
     entries = (await readdir(configured.transactionRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory());
-  } catch {
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
     return [];
   }
   const recovered = [];
@@ -362,6 +464,8 @@ export async function recoverIncompletePhotoTransactions(options = {}) {
     const metaPath = join(transactionDir, "transaction.json");
     let rawMeta;
     try {
+      await assertExistingPhotoPathInside(configured.transactionRoot, transactionDir, "客片事务记录目录", "directory");
+      await assertExistingPhotoPathInside(configured.transactionRoot, metaPath, "客片事务记录");
       rawMeta = await readFile(metaPath, "utf8");
     } catch (error) {
       if (error.code === "ENOENT") {
@@ -373,22 +477,30 @@ export async function recoverIncompletePhotoTransactions(options = {}) {
     }
     let meta;
     try {
-      meta = JSON.parse(rawMeta);
-    } catch {
+      meta = validatePhotoTransactionMeta(JSON.parse(rawMeta));
+      assertPhotoTransactionDirectoryName(entry.name, meta.id);
+    } catch (error) {
+      if (error?.message?.includes("越界") || error?.message?.includes("符号链接")) throw error;
       throw new Error(`客片事务记录损坏，已停止管理台以保护图片：${transactionDir}`);
     }
     if (meta.status === "committing" || meta.status === "recovering") {
       await persistTransactionStatus(metaPath, meta, "recovering");
       await restoreTransaction(transactionDir, assetPathsAt(meta.id, configured.photoRoot));
-      await updateHistoryAfterTransaction(meta, false);
+      const historyUpdated = await updateHistoryAfterTransaction(meta, false, configured);
+      if (!historyUpdated) {
+        throw new Error(`已恢复 ${slotCode(meta.id)}，但本地备份记录尚未完成；请交给 Codex 处理：${transactionDir}`);
+      }
       recovered.push(slotCode(meta.id));
     } else if (meta.status === "committed") {
-      const historyUpdated = await updateHistoryAfterTransaction(meta, true);
+      const historyUpdated = await updateHistoryAfterTransaction(meta, true, configured);
       if (!historyUpdated) {
         throw new Error(`已安装 ${slotCode(meta.id)}，但本地备份记录尚未完成；请交给 Codex 处理：${transactionDir}`);
       }
     } else if (["preparing", "prepared"].includes(meta.status)) {
-      await updateHistoryAfterTransaction(meta, false);
+      const historyUpdated = await updateHistoryAfterTransaction(meta, false, configured);
+      if (!historyUpdated) {
+        throw new Error(`未提交 ${slotCode(meta.id)}，但本地备份记录尚未完成；请交给 Codex 处理：${transactionDir}`);
+      }
     } else {
       throw new Error(`客片事务状态无法识别，已停止管理台：${transactionDir}`);
     }
@@ -510,8 +622,7 @@ export async function replacePhoto(id, inputPath, originalName = "", options = {
     }
     await writeJson(pendingHistoryMetaPath, history);
     await rename(pendingBackupDir, backupDir);
-    const historyMetaPath = join(backupDir, "meta.json");
-    await runAssetTransaction(numericId, generated, "replace", historyMetaPath, configured);
+    await runAssetTransaction(numericId, generated, "replace", backupName, configured);
 
     return operationId
       ? history.replaceOperation.result
@@ -596,7 +707,7 @@ export async function undoLatestPhotoReplacement(id, options = {}) {
       thumb: join(directory, "thumb.webp"),
       featured: targets.featured ? join(directory, "featured.webp") : null,
     };
-    await runAssetTransaction(numericId, desired, "undo", metaPath, configured);
+    await runAssetTransaction(numericId, desired, "undo", entry, configured);
     return operationId ? meta.undoOperation.result : { id: numericId, code: slotCode(numericId) };
   }
   throw new Error(`${slotCode(numericId)} 没有更早的可用备份`);

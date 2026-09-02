@@ -357,6 +357,14 @@ async function loadStyleStoreModule() {
   }
 }
 
+async function loadManagerApiErrorContract() {
+  try {
+    return await import(new URL("../tools/portfolio-manager-api-errors.mjs", import.meta.url));
+  } catch (error) {
+    assert.fail(`portfolio manager API error contract is unavailable: ${error.message}`);
+  }
+}
+
 async function generateJpeg(path, size, color, metadata = "") {
   const ffmpeg = await photoLib.resolveBinary("ffmpeg");
   const args = [
@@ -2261,6 +2269,67 @@ test("global photo API responses and upload errors never expose private filesyst
   const invalid = await request(Buffer.from("not-a-readable-image"), "eccccccc-cccc-4ccc-8ccc-cccccccccccc");
   assert.notEqual(invalid.status, 200);
   assertPublicResponse(await invalid.json());
+});
+
+test("manager API error contract maps unexpected path-bearing failures to one generic response", async () => {
+  const { toApiErrorPayload } = await loadManagerApiErrorContract();
+  const cases = [
+    "客片事务记录损坏，已停止管理台以保护图片：/Users/nanbo/private/transaction.json",
+    "恢复失败：\"/private/var/folders/customer.jpg\"",
+    "ENOENT: no such file or directory, open '/var/folders/customer/meta.json'",
+    "恢复失败：C:\\Users\\nanbo\\private\\meta.json",
+    "恢复失败：\\\\server\\share\\customer.jpg",
+    "恢复失败：file:///tmp/customer-secret.jpg",
+    "事务路径：/var/folders/test/portfolio-photo-transactions/transaction.json",
+  ];
+  for (const detail of cases) {
+    const { status, body } = toApiErrorPayload(new Error(detail));
+    assert.equal(status, 500, detail);
+    assert.deepEqual(body, {
+      ok: false,
+      code: "INTERNAL_ERROR",
+      error: "操作未完成，请稍后重试",
+    }, detail);
+    assert.equal(JSON.stringify(body).includes(detail), false, detail);
+  }
+
+  const validationError = new Error("资产编号无效");
+  validationError.apiCode = "INVALID_ASSET_ID";
+  validationError.status = 400;
+  assert.deepEqual(toApiErrorPayload(validationError), {
+    status: 400,
+    body: { ok: false, code: "INVALID_ASSET_ID", error: "资产编号无效" },
+  });
+});
+
+test("global photo recovery API errors keep corrupt journal evidence but never leak its path", { timeout: 60_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const transactionRoot = join(server.sandbox, ".local/portfolio-photo-transactions");
+  const transactionName = "corrupt-journal";
+  const transactionDirectory = join(transactionRoot, transactionName);
+  await mkdir(transactionDirectory, { recursive: true });
+  await writeFile(join(transactionDirectory, "transaction.json"), "{not json\n");
+
+  const response = await fetch(new URL("api/replace?id=158", server.url), {
+    method: "POST",
+    body: Buffer.alloc(0),
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "recovery-probe.jpg",
+      "x-nanbo-operation-id": "fccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "x-nanbo-token": server.token,
+    },
+  });
+  const payload = await response.json();
+  assert.equal(response.status, 500);
+  assert.deepEqual(payload, {
+    ok: false,
+    code: "INTERNAL_ERROR",
+    error: "操作未完成，请稍后重试",
+  });
+  assert.equal(JSON.stringify(payload).includes(server.sandbox), false);
+  assert.equal((await readdir(transactionRoot)).includes(transactionName), true, "corrupt recovery evidence must remain");
 });
 
 test("legacy manager retries dropped global replace and undo responses without a second transition", { skip: !hasChrome, timeout: 180_000 }, async (t) => {

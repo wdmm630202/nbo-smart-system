@@ -1180,6 +1180,25 @@ export function createPortfolioStyleStore({
     return null;
   }
 
+  async function committedTransactionMeta(entryName) {
+    if (typeof entryName !== "string" || !entryName) return null;
+    let entries = [];
+    try {
+      entries = await readdir(transactionRoot, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+    const entry = entries.find((item) => item.isDirectory() && item.name === entryName);
+    if (!entry) return null;
+    try {
+      const meta = await readJson(join(transactionRoot, entry.name, "meta.json"));
+      return meta.status === "committed" ? { entry: entry.name, meta } : null;
+    } catch {
+      return null;
+    }
+  }
+
   async function commitBatch(input) {
     const normalizedInput = { operationId: null, ...input };
     requireExactKeys(normalizedInput, ["batchId", "styleId", "orderedPositions", "operationId"], "整组提交");
@@ -1303,7 +1322,7 @@ export function createPortfolioStyleStore({
     const inputPath = requireText(normalizedInput.inputPath, "上传文件路径");
     const originalName = requireText(normalizedInput.originalName, "原始文件名");
     const operationId = requireOperationId(normalizedInput.operationId);
-    const operationFingerprint = operationId
+    const requestFingerprint = operationId
       ? await fileOperationFingerprint("replace-slot", [slotId, originalName], inputPath)
       : null;
     return enqueueOperation(async () => {
@@ -1311,16 +1330,36 @@ export function createPortfolioStyleStore({
       const replay = await committedOperationMeta(operationId);
       if (replay) {
         const { entry, meta } = replay;
+        const currentSlot = state.slotById[slotId];
+        const expectedOperationFingerprint = payloadOperationFingerprint("replace-slot-operation", [
+          meta.requestFingerprint,
+          meta.expectedSlotFingerprint,
+        ]);
         if (meta.operation !== "replace-slot"
-          || meta.operationFingerprint !== operationFingerprint
+          || meta.requestFingerprint !== requestFingerprint
+          || meta.operationFingerprint !== expectedOperationFingerprint
           || meta.slotId !== slotId
+          || !currentSlot
+          || meta.resultSlotFingerprint !== payloadOperationFingerprint("style-slot-state", [
+            currentSlot.id,
+            currentSlot.assetId,
+            currentSlot.poseLabel,
+            currentSlot.source,
+            currentSlot.updatedAt,
+          ])
           || !hasCompleteReplacementRecord(entry, meta)) {
-          throw new Error("操作编号与重试内容不一致");
+          throw new Error("操作编号与重试内容或当前照片位状态不一致");
         }
         return { assetId: meta.assetId, code: slotCode(meta.assetId), slotId: meta.slotId };
       }
       const slot = state.slotById[slotId];
       if (!slot) throw new Error("照片位不存在");
+      const expectedSlotFingerprint = operationId
+        ? payloadOperationFingerprint("style-slot-state", [slot.id, slot.assetId, slot.poseLabel, slot.source, slot.updatedAt])
+        : null;
+      const operationFingerprint = operationId
+        ? payloadOperationFingerprint("replace-slot-operation", [requestFingerprint, expectedSlotFingerprint])
+        : null;
       const assetId = Math.max(...state.assetIds) + 1;
       const prepared = await prepareNewAsset(assetId, inputPath);
       try {
@@ -1335,6 +1374,16 @@ export function createPortfolioStyleStore({
           source: "upload",
           updatedAt: now,
         };
+        const resultAssignment = targetLayout.slots[slot.position - 1];
+        const resultSlotFingerprint = operationId
+          ? payloadOperationFingerprint("style-slot-state", [
+            slotId,
+            resultAssignment.assetId,
+            resultAssignment.poseLabel,
+            resultAssignment.source,
+            resultAssignment.updatedAt,
+          ])
+          : null;
         targetLayout.maturity = sourceDerivedMaturity(targetLayout.slots);
         targetLayout.updatedAt = now;
         const baseAsset = state.assetById[slot.assetId];
@@ -1362,7 +1411,13 @@ export function createPortfolioStyleStore({
             previousAssignment,
             previousLayoutUpdatedAt,
             originalName,
-            ...(operationId ? { operationId, operationFingerprint } : {}),
+            ...(operationId ? {
+              operationId,
+              operationFingerprint,
+              requestFingerprint,
+              expectedSlotFingerprint,
+              resultSlotFingerprint,
+            } : {}),
           },
           outputs: [
             { key: "full", action: "write", target: fullTarget, sourcePath: prepared.generated.full },
@@ -1670,15 +1725,49 @@ export function createPortfolioStyleStore({
     return null;
   }
 
-  async function undoSlot(slotIdValue) {
-    const slotId = requireText(slotIdValue, "照片位编号");
+  async function undoSlot(input) {
+    const normalizedInput = typeof input === "string"
+      ? { slotId: input, operationId: null }
+      : { operationId: null, ...input };
+    requireExactKeys(normalizedInput, ["slotId", "operationId"], "撤销照片位");
+    const slotId = requireText(normalizedInput.slotId, "照片位编号");
+    const operationId = requireOperationId(normalizedInput.operationId);
+    const requestFingerprint = operationId
+      ? payloadOperationFingerprint("undo-slot-request", [slotId])
+      : null;
     return enqueueOperation(async () => {
       const state = await readStateUnlocked();
       const slot = state.slotById[slotId];
       if (!slot) throw new Error("照片位不存在");
+      const replay = await committedOperationMeta(operationId);
+      if (replay) {
+        const source = await committedTransactionMeta(replay.meta.sourceTransaction);
+        const expectedFingerprint = payloadOperationFingerprint("undo-slot", [
+          slotId,
+          replay.meta.expectedAssetId,
+          replay.meta.sourceTransaction,
+        ]);
+        if (replay.meta.operation !== "undo-slot"
+          || replay.meta.requestFingerprint !== requestFingerprint
+          || replay.meta.operationFingerprint !== expectedFingerprint
+          || replay.meta.slotId !== slotId
+          || replay.meta.expectedAssetId !== replay.meta.assetId
+          || slot.assetId !== replay.meta.restoredAssetId
+          || !hasCompleteUndoRecord(replay.entry, replay.meta, source)) {
+          throw new Error("操作编号与重试内容或当前照片位状态不一致");
+        }
+        return {
+          slotId: replay.meta.slotId,
+          restoredAssetId: replay.meta.restoredAssetId,
+          removedAssetId: replay.meta.removedAssetId,
+        };
+      }
       const history = await availableReplacementHistory(slotId, slot.assetId, state, slot);
       if (!history) throw new Error(`${slotId} 没有更早的可用备份`);
       const replacement = history.replacement;
+      const operationFingerprint = operationId
+        ? payloadOperationFingerprint("undo-slot", [slotId, slot.assetId, history.entry])
+        : null;
 
       const assignments = clone(state.assignments);
       const targetLayout = assignments.assignments[slot.styleId];
@@ -1714,6 +1803,12 @@ export function createPortfolioStyleStore({
           assetId: replacement.assetId,
           restoredAssetId: replacement.previousAssetId,
           removedAssetId: removeAsset ? replacement.assetId : null,
+          ...(operationId ? {
+            operationId,
+            requestFingerprint,
+            operationFingerprint,
+            expectedAssetId: slot.assetId,
+          } : {}),
         },
         outputs,
       });

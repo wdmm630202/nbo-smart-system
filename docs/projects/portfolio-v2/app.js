@@ -3,22 +3,22 @@ import {
   buildPortfolioThemes,
   emptyPortfolioAdditions,
   portfolioCatalog,
-} from "./catalog.js?v=pv2-85203ebcff79";
+} from "./catalog.js?v=pv2-ef8b6833bf6c";
 import {
   buildCustomerPortfolio,
   buildCustomerStyleLibrary,
   loadPortfolioAdditions,
   loadPortfolioDocument,
-} from "./portfolio-runtime.js?v=pv2-85203ebcff79";
-import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=pv2-85203ebcff79";
-import { createStyleExplorer } from "./style-explorer.js?v=pv2-85203ebcff79";
+} from "./portfolio-runtime.js?v=pv2-ef8b6833bf6c";
+import { projectCarouselIndex, releaseVelocity, shouldDismissThemeSheet } from "./interaction-model.js?v=pv2-ef8b6833bf6c";
+import { createStyleExplorer } from "./style-explorer.js?v=pv2-ef8b6833bf6c";
 import {
   buildPoseBrief,
   readStylePreferences,
   writeStylePreferences,
-} from "./style-preferences.js?v=pv2-85203ebcff79";
+} from "./style-preferences.js?v=pv2-ef8b6833bf6c";
 
-const embeddedBuildVersion = "pv2-85203ebcff79";
+const embeddedBuildVersion = "pv2-ef8b6833bf6c";
 const requestedBuildVersion = new URLSearchParams(window.location.search).get("v") || "";
 const isLocalSourceBuild = embeddedBuildVersion.startsWith("__");
 const buildVersion = isLocalSourceBuild ? requestedBuildVersion || "local" : embeddedBuildVersion;

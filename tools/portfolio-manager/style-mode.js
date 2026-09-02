@@ -130,7 +130,23 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     batchOpener: null,
     batchCommitOperationId: "",
   };
-  const externalReplacementOperations = new Map();
+  let externalReplacementOperations = new WeakMap();
+  const undoOperations = new Map();
+
+  function externalReplacementOperation(file, slotId) {
+    let slotOperations = externalReplacementOperations.get(file);
+    if (!slotOperations) {
+      slotOperations = new Map();
+      externalReplacementOperations.set(file, slotOperations);
+    }
+    const operationId = slotOperations.get(slotId) || createOperationId();
+    slotOperations.set(slotId, operationId);
+    return operationId;
+  }
+
+  function clearExternalReplacementOperations() {
+    externalReplacementOperations = new WeakMap();
+  }
 
   function activeFamilies() {
     return sorted((state.library?.families || []).filter(({ scene }) => scene === state.scene));
@@ -494,6 +510,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slotId, poseLabel: poseLabel.trim() }),
       });
+      clearExternalReplacementOperations();
       await refresh();
       showToast("姿势标签已保存在本机，尚未同步到网站", "success");
     } catch (error) {
@@ -551,6 +568,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
           maturity: draft.maturity,
         }),
       });
+      clearExternalReplacementOperations();
       state.layoutDrafts.delete(style.id);
       await refresh();
       showToast("顺序与封面已保存在本机，尚未同步到网站", "success");
@@ -673,6 +691,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
         },
         body: file,
       });
+      clearExternalReplacementOperations();
       entry.status = "ready";
     } catch (error) {
       entry.status = "error";
@@ -709,6 +728,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     if (!state.batchId) return;
     const batchId = state.batchId;
     await requestJson(`/api/style-batches/${encodeURIComponent(batchId)}`, { method: "DELETE" });
+    clearExternalReplacementOperations();
     if (state.batchId === batchId) state.batchId = "";
   }
 
@@ -748,6 +768,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
       });
       renderBatchEntries();
       const created = await requestJson("/api/style-batches", { method: "POST" });
+      clearExternalReplacementOperations();
       state.batchId = created.result.batchId;
       state.batchStyleId = selectedStyle()?.id || "";
       state.batchCommitOperationId = "";
@@ -821,6 +842,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
           orderedPositions: [...state.batchOrder],
         }),
       });
+      clearExternalReplacementOperations();
       state.batchId = "";
       state.batchCommitOperationId = "";
       state.layoutDrafts.delete(state.batchStyleId);
@@ -852,6 +874,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
           visibility: elements.visibility.value,
         }),
       });
+      clearExternalReplacementOperations();
       await refresh();
       showToast("风格资料已保存在本机，尚未同步到网站", "success");
     } catch (error) {
@@ -991,12 +1014,8 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   }
 
   async function replaceSlot(slotId, file, operationId) {
-    const externalOperationKey = `${slotId}\0${fileRetrySignature(file)}`;
     const managesOperationId = !operationId;
-    if (managesOperationId) {
-      operationId = externalReplacementOperations.get(externalOperationKey) || createOperationId();
-      externalReplacementOperations.set(externalOperationKey, operationId);
-    }
+    if (managesOperationId) operationId = externalReplacementOperation(file, slotId);
     const styleId = styleIdFromSlot(slotId);
     const target = state.library?.styles.find(({ id }) => id === styleId);
     if (target) {
@@ -1023,7 +1042,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
         body: file,
       });
       await refresh();
-      if (managesOperationId) externalReplacementOperations.delete(externalOperationKey);
+      clearExternalReplacementOperations();
       showToast("只替换了当前照片位，其他复用位置不变", "success");
     } finally {
       setBusy(false);
@@ -1043,9 +1062,15 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function undoSlot(slotId) {
     const reviewedStyle = selectedStyle();
     const reviewedPoseLabel = reviewedStyle?.slots.find(({ id }) => id === slotId)?.poseLabel || "";
+    const operationId = undoOperations.get(slotId) || createOperationId();
+    undoOperations.set(slotId, operationId);
     setBusy(true);
     try {
-      await requestJson(`/api/style-slots/undo?slot=${encodeURIComponent(slotId)}`, { method: "POST" });
+      await requestJson(`/api/style-slots/undo?slot=${encodeURIComponent(slotId)}`, {
+        method: "POST",
+        headers: { "X-Nanbo-Operation-Id": operationId },
+      });
+      clearExternalReplacementOperations();
       if (reviewedPoseLabel) {
         await requestJson("/api/style-slots/meta", {
           method: "POST",
@@ -1054,6 +1079,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
         });
       }
       await refresh();
+      undoOperations.delete(slotId);
       showToast("已撤销当前照片位的最近一次换图", "success");
     } catch (error) {
       showToast(error.message, "error");

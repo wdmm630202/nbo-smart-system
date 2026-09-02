@@ -736,6 +736,7 @@ test("旧 POST 路由仅接受当前端口的 localhost 和 127.0.0.1 Origin", {
         "content-type": "text/plain",
         origin,
         "x-file-name": "bad.txt",
+        "x-nanbo-operation-id": "10101010-1010-4010-8010-101010101010",
         "x-nanbo-token": server.token,
       },
     });
@@ -752,6 +753,7 @@ test("精确匹配本机来源时不因 Chrome 跨站辅助字段误拒绝", { t
     headers: {
       "content-type": "text/plain",
       "x-file-name": "test.txt",
+      "x-nanbo-operation-id": "20202020-2020-4020-8020-202020202020",
       "x-nanbo-token": server.token,
       origin: new URL(server.url).origin,
       "sec-fetch-site": "cross-site",

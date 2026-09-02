@@ -78,16 +78,52 @@ export function assertPhotoId(id) {
   return numericId;
 }
 
-export function assetPaths(id) {
+function assetPathsAt(id, photoRootPath) {
   const numericId = assertPhotoId(id);
   const base = slotFilename(numericId);
   return {
-    full: join(sourcePhotoRoot, "full", `${base}.jpg`),
-    thumb: join(sourcePhotoRoot, "thumbs", `${base}.webp`),
+    full: join(photoRootPath, "full", `${base}.jpg`),
+    thumb: join(photoRootPath, "thumbs", `${base}.webp`),
     featured: portfolioCatalog.heroAssetIds.includes(numericId)
-      ? join(sourcePhotoRoot, "featured", `${base}.webp`)
+      ? join(photoRootPath, "featured", `${base}.webp`)
       : null,
   };
+}
+
+export function assetPaths(id) {
+  return assetPathsAt(id, sourcePhotoRoot);
+}
+
+function photoStoreOptions(options = {}) {
+  const localStateRoot = options.localStateRoot || join(root, ".local");
+  return {
+    photoRoot: options.photoRoot || sourcePhotoRoot,
+    backupRoot: options.backupRoot || join(localStateRoot, "portfolio-photo-backups"),
+    transactionRoot: options.transactionRoot || join(localStateRoot, "portfolio-photo-transactions"),
+  };
+}
+
+function requirePhotoOperationId(operationId) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(operationId || ""))) {
+    throw new Error("操作编号无效");
+  }
+  return String(operationId).toLowerCase();
+}
+
+function photoOperationFingerprint(label, parts) {
+  return createHash("sha256").update(JSON.stringify([label, ...parts])).digest("hex");
+}
+
+async function fileDigest(path) {
+  return createHash("sha256").update(await readFile(path)).digest("hex");
+}
+
+async function assetStateFingerprint(paths) {
+  const entries = [];
+  for (const [key, path] of Object.entries(paths)) {
+    if (path) entries.push([key, await fileDigest(path)]);
+  }
+  return photoOperationFingerprint("photo-asset-state", entries);
 }
 
 async function isExecutable(path) {
@@ -263,12 +299,13 @@ async function persistTransactionStatus(metaPath, meta, status) {
   Object.assign(meta, next);
 }
 
-async function runAssetTransaction(id, desired, operation, historyMetaPath = "") {
+async function runAssetTransaction(id, desired, operation, historyMetaPath = "", options = {}) {
   const numericId = assertPhotoId(id);
+  const configured = photoStoreOptions(options);
   const token = randomBytes(5).toString("hex");
-  const transactionDir = join(transactionRoot, `${slotFilename(numericId)}-${timestampName()}-${token}`);
+  const transactionDir = join(configured.transactionRoot, `${slotFilename(numericId)}-${timestampName()}-${token}`);
   const metaPath = join(transactionDir, "transaction.json");
-  const targets = assetPaths(numericId);
+  const targets = assetPathsAt(numericId, configured.photoRoot);
   const meta = {
     id: numericId,
     operation,
@@ -306,16 +343,17 @@ async function runAssetTransaction(id, desired, operation, historyMetaPath = "")
   return { committed: true, reconciliationPending: !historyUpdated };
 }
 
-export async function recoverIncompletePhotoTransactions() {
+export async function recoverIncompletePhotoTransactions(options = {}) {
+  const configured = photoStoreOptions(options);
   let entries = [];
   try {
-    entries = (await readdir(transactionRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory());
+    entries = (await readdir(configured.transactionRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory());
   } catch {
     return [];
   }
   const recovered = [];
   for (const entry of entries) {
-    const transactionDir = join(transactionRoot, entry.name);
+    const transactionDir = join(configured.transactionRoot, entry.name);
     const metaPath = join(transactionDir, "transaction.json");
     let rawMeta;
     try {
@@ -336,7 +374,7 @@ export async function recoverIncompletePhotoTransactions() {
     }
     if (meta.status === "committing" || meta.status === "recovering") {
       await persistTransactionStatus(metaPath, meta, "recovering");
-      await restoreTransaction(transactionDir, assetPaths(meta.id));
+      await restoreTransaction(transactionDir, assetPathsAt(meta.id, configured.photoRoot));
       await updateHistoryAfterTransaction(meta, false);
       recovered.push(slotCode(meta.id));
     } else if (meta.status === "committed") {
@@ -354,8 +392,61 @@ export async function recoverIncompletePhotoTransactions() {
   return recovered;
 }
 
-export async function replacePhoto(id, inputPath, originalName = "") {
+async function findPhotoOperation(configured, operationId) {
+  let slots = [];
+  try {
+    slots = (await readdir(configured.backupRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory());
+  } catch {
+    return null;
+  }
+  for (const slot of slots) {
+    const slotRoot = join(configured.backupRoot, slot.name);
+    let entries = [];
+    try {
+      entries = (await readdir(slotRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith(".pending-"));
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const metaPath = join(slotRoot, entry.name, "meta.json");
+      let meta;
+      try {
+        meta = await readJson(metaPath);
+      } catch {
+        continue;
+      }
+      for (const type of ["replace", "undo"]) {
+        const record = meta[`${type}Operation`];
+        if (record?.operationId === operationId) return { directory: join(slotRoot, entry.name), meta, metaPath, record, type };
+      }
+    }
+  }
+  return null;
+}
+
+function rejectPhotoOperationMismatch() {
+  throw new Error("操作编号与重试内容或当前客片状态不一致");
+}
+
+export async function replacePhoto(id, inputPath, originalName = "", options = {}) {
   const numericId = assertPhotoId(id);
+  const configured = photoStoreOptions(options);
+  const operationId = options.operationId ? requirePhotoOperationId(options.operationId) : "";
+  const targets = assetPathsAt(numericId, configured.photoRoot);
+  let requestFingerprint = "";
+  if (operationId) {
+    requestFingerprint = photoOperationFingerprint("replace-photo-request", [numericId, originalName, await fileDigest(inputPath)]);
+    const existing = await findPhotoOperation(configured, operationId);
+    if (existing) {
+      const currentStateFingerprint = await assetStateFingerprint(targets);
+      if (existing.type !== "replace"
+        || existing.meta.id !== numericId
+        || existing.record.requestFingerprint !== requestFingerprint
+        || existing.record.resultStateFingerprint !== currentStateFingerprint
+        || !existing.record.result) rejectPhotoOperationMismatch();
+      return existing.record.result;
+    }
+  }
   const sourceInfo = await probeImage(inputPath);
   validateIncomingImage(sourceInfo);
 
@@ -366,8 +457,7 @@ export async function replacePhoto(id, inputPath, originalName = "") {
     thumb: join(temporaryDir, "thumb.webp"),
     featured: portfolioCatalog.heroAssetIds.includes(numericId) ? join(temporaryDir, "featured.webp") : null,
   };
-  const targets = assetPaths(numericId);
-  const slotBackupRoot = join(backupRoot, slotFilename(numericId));
+  const slotBackupRoot = join(configured.backupRoot, slotFilename(numericId));
   const backupName = `${timestampName()}-${randomBytes(5).toString("hex")}`;
   const pendingBackupDir = join(slotBackupRoot, `.pending-${backupName}`);
   const backupDir = join(slotBackupRoot, backupName);
@@ -383,7 +473,7 @@ export async function replacePhoto(id, inputPath, originalName = "") {
 
     await copyExistingAssets(targets, pendingBackupDir);
     const pendingHistoryMetaPath = join(pendingBackupDir, "meta.json");
-    await writeJson(pendingHistoryMetaPath, {
+    const history = {
       id: numericId,
       code: slotCode(numericId),
       originalName,
@@ -391,25 +481,63 @@ export async function replacePhoto(id, inputPath, originalName = "") {
       createdAt: new Date().toISOString(),
       restoredAt: null,
       status: "pending",
-    });
+    };
+    if (operationId) {
+      history.replaceOperation = {
+        operationId,
+        requestFingerprint,
+        expectedStateFingerprint: await assetStateFingerprint(targets),
+        resultStateFingerprint: "",
+        result: null,
+      };
+    }
+    await writeJson(pendingHistoryMetaPath, history);
     await rename(pendingBackupDir, backupDir);
     const historyMetaPath = join(backupDir, "meta.json");
-    await runAssetTransaction(numericId, generated, "replace", historyMetaPath);
+    await runAssetTransaction(numericId, generated, "replace", historyMetaPath, configured);
 
     const sizes = {};
     for (const [name, path] of Object.entries(targets)) {
       if (path) sizes[name] = (await stat(path)).size;
     }
-    return { id: numericId, code: slotCode(numericId), sourceInfo, sizes, backupDir };
+    const result = { id: numericId, code: slotCode(numericId), sourceInfo, sizes, backupDir };
+    if (operationId) {
+      const committedHistory = await readJson(historyMetaPath);
+      committedHistory.replaceOperation = {
+        ...committedHistory.replaceOperation,
+        resultStateFingerprint: await assetStateFingerprint(targets),
+        result,
+      };
+      await writeJson(historyMetaPath, committedHistory);
+    }
+    return result;
   } finally {
     await rm(temporaryDir, { recursive: true, force: true });
     await rm(pendingBackupDir, { recursive: true, force: true });
   }
 }
 
-export async function undoLatestPhotoReplacement(id) {
+export async function undoLatestPhotoReplacement(id, options = {}) {
   const numericId = assertPhotoId(id);
-  const slotBackupRoot = join(backupRoot, slotFilename(numericId));
+  const configured = photoStoreOptions(options);
+  const operationId = options.operationId ? requirePhotoOperationId(options.operationId) : "";
+  const requestFingerprint = operationId
+    ? photoOperationFingerprint("undo-photo-request", [numericId])
+    : "";
+  const targets = assetPathsAt(numericId, configured.photoRoot);
+  if (operationId) {
+    const existing = await findPhotoOperation(configured, operationId);
+    if (existing) {
+      if (existing.type !== "undo"
+        || existing.meta.id !== numericId
+        || existing.record.requestFingerprint !== requestFingerprint
+        || !existing.record.result) rejectPhotoOperationMismatch();
+      const currentStateFingerprint = await assetStateFingerprint(targets);
+      if (existing.record.resultStateFingerprint !== currentStateFingerprint) rejectPhotoOperationMismatch();
+      return existing.record.result;
+    }
+  }
+  const slotBackupRoot = join(configured.backupRoot, slotFilename(numericId));
   let entries = [];
   try {
     entries = (await readdir(slotBackupRoot, { withFileTypes: true }))
@@ -424,7 +552,6 @@ export async function undoLatestPhotoReplacement(id) {
   for (const entry of entries) {
     const directory = join(slotBackupRoot, entry);
     const metaPath = join(directory, "meta.json");
-    const targets = assetPaths(numericId);
     let meta;
     try {
       meta = await readJson(metaPath);
@@ -438,14 +565,49 @@ export async function undoLatestPhotoReplacement(id) {
       // 跳过损坏或未完成的备份，继续寻找更早的有效版本。
       continue;
     }
+    if (operationId) {
+      meta.undoOperation = {
+        operationId,
+        requestFingerprint,
+        expectedStateFingerprint: await assetStateFingerprint(targets),
+        resultStateFingerprint: "",
+        result: null,
+      };
+      await writeJson(metaPath, meta);
+    }
     await runAssetTransaction(numericId, {
       full: join(directory, "full.jpg"),
       thumb: join(directory, "thumb.webp"),
       featured: targets.featured ? join(directory, "featured.webp") : null,
-    }, "undo", metaPath);
-    return { id: numericId, code: slotCode(numericId), backupDir: directory };
+    }, "undo", metaPath, configured);
+    const result = { id: numericId, code: slotCode(numericId), backupDir: directory };
+    if (operationId) {
+      const committedHistory = await readJson(metaPath);
+      committedHistory.undoOperation = {
+        ...committedHistory.undoOperation,
+        resultStateFingerprint: await assetStateFingerprint(targets),
+        result,
+      };
+      await writeJson(metaPath, committedHistory);
+    }
+    return result;
   }
   throw new Error(`${slotCode(numericId)} 没有更早的可用备份`);
+}
+
+export function createPortfolioPhotoStore(options = {}) {
+  const configured = photoStoreOptions(options);
+  return {
+    replacePhoto({ id, inputPath, originalName = "", operationId }) {
+      return replacePhoto(id, inputPath, originalName, { ...configured, operationId });
+    },
+    undoLatestPhotoReplacement({ id, operationId }) {
+      return undoLatestPhotoReplacement(id, { ...configured, operationId });
+    },
+    recoverIncompletePhotoTransactions() {
+      return recoverIncompletePhotoTransactions(configured);
+    },
+  };
 }
 
 export function validateChangedPhotoBundles(sourceFiles) {

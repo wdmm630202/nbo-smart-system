@@ -26,14 +26,13 @@ import {
 import { createDraftStore, draftRoot } from "./portfolio-draft-store.mjs";
 import {
   buildPortfolioVersion,
+  createPortfolioPhotoStore,
   onlinePortfolioUrl,
   recoverIncompletePhotoTransactions,
-  replacePhoto,
   root,
   run,
   slotCode,
   sourcePhotoRoot,
-  undoLatestPhotoReplacement,
   validateChangedPhotoBundles,
   validatePortfolioLibrary,
   writeUploadToTemporaryFile,
@@ -57,6 +56,10 @@ const stylePhotoRoot = hasConfiguredStyleRoot ? publicPhotoRoot : sourcePhotoRoo
 const styleCatalogPath = process.env.NANBO_PORTFOLIO_STYLE_CATALOG_PATH || join(root, "apps/portfolio-v2/style-catalog.json");
 const styleAssignmentsPath = process.env.NANBO_PORTFOLIO_STYLE_ASSIGNMENTS_PATH || join(root, "apps/portfolio-v2/style-slot-assignments.json");
 const configuredFixtureRoot = process.env.NANBO_PORTFOLIO_FIXTURE_ROOT || "";
+const photoStore = createPortfolioPhotoStore({
+  photoRoot: publicPhotoRoot,
+  localStateRoot: join(configuredFixtureRoot || root, ".local"),
+});
 const draftStore = createDraftStore({ rootDir: configuredDraftRoot, legacyMaxId: portfolioCatalog.photoCount });
 const publicationOptions = {
   store: draftStore,
@@ -675,10 +678,12 @@ async function replaceStyleSlotRequest(request, response, url) {
   });
 }
 
-async function undoStyleSlotRequest(response, url) {
+async function undoStyleSlotRequest(request, response, url) {
   await runStyleMutation(response, "恢复风格照片位", () => {
+    const operationId = styleOperationId(request);
+    if (!operationId) throw apiError("INVALID_OPERATION_ID", "缺少操作编号");
     const slotId = requireStyleSlotId(exactQueryValue(url, "slot", "INVALID_SLOT_ID", "照片位编号无效"));
-    return requireStyleStore().undoSlot(slotId);
+    return requireStyleStore().undoSlot({ slotId, operationId });
   });
 }
 
@@ -807,7 +812,9 @@ function requireSession(request) {
 async function replacePhotoRequest(request, response, url) {
   beginMutation("替换客片");
   try {
-    await recoverIncompletePhotoTransactions();
+    await photoStore.recoverIncompletePhotoTransactions();
+    const operationId = styleOperationId(request);
+    if (!operationId) throw apiError("INVALID_OPERATION_ID", "缺少操作编号");
     const id = Number(url.searchParams.get("id"));
     const originalName = decodeURIComponent(String(request.headers["x-file-name"] || "未命名图片"));
     const extension = extname(originalName).toLowerCase();
@@ -818,7 +825,7 @@ async function replacePhotoRequest(request, response, url) {
     const buffer = await readBody(request);
     const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".jpg");
     try {
-      const result = await replacePhoto(id, temporary.path, originalName);
+      const result = await photoStore.replacePhoto({ id, inputPath: temporary.path, originalName, operationId });
       json(response, 200, { ok: true, result, status: await repositoryStatus() });
     } finally {
       await rm(temporary.directory, { recursive: true, force: true });
@@ -831,8 +838,10 @@ async function replacePhotoRequest(request, response, url) {
 async function undoPhotoRequest(request, response, url) {
   beginMutation("恢复客片");
   try {
-    await recoverIncompletePhotoTransactions();
-    const result = await undoLatestPhotoReplacement(Number(url.searchParams.get("id")));
+    await photoStore.recoverIncompletePhotoTransactions();
+    const operationId = styleOperationId(request);
+    if (!operationId) throw apiError("INVALID_OPERATION_ID", "缺少操作编号");
+    const result = await photoStore.undoLatestPhotoReplacement({ id: Number(url.searchParams.get("id")), operationId });
     json(response, 200, { ok: true, result, status: await repositoryStatus() });
   } finally {
     finishMutation();
@@ -1234,7 +1243,7 @@ async function route(request, response) {
       return;
     }
     if (request.method === "POST" && url.pathname === "/api/style-slots/undo") {
-      await undoStyleSlotRequest(response, url);
+      await undoStyleSlotRequest(request, response, url);
       return;
     }
     if (request.method === "POST" && url.pathname === "/api/style-slots/meta") {

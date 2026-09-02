@@ -59,7 +59,12 @@ export function buildCustomerPortfolio({ catalog, additions, fallback, buildItem
 
 export function buildCustomerStyleLibrary({ styleCatalog, assignments, assets, fallback = null, warn = defaultWarn }) {
   try {
-    return buildStyleLibrary({ catalog: styleCatalog, assignments, assets });
+    return buildStyleLibrary({
+      catalog: styleCatalog,
+      assignments,
+      assets,
+      requireExplicitSlotIds: true,
+    });
   } catch (error) {
     warn("风格资料校验失败，继续显示历史客片", error);
     return fallback;

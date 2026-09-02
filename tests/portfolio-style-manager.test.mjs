@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import {
   access,
+  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -118,9 +119,12 @@ async function startManagerFixture(t) {
     mkdir(draftRoot, { recursive: true }),
     mkdir(join(photoRoot, "full"), { recursive: true }),
     mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+    mkdir(join(photoRoot, "featured"), { recursive: true }),
     mkdir(publishedRoot, { recursive: true }),
   ]);
   await Promise.all([
+    copyFile(photoLib.assetPaths(158).full, join(photoRoot, "full/photo-158.jpg")),
+    copyFile(photoLib.assetPaths(158).thumb, join(photoRoot, "thumbs/photo-158.webp")),
     writeFile(additionsPath, `${JSON.stringify(additions, null, 2)}\n`),
     writeFile(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`),
     writeFile(assignmentsPath, `${JSON.stringify(assignments, null, 2)}\n`),
@@ -1815,7 +1819,9 @@ test("style mutation endpoints update only the isolated manifests and preserve c
     styleIds: ["ST-IN-01-01"],
     count: 1,
   });
-  const undo = await server.postJson("api/style-slots/undo?slot=ST-IN-01-01-P01", null);
+  const undo = await server.postJson("api/style-slots/undo?slot=ST-IN-01-01-P01", null, {
+    "x-nanbo-operation-id": "33333333-3333-4333-8333-333333333333",
+  });
   assert.equal(undo.status, 200);
   assert.equal(
     (await undo.json()).result.restoredAssetId,
@@ -1961,6 +1967,281 @@ test("single-slot replacement replays a dropped committed response without alloc
   assert.equal(foreignOrigin.status, 403);
 });
 
+test("single-slot committed replay rejects stale success after a later replacement", { timeout: 90_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const request = (body, operationId, name) => fetch(new URL("api/style-slots/replace?slot=ST-IN-01-01-P01", server.url), {
+    method: "POST",
+    body,
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": name,
+      "x-nanbo-operation-id": operationId,
+      "x-nanbo-token": server.token,
+    },
+  });
+  const imageA = await readFile(validPhoto);
+  const imageB = await readFile(newerValidPhoto);
+  const operationA = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  const operationB = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  assert.equal((await request(imageA, operationA, "A.jpg")).status, 200);
+  assert.equal((await request(imageB, operationB, "B.jpg")).status, 200);
+
+  const staleReplay = await request(imageA, operationA, "A.jpg");
+  assert.equal(staleReplay.status, 400);
+  assert.match((await staleReplay.json()).error, /操作编号|重试内容|当前|不一致/);
+  const state = await (await fetch(new URL("api/style-library", server.url))).json();
+  assert.equal(state.styles.find(({ id }) => id === "ST-IN-01-01").slots.find(({ id }) => id === "ST-IN-01-01-P01").assetId, 160);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-slot").length, 2);
+});
+
+test("style-slot undo replays one committed transition for an exact operation retry", { timeout: 90_000 }, async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const slotId = "ST-IN-01-01-P01";
+  await fixture.store.replaceSlot({
+    slotId,
+    inputPath: fixture.validPhoto,
+    originalName: "undo-idempotent.jpg",
+  });
+  const operationId = "44444444-4444-4444-8444-444444444444";
+
+  const first = await fixture.store.undoSlot({ slotId, operationId });
+  const replay = await fixture.createStore().undoSlot({ slotId, operationId });
+
+  assert.deepEqual(replay, first);
+  assert.equal((await fixture.store.read()).slotById[slotId].assetId, 137);
+  assert.equal((await transactionMetas(fixture.rootDir)).filter(({ operation }) => operation === "undo-slot").length, 1);
+  await assert.rejects(
+    () => fixture.store.undoSlot({ slotId: "ST-IN-01-02-P01", operationId }),
+    /操作编号|重试内容|不一致/,
+  );
+});
+
+test("style-slot undo API replays a dropped committed response without consuming older history", { timeout: 90_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const image = await readFile(validPhoto);
+  const slotId = "ST-IN-01-01-P01";
+  const replace = await fetch(new URL(`api/style-slots/replace?slot=${slotId}`, server.url), {
+    method: "POST",
+    body: image,
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "undo-api.jpg",
+      "x-nanbo-operation-id": "55555555-5555-4555-8555-555555555555",
+      "x-nanbo-token": server.token,
+    },
+  });
+  assert.equal(replace.status, 200);
+  const operationId = "66666666-6666-4666-8666-666666666666";
+  const request = (slot = slotId) => fetch(new URL(`api/style-slots/undo?slot=${slot}`, server.url), {
+    method: "POST",
+    headers: {
+      origin: server.exactOrigin,
+      "x-nanbo-operation-id": operationId,
+      "x-nanbo-token": server.token,
+    },
+  });
+
+  const first = await request();
+  assert.equal(first.status, 200);
+  const firstResult = (await first.json()).result;
+  const replay = await request();
+  assert.equal(replay.status, 200);
+  assert.deepEqual((await replay.json()).result, firstResult);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "undo-slot").length, 1);
+
+  const mismatch = await request("ST-IN-01-02-P01");
+  assert.equal(mismatch.status, 400);
+  assert.match((await mismatch.json()).error, /操作编号|重试内容|不一致/);
+});
+
+test("style manager retries a dropped undo response with one operation id", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const slotId = "ST-IN-01-01-P01";
+  const replace = await fetch(new URL(`api/style-slots/replace?slot=${slotId}`, server.url), {
+    method: "POST",
+    body: await readFile(validPhoto),
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "undo-browser.jpg",
+      "x-nanbo-operation-id": "77777777-7777-4777-8777-777777777777",
+      "x-nanbo-token": server.token,
+    },
+  });
+  assert.equal(replace.status, 200);
+
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const input = document.querySelector('input[name="library-mode"][value="styles"]');
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor(`document.querySelector('[data-style-slot-id="${slotId}"] [data-asset-code="NB-159"]')`);
+  await browser.evaluate(`(() => {
+    window.__styleUndoOperationIds = [];
+    window.__dropStyleUndoResponse = true;
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      const isUndo = (init.method || "GET") === "POST" && String(url).includes("/api/style-slots/undo");
+      if (isUndo) window.__styleUndoOperationIds.push(new Headers(init.headers).get("x-nanbo-operation-id"));
+      const response = await nativeFetch(input, init);
+      if (isUndo && response.ok && window.__dropStyleUndoResponse) {
+        window.__dropStyleUndoResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟风格撤销响应丢失");
+      }
+      return response;
+    };
+    document.querySelector('[data-style-slot-id="${slotId}"] .style-slot-undo').click();
+  })()`);
+  await browser.waitFor('document.querySelector("#toast")?.textContent.length > 0');
+  const firstOperationId = await browser.evaluate("window.__styleUndoOperationIds[0]");
+  assert.match(firstOperationId || "", /^[0-9a-f-]{36}$/);
+  await browser.evaluate(`document.querySelector('[data-style-slot-id="${slotId}"] .style-slot-undo').click()`);
+  await browser.waitFor(`document.querySelector('[data-style-slot-id="${slotId}"] [data-asset-code="NB-137"]')`, 30_000);
+  const operationIds = await browser.evaluate("[...window.__styleUndoOperationIds]");
+  assert.equal(operationIds.length, 2);
+  assert.equal(operationIds[1], operationIds[0]);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "undo-slot").length, 1);
+});
+
+test("global replace and undo APIs replay committed results only after auth and exact-origin checks", { timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const image = await readFile(validPhoto);
+  const replaceOperationId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const replaceRequest = (body = image, headers = {}) => fetch(new URL("api/replace?id=158", server.url), {
+    method: "POST",
+    body,
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "global-api.jpg",
+      "x-nanbo-operation-id": replaceOperationId,
+      "x-nanbo-token": server.token,
+      ...headers,
+    },
+  });
+
+  const first = await replaceRequest();
+  assert.equal(first.status, 200);
+  const firstResult = (await first.json()).result;
+  assert.equal((await replaceRequest(image, { "x-nanbo-token": "" })).status, 403);
+  assert.equal((await replaceRequest(image, { origin: "http://localhost.invalid" })).status, 403);
+  const replay = await replaceRequest();
+  assert.equal(replay.status, 200);
+  assert.deepEqual((await replay.json()).result, firstResult);
+  assert.equal((await readdir(join(server.sandbox, ".local/portfolio-photo-backups/photo-158"))).length, 1);
+  const mismatchedReplace = await replaceRequest(await readFile(newerValidPhoto));
+  assert.equal(mismatchedReplace.status, 400);
+  assert.match((await mismatchedReplace.json()).error, /操作编号|重试内容|不一致/);
+
+  const undoOperationId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const undoRequest = (id = 158, headers = {}) => fetch(new URL(`api/undo?id=${id}`, server.url), {
+    method: "POST",
+    headers: {
+      origin: server.exactOrigin,
+      "x-nanbo-operation-id": undoOperationId,
+      "x-nanbo-token": server.token,
+      ...headers,
+    },
+  });
+  const undone = await undoRequest();
+  assert.equal(undone.status, 200);
+  const undoneResult = (await undone.json()).result;
+  assert.equal((await undoRequest(158, { "x-nanbo-token": "" })).status, 403);
+  assert.equal((await undoRequest(158, { origin: "http://localhost.invalid" })).status, 403);
+  const undoReplay = await undoRequest();
+  assert.equal(undoReplay.status, 200);
+  assert.deepEqual((await undoReplay.json()).result, undoneResult);
+  const mismatchedUndo = await undoRequest(157);
+  assert.equal(mismatchedUndo.status, 400);
+  assert.match((await mismatchedUndo.json()).error, /操作编号|重试内容|不一致/);
+});
+
+test("legacy manager retries dropped global replace and undo responses without a second transition", { skip: !hasChrome, timeout: 180_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const targetPaths = {
+    full: join(server.photoRoot, "full/photo-158.jpg"),
+    thumb: join(server.photoRoot, "thumbs/photo-158.webp"),
+  };
+  const original = await Promise.all([readFile(targetPaths.full), readFile(targetPaths.thumb)]);
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    window.confirm = () => true;
+    window.__globalReplaceOperationIds = [];
+    window.__globalUndoOperationIds = [];
+    window.__dropGlobalReplaceResponse = true;
+    window.__dropGlobalUndoResponse = true;
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      const method = init.method || "GET";
+      const headers = new Headers(init.headers);
+      const isReplace = method === "POST" && String(url).includes("/api/replace?id=158");
+      const isUndo = method === "POST" && String(url).includes("/api/undo?id=158");
+      if (isReplace) window.__globalReplaceOperationIds.push(headers.get("x-nanbo-operation-id"));
+      if (isUndo) window.__globalUndoOperationIds.push(headers.get("x-nanbo-operation-id"));
+      const response = await nativeFetch(input, init);
+      if (isReplace && response.ok && window.__dropGlobalReplaceResponse) {
+        window.__dropGlobalReplaceResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟全局替换响应丢失");
+      }
+      if (isUndo && response.ok && window.__dropGlobalUndoResponse) {
+        window.__dropGlobalUndoResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟全局撤销响应丢失");
+      }
+      return response;
+    };
+    document.querySelector('[data-id="158"]').click();
+  })()`);
+  await browser.waitFor('document.querySelector("#photo-dialog")?.open');
+  await browser.setFileInput("#photo-file", validPhoto);
+  await browser.waitFor('document.querySelector("#replace-button")?.disabled === false');
+  await browser.evaluate('document.querySelector("#replace-button").click()');
+  await browser.waitFor('document.querySelector("#global-reference-dialog")?.open');
+  await browser.evaluate(`(() => {
+    document.querySelector("#global-replace-all-start").click();
+    document.querySelector("#global-replace-all-final").click();
+  })()`);
+  await browser.waitFor("window.__globalReplaceOperationIds.length === 1", 30_000);
+  const firstReplaceOperationId = await browser.evaluate("window.__globalReplaceOperationIds[0]");
+  assert.match(firstReplaceOperationId || "", /^[0-9a-f-]{36}$/);
+  await browser.waitFor('document.querySelector("#file-feedback")?.textContent.includes("模拟全局替换响应丢失")', 30_000);
+
+  await browser.evaluate('document.querySelector("#replace-button").click()');
+  await browser.waitFor('document.querySelector("#global-reference-dialog")?.open');
+  await browser.evaluate(`(() => {
+    document.querySelector("#global-replace-all-start").click();
+    document.querySelector("#global-replace-all-final").click();
+  })()`);
+  await browser.waitFor('document.querySelector("#photo-dialog")?.open === false', 30_000);
+  const replaceOperationIds = await browser.evaluate("[...window.__globalReplaceOperationIds]");
+  assert.equal(replaceOperationIds.length, 2);
+  assert.equal(replaceOperationIds[1], replaceOperationIds[0]);
+  assert.equal((await readdir(join(server.sandbox, ".local/portfolio-photo-backups/photo-158"))).length, 1);
+
+  await browser.evaluate('document.querySelector(\'[data-id="158"]\').click()');
+  await browser.waitFor('document.querySelector("#photo-dialog")?.open');
+  await browser.evaluate('document.querySelector("#undo-button").click()');
+  await browser.waitFor("window.__globalUndoOperationIds.length === 1", 30_000);
+  const firstUndoOperationId = await browser.evaluate("window.__globalUndoOperationIds[0]");
+  assert.match(firstUndoOperationId || "", /^[0-9a-f-]{36}$/);
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("模拟全局撤销响应丢失")', 30_000);
+  await browser.evaluate('document.querySelector("#undo-button").click()');
+  await browser.waitFor('document.querySelector("#photo-dialog")?.open === false', 30_000);
+  const undoOperationIds = await browser.evaluate("[...window.__globalUndoOperationIds]");
+  assert.equal(undoOperationIds.length, 2);
+  assert.equal(undoOperationIds[1], undoOperationIds[0]);
+  assert.deepEqual(await Promise.all([readFile(targetPaths.full), readFile(targetPaths.thumb)]), original);
+});
+
 test("batch position staging replays a dropped response only for the exact same file", { timeout: 90_000 }, async (t) => {
   const server = await startManagerFixture(t);
   const created = await server.postJson("api/style-batches", null);
@@ -2086,6 +2367,69 @@ test("single-slot manager retries a dropped committed response with the same ope
   assert.match(result.operationIds[0] || "", /^[0-9a-f-]{36}$/);
   assert.equal(result.operationIds[1], result.operationIds[0]);
   assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-slot").length, 1);
+});
+
+test("external single-slot attempts do not reuse identity for equal file metadata or after another success", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  const result = await browser.evaluate(`(async () => {
+    const nativeFetch = window.fetch.bind(window);
+    const library = await (await nativeFetch("/api/style-library")).json();
+    const root = document.querySelector("#style-library-view").cloneNode(true);
+    root.id = "style-library-idempotency-probe";
+    root.hidden = true;
+    document.body.append(root);
+    const operations = [];
+    const committed = new Map();
+    let authoritative = "seed";
+    let dropFirstA = true;
+    const requestJson = async (path, options = {}) => {
+      if (path === "/api/style-library") return library;
+      if (String(path).startsWith("/api/assets/references")) return { slotIds: [] };
+      if (!String(path).startsWith("/api/style-slots/replace")) return { ok: true };
+      const operationId = new Headers(options.headers).get("x-nanbo-operation-id");
+      const tag = options.body.__testTag;
+      operations.push({ operationId, tag });
+      if (committed.has(operationId)) {
+        if (committed.get(operationId) !== tag) throw new Error("same operation id used for different bytes");
+        if (authoritative !== tag) throw new Error("stale committed replay did not apply over current state");
+        return { ok: true };
+      }
+      committed.set(operationId, tag);
+      authoritative = tag;
+      if (tag === "A" && dropFirstA) {
+        dropFirstA = false;
+        throw new TypeError("simulated dropped A response");
+      }
+      return { ok: true };
+    };
+    const { createStyleMode } = await import("/style-mode.js");
+    const mode = createStyleMode({ root, requestJson, showToast() {}, openPreview() {} });
+    const fileOptions = { type: "image/jpeg", lastModified: 1_725_000_000_000 };
+    const fileA = new File([new Uint8Array([1, 2, 3, 4])], "same.jpg", fileOptions);
+    const fileB = new File([new Uint8Array([4, 3, 2, 1])], "same.jpg", fileOptions);
+    fileA.__testTag = "A";
+    fileB.__testTag = "B";
+    const errors = [];
+    for (const file of [fileA, fileB, fileA]) {
+      try {
+        await mode.replaceSlot("ST-IN-01-01-P01", file);
+        errors.push("");
+      } catch (error) {
+        errors.push(error.message);
+      }
+    }
+    root.remove();
+    return { authoritative, errors, operations };
+  })()`);
+
+  assert.match(result.errors[0], /dropped A/);
+  assert.equal(result.errors[1], "");
+  assert.equal(result.errors[2], "");
+  assert.equal(result.authoritative, "A");
+  assert.deepEqual(result.operations.map(({ tag }) => tag), ["A", "B", "A"]);
+  assert.equal(new Set(result.operations.map(({ operationId }) => operationId)).size, 3);
 });
 
 test("batch manager retries dropped stage and commit responses with stable operation ids", { skip: !hasChrome, timeout: 180_000 }, async (t) => {

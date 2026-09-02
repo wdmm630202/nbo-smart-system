@@ -519,3 +519,37 @@ test("invalid style documents disable only the style library", async () => {
   assert.equal(legacyItems.length, 158);
   assert.equal(warnings.length, 1);
 });
+
+test("customer runtime requires explicit valid public slot identities", async () => {
+  const { buildCustomerStyleLibrary } = await import("../apps/portfolio-v2/portfolio-runtime.js");
+  const catalog = fixtureStyleCatalog();
+  const assets = fixtureAssets();
+  const explicitAssignments = fixtureAssignments();
+  for (const styleId of Object.keys(explicitAssignments.assignments)) {
+    explicitAssignments.assignments[styleId].slotIds = Array.from(
+      { length: 9 },
+      (_, index) => `${styleId}-P${String(index + 1).padStart(2, "0")}`,
+    );
+  }
+
+  const cases = [
+    ["missing", (assignments) => delete assignments.assignments["ST-IN-01-01"].slotIds],
+    ["duplicate", (assignments) => { assignments.assignments["ST-IN-01-01"].slotIds[1] = "ST-IN-01-01-P01"; }],
+    ["foreign", (assignments) => { assignments.assignments["ST-IN-01-01"].slotIds[1] = "ST-IN-01-02-P02"; }],
+    ["forged", (assignments) => { assignments.assignments["ST-IN-01-01"].slotIds[1] = "ST-IN-01-01-P00"; }],
+  ];
+
+  for (const [label, mutate] of cases) {
+    const assignments = structuredClone(explicitAssignments);
+    mutate(assignments);
+    const warnings = [];
+    assert.equal(buildCustomerStyleLibrary({
+      styleCatalog: catalog,
+      assignments,
+      assets,
+      fallback: null,
+      warn: (...args) => warnings.push(args),
+    }), null, label);
+    assert.equal(warnings.length, 1, label);
+  }
+});

@@ -54,7 +54,13 @@ const state = {
   selectedId: 0, candidate: null, candidateUrl: "", candidateValid: false, candidateGeneration: 0,
   mutationBusy: false, draftBusy: false, libraryMode: "public", draftStatus: "all", selectedDraftId: 0,
   toastTimer: 0, deployTimer: 0,
+  globalReplaceAttempt: null, globalUndoAttempt: null,
 };
+
+function createMutationOperationId() {
+  if (typeof globalThis.crypto?.randomUUID !== "function") throw new Error("当前浏览器无法创建安全操作编号，请升级浏览器");
+  return globalThis.crypto.randomUUID();
+}
 
 const styleMode = createStyleMode({
   root: elements.styleLibraryView,
@@ -352,7 +358,7 @@ function setFileFeedback(message, type = "") {
   elements.fileFeedback.querySelector("p").textContent = message;
 }
 function resetCandidate() {
-  state.candidateGeneration += 1; revokeCandidateUrl(); state.candidate = null; state.candidateValid = false; elements.photoFile.value = "";
+  state.candidateGeneration += 1; revokeCandidateUrl(); state.candidate = null; state.candidateValid = false; state.globalReplaceAttempt = null; elements.photoFile.value = "";
   elements.candidatePhoto.hidden = true; elements.candidatePhoto.removeAttribute("src"); elements.dropPrompt.hidden = false;
   elements.dropZone.classList.remove("has-photo", "is-dragging"); elements.candidateDimensions.textContent = "还未选择";
   elements.replaceButton.disabled = true; elements.chooseAnotherButton.hidden = true;
@@ -365,6 +371,7 @@ function closeDialog(dialog) {
 
 function openPhotoDialog(id) {
   const item = state.catalog.items.find((photo) => photo.id === id); if (!item) return;
+  if (state.globalUndoAttempt?.id !== id) state.globalUndoAttempt = null;
   state.selectedId = id; resetCandidate();
   elements.photoDialogTitle.textContent = `${item.code} · ${item.title}`;
   elements.photoDialogMeta.textContent = `${item.sceneTitle} / ${item.styleTitle}${item.isHeroAsset ? " / 首页图" : ""}`;
@@ -654,13 +661,21 @@ async function executeGlobalReplacement() {
   if (state.mutationBusy || !state.candidate || !state.candidateValid || !state.selectedId) return;
   const id = state.selectedId;
   const candidate = state.candidate;
+  if (!state.globalReplaceAttempt || state.globalReplaceAttempt.id !== id || state.globalReplaceAttempt.file !== candidate) {
+    state.globalReplaceAttempt = { id, file: candidate, operationId: createMutationOperationId() };
+  }
+  const { operationId } = state.globalReplaceAttempt;
   setMutationBusy(true);
   setFileFeedback("正在生成高清图、缩略图和本地备份…", "working");
   try {
     await requestJson(`/api/replace?id=${id}`, {
-      method: "POST", headers: { "Content-Type": candidate.type, "X-File-Name": encodeURIComponent(candidate.name) }, body: candidate,
+      method: "POST", headers: {
+        "Content-Type": candidate.type,
+        "X-File-Name": encodeURIComponent(candidate.name),
+        "X-Nanbo-Operation-Id": operationId,
+      }, body: candidate,
     });
-    await refreshData(); setMutationBusy(false); closeDialog(elements.photoDialog); resetCandidate();
+    await refreshData(); state.globalUndoAttempt = null; setMutationBusy(false); closeDialog(elements.photoDialog); resetCandidate();
     showToast(`NB-${String(id).padStart(3, "0")} 已在本地替换，请先预览`, "success");
   } catch (error) { setFileFeedback(error.message, "error"); }
   finally { setMutationBusy(false); }
@@ -724,10 +739,16 @@ async function undoSelectedPhoto() {
   const id = state.selectedId;
   const code = `NB-${String(id).padStart(3, "0")}`;
   if (!confirm(`恢复 ${code} 换图前的版本？`)) return;
+  if (!state.globalUndoAttempt || state.globalUndoAttempt.id !== id) {
+    state.globalUndoAttempt = { id, operationId: createMutationOperationId() };
+  }
   setMutationBusy(true);
   try {
-    await requestJson(`/api/undo?id=${id}`, { method: "POST" });
-    await refreshData(); setMutationBusy(false); closeDialog(elements.photoDialog); showToast(`${code} 已恢复旧图`, "success");
+    await requestJson(`/api/undo?id=${id}`, {
+      method: "POST",
+      headers: { "X-Nanbo-Operation-Id": state.globalUndoAttempt.operationId },
+    });
+    await refreshData(); state.globalUndoAttempt = null; setMutationBusy(false); closeDialog(elements.photoDialog); showToast(`${code} 已恢复旧图`, "success");
   }
   catch (error) { showToast(error.message, "error"); }
   finally { setMutationBusy(false); }

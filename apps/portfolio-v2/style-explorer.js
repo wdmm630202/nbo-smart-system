@@ -123,8 +123,10 @@ export function createStyleExplorer({
         ? library.counts.outdoor
         : publishedStyles.filter(({ scene }) => scene === "outdoor").length,
     };
-    countEyebrow.textContent = `${counts.styles} PORTRAIT STYLES`;
-    countLabel.textContent = `${counts.styles} 种风格 · 内景 ${counts.indoor} · 外景 ${counts.outdoor}`;
+    const eyebrowText = `${counts.styles} PORTRAIT STYLES`;
+    const labelText = `${counts.styles} 种风格 · 内景 ${counts.indoor} · 外景 ${counts.outdoor}`;
+    if (countEyebrow.textContent !== eyebrowText) countEyebrow.textContent = eyebrowText;
+    if (countLabel.textContent !== labelText) countLabel.textContent = labelText;
   }
 
   function updateStyleFavoriteButton(button, style) {

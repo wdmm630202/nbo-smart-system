@@ -288,6 +288,11 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         const fallbackText = firstCard?.querySelector(".portrait-style-card-fallback")?.textContent.replace(/\\s+/g, " ").trim() || "";
         const fallbackSource = firstImage?.getAttribute("src");
         const oldImages = [...images];
+        const countLabel = document.querySelector("#style-count-label");
+        const countLabelTextBeforeNavigation = countLabel?.textContent || "";
+        let countLabelMutations = 0;
+        const countLabelObserver = new MutationObserver((records) => { countLabelMutations += records.length; });
+        if (countLabel) countLabelObserver.observe(countLabel, { childList: true, characterData: true, subtree: true });
         familyTabs[1]?.click();
         const nextCards = [...(grid?.querySelectorAll(".portrait-style-card") || [])];
         const nextImages = [...(grid?.querySelectorAll(".portrait-style-card-image img") || [])];
@@ -525,6 +530,8 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
         const sceneRightSelected = sceneAfterRight?.dataset.scene || "";
         const sceneRightTabStops = [...document.querySelectorAll('#style-scene-tabs [role="tab"]')]
           .filter((tab) => tab.tabIndex === 0).length;
+        await wait(0);
+        countLabelObserver.disconnect();
         const panel = document.querySelector("#style-card-grid");
         const legacyDisclosure = document.querySelector("#legacy-gallery-disclosure");
         document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
@@ -554,6 +561,9 @@ async function measureCustomerStyleExplorer(width, { reducedMotion = false, high
           sceneRightFocused,
           sceneRightSelected,
           sceneRightTabStops,
+          countLabelMutations,
+          countLabelTextBeforeNavigation,
+          countLabelTextAfterNavigation: countLabel?.textContent || "",
           featuredIds: featured.map((item) => item.dataset.styleId),
           featuredLabel: document.querySelector("#style-featured")?.getAttribute("aria-label") || "",
           featuredText: document.querySelector("#style-featured")?.textContent.replace(/\\s+/g, " ").trim() || "",
@@ -858,6 +868,59 @@ async function measureHiddenDirectEntry(width = 390) {
       `http://127.0.0.1:${port}/portfolio-v2/index.html?v=hidden&scene=indoor&family=IN-01&style=${hiddenStyleId}`,
       width,
     );
+    const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
+    return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function measureMissingPublicSlotIdentity(width = 390) {
+  const [sourceHtml, assignments] = await Promise.all([
+    readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../apps/portfolio-v2/style-slot-assignments.json", import.meta.url), "utf8").then(JSON.parse),
+  ]);
+  delete assignments.assignments["ST-IN-01-01"].slotIds;
+  const probe = `<output id="style-explorer-metrics"></output><script>
+    window.addEventListener("load", () => window.setTimeout(() => {
+      const explorer = document.querySelector("#style-explorer");
+      document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
+        explorerHidden: explorer?.hidden === true,
+        styleCardCount: document.querySelectorAll("#style-card-grid .portrait-style-card").length,
+        legacyCardCount: document.querySelectorAll("#gallery-grid .gallery-card").length,
+        legacyTotal: document.querySelector("#header-photo-count")?.textContent || "",
+      });
+    }, 260));
+  </script>`;
+  const page = sourceHtml
+    .replace(/<script src="https:\/\/res\.wx\.qq\.com[^>]+><\/script>/, "")
+    .replace(/<script type="module" src="wechat-share\.js[^>]+><\/script>/, "")
+    .replace("</body>", `${probe}</body>`);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/portfolio-v2/index.html") {
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(page);
+        return;
+      }
+      if (url.pathname === "/portfolio-v2/style-slot-assignments.json") {
+        response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+        response.end(`${JSON.stringify(assignments)}\n`);
+        return;
+      }
+      const asset = await readFile(new URL(`../apps${url.pathname}`, import.meta.url));
+      response.writeHead(200, { "Content-Type": contentType(url.pathname) });
+      response.end(asset);
+    } catch {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address();
+  try {
+    const output = await runChrome(`http://127.0.0.1:${port}/portfolio-v2/index.html?v=missing-slot-id`, width);
     const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
     return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
   } finally {
@@ -1507,6 +1570,16 @@ test("hidden direct entry normalizes the real URL and browser Back returns to th
   ], ["styles", "indoor", "IN-02", ""]);
 });
 
+test("missing public slot identity disables only the style explorer in the rendered customer page", { skip: !hasChrome }, async () => {
+  const metrics = await measureMissingPublicSlotIdentity();
+  assert.deepEqual(metrics, {
+    explorerHidden: true,
+    styleCardCount: 0,
+    legacyCardCount: 30,
+    legacyTotal: "158",
+  });
+});
+
 test("explorer derives missing URL parents from a valid scene, family, or style", () => {
   const library = libraryFixture();
 
@@ -1592,6 +1665,12 @@ test("customer page renders the progressive explorer with only manual Nanbo pick
   assert.equal(metrics.cardCount, 11, "首次只应渲染当前大类 11 张卡");
   assert.equal(metrics.imageCount, 11, "首次只应请求当前大类 11 张封面");
   assert.equal(metrics.albumHookPresent, true, "后续 9 张相册没有稳定挂载点");
+});
+
+test("unchanged published counts are not rewritten during scene and family navigation", { skip: !hasChrome }, async () => {
+  const metrics = await measureCustomerStyleExplorer(390);
+  assert.equal(metrics.countLabelTextAfterNavigation, metrics.countLabelTextBeforeNavigation);
+  assert.equal(metrics.countLabelMutations, 0);
 });
 
 test("an opened style exposes exactly nine ordered DOM slots and loads only their thumbnails", { skip: !hasChrome }, async () => {

@@ -16,6 +16,7 @@ import {
 import {
   assetPaths,
   buildPortfolioVersion,
+  createPortfolioPhotoStore,
   onlinePortfolioUrl,
   recoverIncompletePhotoTransactions,
   replacePhoto,
@@ -814,6 +815,88 @@ test("换图可撤销，且会跳过损坏的较新备份", { timeout: 60_000 },
     if (corruptBackup) await rm(corruptBackup, { recursive: true, force: true });
     await rm(safetyDir, { recursive: true, force: true });
   }
+});
+
+test("global photo replacement durably replays one committed operation", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-photo-idempotency-"));
+  const photoRoot = join(directory, "photos");
+  const localStateRoot = join(directory, ".local");
+  const id = 158;
+  const source = assetPaths(id);
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+  ]);
+  await Promise.all([
+    copyFile(source.full, join(photoRoot, "full/photo-158.jpg")),
+    copyFile(source.thumb, join(photoRoot, "thumbs/photo-158.webp")),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = createPortfolioPhotoStore({ photoRoot, localStateRoot });
+  const operationId = "88888888-8888-4888-8888-888888888888";
+
+  const first = await store.replacePhoto({
+    id,
+    inputPath: assetPaths(157).full,
+    originalName: "global-replace.jpg",
+    operationId,
+  });
+  const replay = await createPortfolioPhotoStore({ photoRoot, localStateRoot }).replacePhoto({
+    id,
+    inputPath: assetPaths(157).full,
+    originalName: "global-replace.jpg",
+    operationId,
+  });
+
+  assert.deepEqual(replay, first);
+  assert.equal((await readdir(join(localStateRoot, "portfolio-photo-backups/photo-158"))).length, 1);
+  await assert.rejects(
+    () => store.replacePhoto({ id, inputPath: assetPaths(157).full, originalName: "different.jpg", operationId }),
+    /操作编号|重试内容|不一致/,
+  );
+});
+
+test("global photo undo durably replays one committed transition", { timeout: 60_000 }, async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "nanbo-photo-undo-idempotency-"));
+  const photoRoot = join(directory, "photos");
+  const localStateRoot = join(directory, ".local");
+  const id = 158;
+  const source = assetPaths(id);
+  await Promise.all([
+    mkdir(join(photoRoot, "full"), { recursive: true }),
+    mkdir(join(photoRoot, "thumbs"), { recursive: true }),
+  ]);
+  await Promise.all([
+    copyFile(source.full, join(photoRoot, "full/photo-158.jpg")),
+    copyFile(source.thumb, join(photoRoot, "thumbs/photo-158.webp")),
+  ]);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const original = await hashes({
+    full: join(photoRoot, "full/photo-158.jpg"),
+    thumb: join(photoRoot, "thumbs/photo-158.webp"),
+  });
+  const store = createPortfolioPhotoStore({ photoRoot, localStateRoot });
+  await store.replacePhoto({
+    id,
+    inputPath: assetPaths(157).full,
+    originalName: "before-undo.jpg",
+    operationId: "99999999-9999-4999-8999-999999999999",
+  });
+  const operationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+  const first = await store.undoLatestPhotoReplacement({ id, operationId });
+  const replay = await createPortfolioPhotoStore({ photoRoot, localStateRoot }).undoLatestPhotoReplacement({ id, operationId });
+
+  assert.deepEqual(replay, first);
+  assert.deepEqual(await hashes({
+    full: join(photoRoot, "full/photo-158.jpg"),
+    thumb: join(photoRoot, "thumbs/photo-158.webp"),
+  }), original);
+  assert.equal((await readdir(join(localStateRoot, "portfolio-photo-backups/photo-158"))).length, 1);
+  await assert.rejects(
+    () => store.undoLatestPhotoReplacement({ id: 157, operationId }),
+    /操作编号|重试内容|不一致/,
+  );
 });
 
 test("启动恢复会修复中断的首页图事务", { timeout: 30_000 }, async () => {

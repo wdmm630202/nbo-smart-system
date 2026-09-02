@@ -54,6 +54,7 @@ const binaryCandidates = {
     "/usr/local/bin/ffprobe",
   ],
 };
+const allowedIncomingPhotoCodecs = new Set(["mjpeg", "jpeg", "png", "webp"]);
 
 export function slotCode(id) {
   return `NB-${String(id).padStart(3, "0")}`;
@@ -72,10 +73,17 @@ export function slotFilename(id) {
   return `photo-${String(id).padStart(3, "0")}`;
 }
 
+function photoOperationalError(code, message, status = 400) {
+  const error = new Error(message);
+  error.apiCode = code;
+  error.status = status;
+  return error;
+}
+
 export function assertPhotoId(id) {
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId < 1 || numericId > portfolioCatalog.photoCount) {
-    throw new Error(`客片编号必须在 1–${portfolioCatalog.photoCount} 之间`);
+    throw photoOperationalError("INVALID_PHOTO_ID", "客片编号无效");
   }
   return numericId;
 }
@@ -196,10 +204,10 @@ export async function probeImage(path) {
 export function validateIncomingImage({ width, height }) {
   const ratio = width / height;
   if (width < 900 || height < 1200) {
-    throw new Error(`图片只有 ${width}×${height}，至少需要 900×1200`);
+    throw photoOperationalError("INVALID_IMAGE_DIMENSIONS", "图片至少需要 900×1200 像素");
   }
   if (Math.abs(ratio - 0.75) > 0.02) {
-    throw new Error(`图片比例是 ${width}:${height}，请先在像素蛋糕或 Photoshop 裁成 3:4，系统不会自动裁掉人物`);
+    throw photoOperationalError("INVALID_IMAGE_RATIO", "图片必须裁成 3:4，系统不会自动裁掉人物");
   }
   return { width, height };
 }
@@ -571,7 +579,13 @@ export async function replacePhoto(id, inputPath, originalName = "", options = {
       if (!allRolledBack) rejectPhotoOperationMismatch();
     }
   }
-  const sourceInfo = await probeImage(inputPath);
+  let sourceInfo;
+  try {
+    sourceInfo = await probeImage(inputPath);
+    if (!allowedIncomingPhotoCodecs.has(sourceInfo.codec)) throw new Error("unsupported input image codec");
+  } catch {
+    throw photoOperationalError("INVALID_IMAGE_FORMAT", "图片无法读取，请重新导出 JPG、PNG 或 WebP 图片");
+  }
   validateIncomingImage(sourceInfo);
 
   const ffmpeg = await resolveBinary("ffmpeg");
@@ -667,8 +681,11 @@ export async function undoLatestPhotoReplacement(id, options = {}) {
       .map((entry) => entry.name)
       .sort()
       .reverse();
-  } catch {
-    throw new Error(`${slotCode(numericId)} 还没有可恢复的本地备份`);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      throw photoOperationalError("NO_UNDO_BACKUP", "没有可恢复的本地备份", 409);
+    }
+    throw error;
   }
 
   for (const entry of entries) {
@@ -710,7 +727,7 @@ export async function undoLatestPhotoReplacement(id, options = {}) {
     await runAssetTransaction(numericId, desired, "undo", entry, configured);
     return operationId ? meta.undoOperation.result : { id: numericId, code: slotCode(numericId) };
   }
-  throw new Error(`${slotCode(numericId)} 没有更早的可用备份`);
+  throw photoOperationalError("NO_UNDO_BACKUP", "没有可恢复的本地备份", 409);
 }
 
 export function createPortfolioPhotoStore(options = {}) {

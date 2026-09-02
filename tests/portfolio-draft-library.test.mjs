@@ -130,6 +130,14 @@ async function gitAt(cwd, args) {
   return execFileAsync("git", args, { cwd });
 }
 
+async function assertActionablePublishError(response, { code, error }) {
+  const body = await response.json();
+  assert.equal(response.status, 409, body.error);
+  assert.deepEqual(body, { ok: false, code, error });
+  const serialized = JSON.stringify(body);
+  assert.doesNotMatch(serialized, /(?:\/(?:Users|private|var|tmp)\/|[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/]|file:\/\/)/);
+}
+
 async function createSyntheticPublishManager(t, {
   escapeFixturePhotoRoot = false,
   expectStartupFailure = false,
@@ -742,7 +750,7 @@ test("旧 POST 路由仅接受当前端口的 localhost 和 127.0.0.1 Origin", {
       },
     });
     assert.equal(response.status, 400);
-    assert.equal((await response.json()).code, "BAD_REQUEST");
+    assert.equal((await response.json()).code, "INVALID_IMAGE_TYPE");
   }
 });
 
@@ -1307,47 +1315,39 @@ test("推送失败只保留源照片和 ready 草稿且下次可成功", { timeo
   assert.equal((await gitAt(server.repository, ["status", "--porcelain=v1"])).stdout, "");
 });
 
-test("发布修复不绕过分支、无关文件、未登记照片和远端领先检查", { timeout: 60_000 }, async (t) => {
+test("发布前置条件返回可行动且无路径的稳定错误", { timeout: 60_000 }, async (t) => {
   const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
 
   await gitAt(server.repository, ["checkout", "-b", "feature-test"]);
   let response = await server.publish();
-  assert.equal(response.status, 500);
-  assert.deepEqual(await response.json(), {
-    ok: false,
-    code: "INTERNAL_ERROR",
-    error: "操作未完成，请稍后重试",
+  await assertActionablePublishError(response, {
+    code: "PUBLISH_WRONG_BRANCH",
+    error: "请切换到 main 分支后再同步",
   });
   await gitAt(server.repository, ["checkout", "main"]);
 
   await writeFixture(join(server.repository, "unrelated.txt"), "do not stage\n");
   response = await server.publish();
-  assert.equal(response.status, 500);
-  assert.deepEqual(await response.json(), {
-    ok: false,
-    code: "INTERNAL_ERROR",
-    error: "操作未完成，请稍后重试",
+  await assertActionablePublishError(response, {
+    code: "PUBLISH_DIRTY_WORKTREE",
+    error: "请先处理其他未提交文件后再同步",
   });
   await rm(join(server.repository, "unrelated.txt"));
 
   await writeFixture(join(server.repository, "docs/i/not-allowed.html"), "do not stage\n");
   response = await server.publish();
-  assert.equal(response.status, 500);
-  assert.deepEqual(await response.json(), {
-    ok: false,
-    code: "INTERNAL_ERROR",
-    error: "操作未完成，请稍后重试",
+  await assertActionablePublishError(response, {
+    code: "PUBLISH_DIRTY_WORKTREE",
+    error: "请先处理其他未提交文件后再同步",
   });
   await rm(join(server.repository, "docs/i/not-allowed.html"));
 
   await writeFixture(join(server.publicPhotoRoot, "full/photo-999.jpg"), "arbitrary\n");
   await writeFixture(join(server.publicPhotoRoot, "thumbs/photo-999.webp"), "arbitrary\n");
   response = await server.publish();
-  assert.equal(response.status, 500);
-  assert.deepEqual(await response.json(), {
-    ok: false,
-    code: "INTERNAL_ERROR",
-    error: "操作未完成，请稍后重试",
+  await assertActionablePublishError(response, {
+    code: "PUBLISH_UNREGISTERED_FILE",
+    error: "存在未登记的客片文件，请先核对清单后再同步",
   });
   await rm(join(server.publicPhotoRoot, "full/photo-999.jpg"));
   await rm(join(server.publicPhotoRoot, "thumbs/photo-999.webp"));
@@ -1361,11 +1361,59 @@ test("发布修复不绕过分支、无关文件、未登记照片和远端领�
   await gitAt(peer, ["commit", "-m", "remote change"]);
   await gitAt(peer, ["push", "origin", "main"]);
   response = await server.publish();
-  assert.equal(response.status, 500);
-  assert.deepEqual(await response.json(), {
-    ok: false,
-    code: "INTERNAL_ERROR",
-    error: "操作未完成，请稍后重试",
+  await assertActionablePublishError(response, {
+    code: "PUBLISH_REMOTE_AHEAD",
+    error: "线上仓库已有更新，请先合并后再同步",
+  });
+});
+
+test("发布的其余固定前置条件保持可行动且无路径", { timeout: 120_000 }, async (t) => {
+  await t.test("人工暂存的改动", async (t) => {
+    const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
+    await gitAt(server.repository, ["add", "apps/portfolio-v2/catalog-additions.json"]);
+    await assertActionablePublishError(await server.publish(), {
+      code: "PUBLISH_STAGED_CHANGES",
+      error: "请先处理人工暂存的文件后再同步",
+    });
+  });
+
+  await t.test("本机领先远端", async (t) => {
+    const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
+    await writeFixture(join(server.repository, "local-ahead.txt"), "local ahead\n");
+    await gitAt(server.repository, ["add", "local-ahead.txt"]);
+    await gitAt(server.repository, ["commit", "-m", "local ahead"]);
+    await assertActionablePublishError(await server.publish(), {
+      code: "PUBLISH_LOCAL_AHEAD",
+      error: "本机存在未推送提交，请先确认后再同步",
+    });
+  });
+
+  await t.test("本机和远端分叉", async (t) => {
+    const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
+    await writeFixture(join(server.repository, "local-diverged.txt"), "local diverged\n");
+    await gitAt(server.repository, ["add", "local-diverged.txt"]);
+    await gitAt(server.repository, ["commit", "-m", "local diverged"]);
+    const peer = join(server.sandbox, "peer");
+    await gitAt(server.sandbox, ["clone", server.remote, peer]);
+    await gitAt(peer, ["config", "user.name", "Nanbo Peer"]);
+    await gitAt(peer, ["config", "user.email", "nanbo-peer@example.invalid"]);
+    await writeFixture(join(peer, "remote-diverged.txt"), "remote diverged\n");
+    await gitAt(peer, ["add", "remote-diverged.txt"]);
+    await gitAt(peer, ["commit", "-m", "remote diverged"]);
+    await gitAt(peer, ["push", "origin", "main"]);
+    await assertActionablePublishError(await server.publish(), {
+      code: "PUBLISH_DIVERGED",
+      error: "本机与线上均有新提交，请先合并后再同步",
+    });
+  });
+
+  await t.test("不完整的客片图片组", async (t) => {
+    const server = await createSyntheticPublishManager(t, { sourceChange: "metadata" });
+    await rm(join(server.publicPhotoRoot, "thumbs/photo-158.webp"));
+    await assertActionablePublishError(await server.publish(), {
+      code: "PUBLISH_INCOMPLETE_BUNDLE",
+      error: "客片图片不完整，请补齐同编号图片后再同步",
+    });
   });
 });
 

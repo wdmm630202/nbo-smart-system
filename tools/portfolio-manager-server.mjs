@@ -790,11 +790,15 @@ function numericDraftId(url) {
 }
 
 function decodedUploadName(request) {
+  let decoded;
   try {
-    return decodeURIComponent(String(request.headers["x-file-name"] || "未命名图片"));
+    decoded = decodeURIComponent(String(request.headers["x-file-name"] || "未命名图片"));
   } catch {
-    throw new Error("图片文件名无效");
+    throw apiError("INVALID_FILE_NAME", "图片文件名无效");
   }
+  const name = decoded.replaceAll("\\", "/").split("/").at(-1)?.trim() || "";
+  if (!name || Array.from(name).length > 255) throw apiError("INVALID_FILE_NAME", "图片文件名无效");
+  return name;
 }
 
 function requireSession(request) {
@@ -814,11 +818,11 @@ async function replacePhotoRequest(request, response, url) {
     const operationId = styleOperationId(request);
     if (!operationId) throw apiError("INVALID_OPERATION_ID", "缺少操作编号");
     const id = Number(url.searchParams.get("id"));
-    const originalName = decodeURIComponent(String(request.headers["x-file-name"] || "未命名图片"));
+    const originalName = decodedUploadName(request);
     const extension = extname(originalName).toLowerCase();
     const contentType = String(request.headers["content-type"] || "").split(";")[0];
     if (!allowedPhotoTypes.has(contentType) && !allowedPhotoExtensions.has(extension)) {
-      throw apiError("BAD_REQUEST", "只支持 JPG、PNG 或 WebP 图片");
+      throw apiError("INVALID_IMAGE_TYPE", "只支持 JPG、PNG 或 WebP 图片");
     }
     const buffer = await readBody(request);
     const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".jpg");
@@ -1049,26 +1053,40 @@ async function sourcePhotoFilesFromGit() {
   return stdout.split("\n").filter(Boolean).map(parseStatusLine).map((item) => item.path);
 }
 
+function publishValidationError(validation) {
+  const errors = Array.isArray(validation?.errors) ? validation.errors.map((error) => String(error)) : [];
+  if (errors.some((error) => /^(?:full|thumbs|featured) 有未记录文件 /.test(error))) {
+    return apiError("PUBLISH_UNREGISTERED_FILE", "存在未登记的客片文件，请先核对清单后再同步", 409);
+  }
+  if (errors.some((error) => /^NB-\d+ 缺少(?:高清图|缩略图|首页图)/.test(error))) {
+    return apiError("PUBLISH_INCOMPLETE_BUNDLE", "客片图片不完整，请补齐同编号图片后再同步", 409);
+  }
+  return apiError("PUBLISH_VALIDATION_FAILED", "公开客片库校验未通过，请先修复后再同步", 409);
+}
+
 async function publishPhotos(request, response) {
   beginMutation("同步网站");
   try {
     await recoverIncompletePhotoTransactions();
     const validation = await validatePortfolioLibrary();
-    if (!validation.ok) throw new Error(`发布前校验未通过：${validation.errors.join("；")}`);
+    if (!validation.ok) throw publishValidationError(validation);
 
     const statusBefore = await repositoryStatus();
-    if (statusBefore.branch !== "main") throw new Error(`当前分支是 ${statusBefore.branch || "未知"}，请让 Codex 切回 main 再同步`);
+    if (statusBefore.branch !== "main") {
+      throw apiError("PUBLISH_WRONG_BRANCH", "请切换到 main 分支后再同步", 409);
+    }
     if (statusBefore.unrelatedFiles.length) {
-      throw new Error(`发现其他未提交文件，已停止同步：${statusBefore.unrelatedFiles.slice(0, 5).join("、")}`);
+      throw apiError("PUBLISH_DIRTY_WORKTREE", "请先处理其他未提交文件后再同步", 409);
     }
     const { stdout: stagedBefore } = await git(["diff", "--cached", "--name-only"]);
-    if (stagedBefore) throw new Error("仓库里已有人工暂存的文件，为避免混在一起，请先让 Codex 处理");
+    if (stagedBefore) throw apiError("PUBLISH_STAGED_CHANGES", "请先处理人工暂存的文件后再同步", 409);
 
     await git(["fetch", "--quiet", "origin", "main"]);
     const { stdout: divergence } = await git(["rev-list", "--left-right", "--count", "HEAD...origin/main"]);
     const [ahead, behind] = divergence.split(/\s+/).map(Number);
-    if (behind > 0) throw new Error("线上仓库有更新的内容，请先让 Codex 合并，系统没有强行覆盖");
-    if (ahead > 0) throw new Error("本机有还未推送的代码提交，请先让 Codex 确认后再发布照片");
+    if (ahead > 0 && behind > 0) throw apiError("PUBLISH_DIVERGED", "本机与线上均有新提交，请先合并后再同步", 409);
+    if (behind > 0) throw apiError("PUBLISH_REMOTE_AHEAD", "线上仓库已有更新，请先合并后再同步", 409);
+    if (ahead > 0) throw apiError("PUBLISH_LOCAL_AHEAD", "本机存在未推送提交，请先确认后再同步", 409);
 
     const sourceFiles = await sourcePhotoFilesFromGit();
     if (!sourceFiles.length) {
@@ -1099,14 +1117,16 @@ async function publishPhotos(request, response) {
       allowedSourceFiles.add(`apps/portfolio/assets/photos/featured/photo-${String(id).padStart(3, "0")}.webp`);
     }
     const invalidSourceFile = sourceFiles.find((path) => !allowedSourceFiles.has(path));
-    if (invalidSourceFile) throw new Error(`未登记的照片文件不会发布：${invalidSourceFile}`);
+    if (invalidSourceFile) throw apiError("PUBLISH_UNREGISTERED_FILE", "存在未登记的客片文件，请先核对清单后再同步", 409);
     const changedPhotoFiles = sourceFiles.filter((path) => path.startsWith("apps/portfolio/assets/photos/"));
     const bundleValidation = validateChangedPhotoBundles(changedPhotoFiles);
     if (!bundleValidation.ok) {
-      throw new Error(`同一编号的图片不完整，已停止发布：${bundleValidation.errors.join("；")}`);
+      throw apiError("PUBLISH_INCOMPLETE_BUNDLE", "客片图片不完整，请补齐同编号图片后再同步", 409);
     }
     const nonSourceChanges = statusBefore.changedFiles.filter((path) => !sourceFiles.includes(path));
-    if (nonSourceChanges.length) throw new Error(`发布前存在非源图片改动：${nonSourceChanges.slice(0, 5).join("、")}`);
+    if (nonSourceChanges.length) {
+      throw apiError("PUBLISH_DIRTY_WORKTREE", "请先处理其他未提交文件后再同步", 409);
+    }
 
     const publishedMetadata = "docs/projects/portfolio-v2/catalog-additions.json";
     const stagePaths = new Set([

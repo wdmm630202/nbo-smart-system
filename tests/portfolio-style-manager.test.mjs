@@ -377,6 +377,16 @@ async function generateJpeg(path, size, color, metadata = "") {
   await photoLib.run(ffmpeg, args);
 }
 
+async function generateGif(path, size, color) {
+  const ffmpeg = await photoLib.resolveBinary("ffmpeg");
+  await photoLib.run(ffmpeg, [
+    "-hide_banner", "-loglevel", "error", "-y",
+    "-f", "lavfi", "-i", `color=c=${color}:s=${size}:d=0.1`,
+    "-frames:v", "1",
+    path,
+  ]);
+}
+
 test.before(async () => {
   sourceFixtureRoot = await mkdtemp(join(tmpdir(), "nanbo-style-source-"));
   validPhoto = join(sourceFixtureRoot, "valid-private.jpg");
@@ -2269,6 +2279,130 @@ test("global photo API responses and upload errors never expose private filesyst
   const invalid = await request(Buffer.from("not-a-readable-image"), "eccccccc-cccc-4ccc-8ccc-cccccccccccc");
   assert.notEqual(invalid.status, 200);
   assertPublicResponse(await invalid.json());
+});
+
+test("global photo validation returns typed path-free operational errors", { timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const validImage = await readFile(validPhoto);
+  const ratioImage = await readFile(wrongRatioPhoto);
+  const undersizedPath = join(server.sandbox, "undersized.jpg");
+  const disguisedGifPath = join(server.sandbox, "disguised.gif");
+  await generateJpeg(undersizedPath, "800x1200", "#34495e");
+  await generateGif(disguisedGifPath, "900x1200", "#34495e");
+  const undersizedImage = await readFile(undersizedPath);
+  const disguisedGif = await readFile(disguisedGifPath);
+  const assertOperationalError = async (response, { status = 400, code, error }) => {
+    const body = await response.json();
+    assert.equal(response.status, status, body.error);
+    assert.deepEqual(body, { ok: false, code, error });
+    const serialized = JSON.stringify(body);
+    assert.doesNotMatch(serialized, /"backupDir"\s*:/);
+    assert.doesNotMatch(serialized, /(?:\/(?:Users|private|var|tmp)\/|[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/]|file:\/\/)/);
+    assert.equal(serialized.includes(server.sandbox), false, "操作错误不应暴露私有路径");
+  };
+  const replace = ({ id = 158, body = validImage, operationId, contentType = "image/jpeg", name = "candidate.jpg" }) => fetch(new URL(`api/replace?id=${id}`, server.url), {
+    method: "POST",
+    body,
+    headers: {
+      "content-type": contentType,
+      origin: server.exactOrigin,
+      "x-file-name": name,
+      "x-nanbo-operation-id": operationId,
+      "x-nanbo-token": server.token,
+    },
+  });
+  const undo = (id, operationId) => fetch(new URL(`api/undo?id=${id}`, server.url), {
+    method: "POST",
+    headers: {
+      origin: server.exactOrigin,
+      "x-nanbo-operation-id": operationId,
+      "x-nanbo-token": server.token,
+    },
+  });
+
+  await assertOperationalError(await replace({
+    id: 0,
+    operationId: "0d000000-0000-4000-8000-000000000001",
+  }), {
+    code: "INVALID_PHOTO_ID",
+    error: "客片编号无效",
+  });
+  await assertOperationalError(await replace({
+    body: Buffer.from("wrong type"),
+    contentType: "text/plain",
+    name: "candidate.txt",
+    operationId: "0d000000-0000-4000-8000-000000000002",
+  }), {
+    code: "INVALID_IMAGE_TYPE",
+    error: "只支持 JPG、PNG 或 WebP 图片",
+  });
+  await assertOperationalError(await replace({
+    name: "%E0%A4%A",
+    operationId: "0d000000-0000-4000-8000-000000000008",
+  }), {
+    code: "INVALID_FILE_NAME",
+    error: "图片文件名无效",
+  });
+  await assertOperationalError(await replace({
+    body: Buffer.from("not an image"),
+    operationId: "0d000000-0000-4000-8000-000000000003",
+  }), {
+    code: "INVALID_IMAGE_FORMAT",
+    error: "图片无法读取，请重新导出 JPG、PNG 或 WebP 图片",
+  });
+  await assertOperationalError(await replace({
+    body: undersizedImage,
+    operationId: "0d000000-0000-4000-8000-000000000004",
+  }), {
+    code: "INVALID_IMAGE_DIMENSIONS",
+    error: "图片至少需要 900×1200 像素",
+  });
+  await assertOperationalError(await replace({
+    body: ratioImage,
+    operationId: "0d000000-0000-4000-8000-000000000005",
+  }), {
+    code: "INVALID_IMAGE_RATIO",
+    error: "图片必须裁成 3:4，系统不会自动裁掉人物",
+  });
+  await assertOperationalError(await undo(158, "0d000000-0000-4000-8000-000000000006"), {
+    status: 409,
+    code: "NO_UNDO_BACKUP",
+    error: "没有可恢复的本地备份",
+  });
+  await assertOperationalError(await replace({
+    body: disguisedGif,
+    operationId: "0d000000-0000-4000-8000-000000000007",
+  }), {
+    code: "INVALID_IMAGE_FORMAT",
+    error: "图片无法读取，请重新导出 JPG、PNG 或 WebP 图片",
+  });
+});
+
+test("global photo UI displays the stable operational error returned by the API", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    window.confirm = () => true;
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      if ((init.method || "GET") === "POST" && String(url).includes("/api/undo?id=158")) {
+        return new Response(JSON.stringify({
+          ok: false,
+          code: "NO_UNDO_BACKUP",
+          error: "没有可恢复的本地备份",
+        }), { status: 409, headers: { "content-type": "application/json" } });
+      }
+      return nativeFetch(input, init);
+    };
+    document.querySelector('[data-id="158"]').click();
+    document.querySelector("#undo-button").hidden = false;
+    document.querySelector("#undo-button").click();
+  })()`);
+  await browser.waitFor('document.querySelector("#toast")?.textContent === "没有可恢复的本地备份"');
+  const toast = await browser.evaluate('document.querySelector("#toast")?.textContent');
+  assert.equal(toast, "没有可恢复的本地备份");
 });
 
 test("manager API error contract maps unexpected path-bearing failures to one generic response", async () => {

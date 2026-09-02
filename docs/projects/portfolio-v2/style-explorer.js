@@ -2,7 +2,7 @@ import {
   createExplorerState,
   reduceExplorer,
   serializeExplorerLocation,
-} from "./style-explorer-model.js?v=pv2-05cb462d58a5";
+} from "./style-explorer-model.js?v=pv2-271c2464a2a1";
 
 const sceneLabels = {
   indoor: "内景",

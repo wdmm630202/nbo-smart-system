@@ -1047,9 +1047,9 @@
       "id": "ST-OUT-01-11",
       "familyId": "OUT-01",
       "scene": "outdoor",
-      "label": "咖啡街角",
-      "audience": "偏好日常停留感与安静城市画面的男士",
-      "description": "以咖啡街角式坐立状态传达放松心情，不承诺特定门店或场所。",
+      "label": "暖阳街角",
+      "audience": "偏好暖光、日常停留感与安静城市画面的男士",
+      "description": "以街角暖光和自然停留状态传达放松心情，实际街景与光线需拍摄前确认。",
       "legacyThemeIds": [
         "daily-walk"
       ],

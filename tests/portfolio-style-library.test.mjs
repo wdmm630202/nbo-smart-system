@@ -58,7 +58,7 @@ const approvedFamilies = [
   ["IN-04", "indoor", "运动硬朗", "拳击硬汉、腹肌健身、运动型格、网球运动、战术硬汉、皮衣硬汉、痞帅西装、湿发型男、机能潮男、高街潮男、朋克青年"],
   ["IN-05", "indoor", "港风故事", "复古港风、双人港风、港片男主、国风少年、古风武侠、红幕男主、中式雅士、暗黑公子、复古书房、美式复古、怀旧胶片"],
   ["IN-06", "indoor", "创意个性", "赛博朋克、创意概念、彩色光影、镜面空间、花艺少年、繁花公子、宠物合拍、生日主题、新春主题、冬日节庆、乐队主唱"],
-  ["OUT-01", "outdoor", "都市街拍", "时尚街拍、痞帅街拍、潮流街拍、都市街拍、日常休闲、城市漫步、老街港风、绿意街拍、街角少年、彩色街拍、咖啡街角"],
+  ["OUT-01", "outdoor", "都市街拍", "时尚街拍、痞帅街拍、潮流街拍、都市街拍、日常休闲、城市漫步、老街港风、绿意街拍、街角少年、彩色街拍、暖阳街角"],
   ["OUT-02", "outdoor", "城市夜景", "金色逆光夜景、城市夜景、雨幕街景、港风夜拍、雨夜电影、情绪隧道、暗系情绪、城市灯火、夜色光斑、机车夜巷、闪光街拍"],
   ["OUT-03", "outdoor", "森系自然", "森系文艺、海边少年、蓝调海岸、草地少年、山野旅人、湖边静坐、林间少年、草地暖阳、荒野秋日、雨幕少年、花树少年"],
   ["OUT-04", "outdoor", "都市硬朗", "炫酷机车、机车型格、公路机车、黑白机车、工业硬照、工业建筑、白墙建筑、站台冷调、正装旅人、街头漫步、围巾绅士"],
@@ -100,7 +100,7 @@ const resourceEffectContract = new Map([
   ["ST-IN-06-01", ["赛博", "确认"]], ["ST-IN-06-03", ["彩色光影", "确认"]], ["ST-IN-06-04", ["镜面", "确认"]],
   ["ST-IN-06-05", ["花艺", "确认"]], ["ST-IN-06-06", ["繁花", "确认"]], ["ST-IN-06-07", ["宠物", "确认"]],
   ["ST-IN-06-08", ["生日", "确认"]], ["ST-IN-06-09", ["新春", "确认"]], ["ST-IN-06-10", ["冬日", "确认"]], ["ST-IN-06-11", ["节奏", "确认"]],
-  ["ST-OUT-01-07", ["港风", "确认"]], ["ST-OUT-01-08", ["绿意", "确认"]], ["ST-OUT-01-10", ["彩色", "确认"]], ["ST-OUT-01-11", ["咖啡", "不承诺"]],
+  ["ST-OUT-01-07", ["港风", "确认"]], ["ST-OUT-01-08", ["绿意", "确认"]], ["ST-OUT-01-10", ["彩色", "确认"]], ["ST-OUT-01-11", ["暖光", "确认"]],
   ["ST-OUT-02-01", ["金色逆光", "确认"]], ["ST-OUT-02-02", ["城市夜景", "确认"]], ["ST-OUT-02-03", ["雨幕", "确认"]],
   ["ST-OUT-02-04", ["港风", "确认"]], ["ST-OUT-02-05", ["雨后", "确认"]], ["ST-OUT-02-06", ["隧道", "确认"]],
   ["ST-OUT-02-07", ["暗调", "到店确认"]],
@@ -163,6 +163,25 @@ test("hand-reviewed production covers match the published visual promise", async
     const cover = assignment.slots[assignment.coverPosition - 1];
     assert.equal(style?.label, expectedLabel, `${styleId} label`);
     assert.equal(cover.assetId, expectedAssetId, `${styleId} cover`);
+  }
+});
+
+test("every production family publishes eleven distinct covers", async () => {
+  const catalog = await loadProductionCatalog();
+  const assignments = JSON.parse(await readFile(
+    new URL("../apps/portfolio-v2/style-slot-assignments.json", import.meta.url),
+    "utf8",
+  ));
+
+  for (const family of catalog.families) {
+    const covers = catalog.styles
+      .filter((style) => style.familyId === family.id)
+      .map((style) => {
+        const assignment = assignments.assignments[style.id];
+        return assignment.slots[assignment.coverPosition - 1].assetId;
+      });
+    assert.equal(covers.length, 11, `${family.id} must publish eleven covers`);
+    assert.equal(new Set(covers).size, 11, `${family.id} covers must be unique: ${covers.join(",")}`);
   }
 });
 

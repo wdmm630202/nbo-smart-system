@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import {
   copyFile,
   lstat,
@@ -42,6 +42,7 @@ const lockStaleMs = 15_000;
 const defaultLockWaitTimeoutMs = 30_000;
 const defaultBatchTtlMs = 24 * 60 * 60 * 1_000;
 const batchIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const operationIdPattern = batchIdPattern;
 
 function delay(milliseconds) {
   return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
@@ -114,6 +115,25 @@ function requireExactKeys(value, keys, label) {
 function requireText(value, label) {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label}格式无效`);
   return value.trim();
+}
+
+function requireOperationId(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const operationId = requireText(value, "操作编号");
+  if (!operationIdPattern.test(operationId)) throw new Error("操作编号格式无效");
+  return operationId;
+}
+
+async function fileOperationFingerprint(operation, fields, inputPath) {
+  const hash = createHash("sha256");
+  hash.update(JSON.stringify([operation, ...fields]));
+  hash.update("\0");
+  hash.update(await readFile(inputPath));
+  return hash.digest("hex");
+}
+
+function payloadOperationFingerprint(operation, fields) {
+  return createHash("sha256").update(JSON.stringify([operation, ...fields])).digest("hex");
 }
 
 function defaultSlotIds(styleId) {
@@ -807,11 +827,16 @@ export function createPortfolioStyleStore({
     const slots = [];
     const styles = catalog.styles.map((style) => {
       const layout = assignments.assignments[style.id];
-      const identityOrder = slotIdentities.styles[style.id] || defaultSlotIds(style.id);
+      const rawSlotIds = rawAssignments.assignments?.[style.id]?.slotIds;
+      const hasPublicIdentity = Array.isArray(rawSlotIds) && rawSlotIds.length === 9;
+      const identityOrder = hasPublicIdentity
+        ? layout.slotIds
+        : (slotIdentities.styles[style.id] || defaultSlotIds(style.id));
+      layout.slotIds = [...identityOrder];
       const styleSlots = layout.slots.map((slot, index) => {
         const value = {
           ...slot,
-          id: identityOrder[index],
+          id: layout.slotIds[index],
           styleId: style.id,
           position: index + 1,
           isCover: layout.coverPosition === index + 1,
@@ -955,12 +980,24 @@ export function createPortfolioStyleStore({
     for (const [key, entry] of Object.entries(value.positions)) {
       const position = Number(key);
       requireBatchPosition(position);
-      requireExactKeys(entry, ["width", "height", "codec", "stagedAt"], `整组第 ${position} 张记录`);
+      const normalizedEntry = { operationId: null, operationFingerprint: null, ...entry };
+      requireExactKeys(normalizedEntry, ["width", "height", "codec", "stagedAt", "operationId", "operationFingerprint"], `整组第 ${position} 张记录`);
       if (!Number.isInteger(entry.width) || !Number.isInteger(entry.height)
         || !allowedImageCodecs.has(entry.codec) || Number.isNaN(Date.parse(entry.stagedAt))) {
         throw new Error(`整组第 ${position} 张记录无效`);
       }
-      positions[position] = { ...entry };
+      const operationId = requireOperationId(normalizedEntry.operationId);
+      if ((operationId && !/^[a-f0-9]{64}$/.test(normalizedEntry.operationFingerprint || ""))
+        || (!operationId && normalizedEntry.operationFingerprint !== null)) {
+        throw new Error(`整组第 ${position} 张操作记录无效`);
+      }
+      positions[position] = {
+        width: normalizedEntry.width,
+        height: normalizedEntry.height,
+        codec: normalizedEntry.codec,
+        stagedAt: normalizedEntry.stagedAt,
+        ...(operationId ? { operationId, operationFingerprint: normalizedEntry.operationFingerprint } : {}),
+      };
     }
     return { ...value, positions, createdAt: value.createdAt, expiresAt: value.expiresAt };
   }
@@ -1029,12 +1066,28 @@ export function createPortfolioStyleStore({
     });
   }
 
-  async function stageBatchFile(batchIdValue, positionValue, inputPathValue) {
+  async function stageBatchFile(batchIdValue, positionValue, inputPathValue, options = {}) {
     const batchId = requireBatchId(batchIdValue);
     const position = requireBatchPosition(positionValue);
     const inputPath = requireText(inputPathValue, "上传文件路径");
+    const normalizedOptions = { operationId: null, originalName: "uploaded-image", ...options };
+    requireExactKeys(normalizedOptions, ["operationId", "originalName"], "整组暂存操作");
+    const operationId = requireOperationId(normalizedOptions.operationId);
+    const originalName = requireText(normalizedOptions.originalName, "原始文件名");
+    const operationFingerprint = operationId
+      ? await fileOperationFingerprint("stage-style-batch-file", [batchId, position, originalName], inputPath)
+      : null;
     return enqueueOperation(async () => {
       const batch = await loadBatch(batchId);
+      const matchingOperation = Object.entries(batch.meta.positions)
+        .find(([, entry]) => entry.operationId === operationId && operationId);
+      if (matchingOperation) {
+        const [recordedPosition, entry] = matchingOperation;
+        if (Number(recordedPosition) === position && entry.operationFingerprint === operationFingerprint) {
+          return { batchId, position };
+        }
+        throw new Error("操作编号与重试内容不一致");
+      }
       if (batch.meta.positions[position]) throw new Error(`整组第 ${position} 张已经暂存，不能重复写入`);
       const targets = batchAssetPaths(batch.directory, position);
       for (const [kind, target] of Object.entries(targets)) {
@@ -1063,6 +1116,7 @@ export function createPortfolioStyleStore({
           height: prepared.sourceInfo.height,
           codec: prepared.sourceInfo.codec,
           stagedAt: new Date().toISOString(),
+          ...(operationId ? { operationId, operationFingerprint } : {}),
         };
         await writeJsonAtomic(batch.metaPath, nextMeta);
         return { batchId, position };
@@ -1106,13 +1160,50 @@ export function createPortfolioStyleStore({
     return null;
   }
 
+  async function committedOperationMeta(operationId) {
+    if (!operationId) return null;
+    let entries = [];
+    try {
+      entries = await readdir(transactionRoot, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+    for (const entry of entries.filter((item) => item.isDirectory()).sort((left, right) => right.name.localeCompare(left.name))) {
+      try {
+        const meta = await readJson(join(transactionRoot, entry.name, "meta.json"));
+        if (meta.status === "committed" && meta.operationId === operationId) return { entry: entry.name, meta };
+      } catch {
+        // An unrelated malformed history entry cannot claim an operation id.
+      }
+    }
+    return null;
+  }
+
   async function commitBatch(input) {
-    requireExactKeys(input, ["batchId", "styleId", "orderedPositions"], "整组提交");
-    const batchId = requireBatchId(input.batchId);
-    const styleId = requireText(input.styleId, "风格编号");
-    const orderedPositions = requireOrderedPositions(input.orderedPositions);
+    const normalizedInput = { operationId: null, ...input };
+    requireExactKeys(normalizedInput, ["batchId", "styleId", "orderedPositions", "operationId"], "整组提交");
+    const batchId = requireBatchId(normalizedInput.batchId);
+    const styleId = requireText(normalizedInput.styleId, "风格编号");
+    const orderedPositions = requireOrderedPositions(normalizedInput.orderedPositions);
+    const operationId = requireOperationId(normalizedInput.operationId);
+    const operationFingerprint = operationId
+      ? payloadOperationFingerprint("replace-style-batch", [batchId, styleId, orderedPositions])
+      : null;
     return enqueueOperation(async () => {
       const state = await readStateUnlocked();
+      const replay = await committedOperationMeta(operationId);
+      if (replay) {
+        const { entry, meta } = replay;
+        if (meta.operation !== "replace-style-batch"
+          || meta.operationFingerprint !== operationFingerprint
+          || meta.batchId !== batchId
+          || meta.styleId !== styleId
+          || !hasCompleteBatchRecord(entry, meta)) {
+          throw new Error("操作编号与重试内容不一致");
+        }
+        return { batchId: meta.batchId, styleId: meta.styleId, assetIds: [...meta.assetIds] };
+      }
       if (await committedBatchMeta(batchId)) throw new Error(`整组暂存 ${batchId} 已处理`);
       const batch = await loadBatch(batchId);
       for (let position = 1; position <= 9; position += 1) {
@@ -1191,6 +1282,7 @@ export function createPortfolioStyleStore({
           orderedPositions,
           previousAssignments,
           previousLayoutUpdatedAt,
+          ...(operationId ? { operationId, operationFingerprint } : {}),
         },
         outputs,
       });
@@ -1205,12 +1297,28 @@ export function createPortfolioStyleStore({
   }
 
   async function replaceSlot(input) {
-    requireExactKeys(input, ["slotId", "inputPath", "originalName"], "替换照片位");
-    const slotId = requireText(input.slotId, "照片位编号");
-    const inputPath = requireText(input.inputPath, "上传文件路径");
-    const originalName = requireText(input.originalName, "原始文件名");
+    const normalizedInput = { operationId: null, ...input };
+    requireExactKeys(normalizedInput, ["slotId", "inputPath", "originalName", "operationId"], "替换照片位");
+    const slotId = requireText(normalizedInput.slotId, "照片位编号");
+    const inputPath = requireText(normalizedInput.inputPath, "上传文件路径");
+    const originalName = requireText(normalizedInput.originalName, "原始文件名");
+    const operationId = requireOperationId(normalizedInput.operationId);
+    const operationFingerprint = operationId
+      ? await fileOperationFingerprint("replace-slot", [slotId, originalName], inputPath)
+      : null;
     return enqueueOperation(async () => {
       const state = await readStateUnlocked();
+      const replay = await committedOperationMeta(operationId);
+      if (replay) {
+        const { entry, meta } = replay;
+        if (meta.operation !== "replace-slot"
+          || meta.operationFingerprint !== operationFingerprint
+          || meta.slotId !== slotId
+          || !hasCompleteReplacementRecord(entry, meta)) {
+          throw new Error("操作编号与重试内容不一致");
+        }
+        return { assetId: meta.assetId, code: slotCode(meta.assetId), slotId: meta.slotId };
+      }
       const slot = state.slotById[slotId];
       if (!slot) throw new Error("照片位不存在");
       const assetId = Math.max(...state.assetIds) + 1;
@@ -1254,6 +1362,7 @@ export function createPortfolioStyleStore({
             previousAssignment,
             previousLayoutUpdatedAt,
             originalName,
+            ...(operationId ? { operationId, operationFingerprint } : {}),
           },
           outputs: [
             { key: "full", action: "write", target: fullTarget, sourcePath: prepared.generated.full },
@@ -1650,6 +1759,7 @@ export function createPortfolioStyleStore({
         state.assignments.assignments[styleId].slots[slot.position - 1],
       ]));
       layout.slots = input.orderedSlotIds.map((slotId) => clone(currentById.get(slotId)));
+      layout.slotIds = [...input.orderedSlotIds];
       layout.coverPosition = input.orderedSlotIds.indexOf(coverSlotId) + 1;
       layout.maturity = input.maturity;
       layout.updatedAt = new Date().toISOString();

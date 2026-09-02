@@ -86,6 +86,7 @@ export function buildSeedAssignments({ catalog, assets }) {
     usedCovers.add(ids[0]);
     familyCovers.set(style.familyId, usedCovers);
     assignments[style.id] = {
+      slotIds: Array.from({ length: 9 }, (_, index) => `${style.id}-P${String(index + 1).padStart(2, "0")}`),
       slots: ids.map((assetId, index) => ({
         assetId,
         poseLabel: `拍摄参考 ${String(index + 1).padStart(2, "0")}`,

@@ -408,6 +408,52 @@ test("library builder returns stable slots and complete counts", async () => {
   });
 });
 
+test("explicit public slot identity stays attached to the same asset after assignment reorder", async () => {
+  const { buildStyleLibrary } = await loadPublicContract();
+  const assignments = fixtureAssignments();
+  const styleId = "ST-IN-01-01";
+  const layout = assignments.assignments[styleId];
+  layout.slotIds = Array.from({ length: 9 }, (_, index) => `${styleId}-P${String(index + 1).padStart(2, "0")}`);
+  [layout.slots[0], layout.slots[1]] = [layout.slots[1], layout.slots[0]];
+  [layout.slotIds[0], layout.slotIds[1]] = [layout.slotIds[1], layout.slotIds[0]];
+  layout.coverPosition = 2;
+
+  const library = buildStyleLibrary({
+    catalog: fixtureStyleCatalog(),
+    assignments,
+    assets: fixtureAssets(),
+  });
+
+  assert.deepEqual(
+    library.styles.find(({ id }) => id === styleId).slots.slice(0, 2).map(({ id, assetId, position, isCover }) => ({
+      id,
+      assetId,
+      position,
+      isCover,
+    })),
+    [
+      { id: `${styleId}-P02`, assetId: 2, position: 1, isCover: false },
+      { id: `${styleId}-P01`, assetId: 1, position: 2, isCover: true },
+    ],
+  );
+});
+
+test("public assignment validation rejects duplicate and foreign slot identity", async () => {
+  const { normalizeStyleAssignments } = await loadPublicContract();
+  const catalog = fixtureStyleCatalog();
+  const assetMap = new Map(fixtureAssets().map((asset) => [asset.id, asset]));
+  const assignments = fixtureAssignments();
+  const styleId = "ST-IN-01-01";
+  const layout = assignments.assignments[styleId];
+  layout.slotIds = Array.from({ length: 9 }, (_, index) => `${styleId}-P${String(index + 1).padStart(2, "0")}`);
+
+  layout.slotIds[1] = `${styleId}-P01`;
+  assert.throws(() => normalizeStyleAssignments(assignments, catalog, assetMap), /照片位身份.*重复|重复.*照片位身份/);
+
+  layout.slotIds[1] = "ST-IN-01-02-P02";
+  assert.throws(() => normalizeStyleAssignments(assignments, catalog, assetMap), /照片位身份.*不属于|不属于.*照片位身份/);
+});
+
 test("hidden is the only non-public style visibility and customer counts plus featured omit it", async () => {
   const { buildStyleLibrary, normalizeStyleCatalog } = await loadPublicContract();
   const catalog = fixtureStyleCatalog();

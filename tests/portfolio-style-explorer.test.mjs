@@ -792,7 +792,7 @@ async function measureHiddenDirectEntry(width = 390) {
     readFile(new URL("../apps/portfolio-v2/index.html", import.meta.url), "utf8"),
     readFile(new URL("../apps/portfolio-v2/style-catalog.json", import.meta.url), "utf8").then(JSON.parse),
   ]);
-  const hiddenStyleId = "ST-OUT-02-03";
+  const hiddenStyleId = "ST-IN-02-03";
   catalog.styles.find(({ id }) => id === hiddenStyleId).visibility = "hidden";
   const probe = `<output id="style-explorer-metrics"></output><script>
     window.addEventListener("load", () => window.setTimeout(async () => {
@@ -807,6 +807,8 @@ async function measureHiddenDirectEntry(width = 390) {
         hiddenCardPresent: Boolean(document.querySelector('[data-style-id="${hiddenStyleId}"]')),
         selectedFamily: document.querySelector('#style-family-tabs [aria-selected="true"]')?.dataset.familyId || "",
         historyView: history.state?.styleExplorerView || "",
+        countEyebrow: document.querySelector(".style-explorer-heading p")?.textContent.trim() || "",
+        countLabel: document.querySelector(".style-explorer-heading > span")?.textContent.trim() || "",
       };
       document.querySelector("#style-card-grid .portrait-style-card-open")?.click();
       await wait(80);
@@ -853,7 +855,7 @@ async function measureHiddenDirectEntry(width = 390) {
   const { port } = server.address();
   try {
     const output = await runChrome(
-      `http://127.0.0.1:${port}/portfolio-v2/index.html?v=hidden&scene=outdoor&family=OUT-01&style=${hiddenStyleId}`,
+      `http://127.0.0.1:${port}/portfolio-v2/index.html?v=hidden&scene=indoor&family=IN-01&style=${hiddenStyleId}`,
       width,
     );
     const encoded = output.match(/<output id="style-explorer-metrics">([^<]+)<\/output>/)?.[1] || "";
@@ -966,6 +968,10 @@ async function measurePersistentPreferenceFlow(width = 390) {
       const copyButton = document.querySelector("#copy-request");
       copyButton?.click();
       await wait(240);
+      document.querySelector('#style-scene-tabs [data-scene="outdoor"]')?.click();
+      document.querySelectorAll("#style-family-tabs [data-family-id]")[1]?.click();
+      document.querySelector("#style-featured [data-style-id]")?.click();
+      await wait(80);
       const events = JSON.parse(sessionStorage.getItem("preference-events") || "[]");
       document.querySelector("#style-explorer-metrics").textContent = JSON.stringify({
         ...firstPass,
@@ -1311,6 +1317,11 @@ test("style favorites and pose choices persist, stay synchronized, and lead the 
   for (const eventName of ["style_favorite_add", "style_favorite_remove", "pose_select_add", "pose_select_remove", "style_album_open", "style_viewer_open"]) {
     assert.ok(metrics.events.includes(eventName), `缺少真实交互事件 ${eventName}`);
   }
+  assert.deepEqual(
+    [...new Set(metrics.events.filter((eventName) => eventName.startsWith("style_") || eventName.startsWith("pose_select_")))].sort(),
+    ["pose_select_add", "pose_select_remove", "style_album_open", "style_favorite_add", "style_favorite_remove", "style_viewer_open"],
+    "客户端只能发出 worker 明确接收的六种风格事件",
+  );
   assert.equal(metrics.events.includes("photo_open"), false, "风格 viewer 被错记为旧客片打开");
   assert.equal(metrics.events.some((eventName) => /popular|hot/i.test(eventName)), false, "没有真实数据却造了热门事件");
 });
@@ -1477,21 +1488,23 @@ test("hidden direct entry normalizes the real URL and browser Back returns to th
   const metrics = await measureHiddenDirectEntry();
   assert.deepEqual(metrics.initial, {
     view: "styles",
-    scene: "outdoor",
-    family: "OUT-02",
+    scene: "indoor",
+    family: "IN-02",
     style: "",
     hiddenCardPresent: false,
-    selectedFamily: "OUT-02",
+    selectedFamily: "IN-02",
     historyView: "styles",
+    countEyebrow: "131 PORTRAIT STYLES",
+    countLabel: "131 种风格 · 内景 65 · 外景 66",
   });
-  assert.match(metrics.openedStyle, /^ST-OUT-02-/);
-  assert.notEqual(metrics.openedStyle, "ST-OUT-02-03", "隐藏风格不能通过第一张可见卡重新出现");
+  assert.match(metrics.openedStyle, /^ST-IN-02-/);
+  assert.notEqual(metrics.openedStyle, "ST-IN-02-03", "隐藏风格不能通过第一张可见卡重新出现");
   assert.deepEqual([
     metrics.returnedView,
     metrics.returnedScene,
     metrics.returnedFamily,
     metrics.returnedStyle,
-  ], ["styles", "outdoor", "OUT-02", ""]);
+  ], ["styles", "indoor", "IN-02", ""]);
 });
 
 test("explorer derives missing URL parents from a valid scene, family, or style", () => {

@@ -86,6 +86,8 @@ export function createStyleExplorer({
 
   const documentObject = root.ownerDocument;
   const windowObject = documentObject.defaultView;
+  const countEyebrow = requiredElement(root, "#style-count-eyebrow");
+  const countLabel = requiredElement(root, "#style-count-label");
   const featured = requiredElement(root, "#style-featured");
   const sceneTabs = requiredElement(root, "#style-scene-tabs");
   const familyTabs = requiredElement(root, "#style-family-tabs");
@@ -109,6 +111,21 @@ export function createStyleExplorer({
   }
 
   const styleById = new Map(library.styles.map((style) => [style.id, style]));
+
+  function renderCounts() {
+    const publishedStyles = library.styles.filter(({ visibility }) => visibility === "published");
+    const counts = {
+      styles: Number.isInteger(library.counts?.styles) ? library.counts.styles : publishedStyles.length,
+      indoor: Number.isInteger(library.counts?.indoor)
+        ? library.counts.indoor
+        : publishedStyles.filter(({ scene }) => scene === "indoor").length,
+      outdoor: Number.isInteger(library.counts?.outdoor)
+        ? library.counts.outdoor
+        : publishedStyles.filter(({ scene }) => scene === "outdoor").length,
+    };
+    countEyebrow.textContent = `${counts.styles} PORTRAIT STYLES`;
+    countLabel.textContent = `${counts.styles} 种风格 · 内景 ${counts.indoor} · 外景 ${counts.outdoor}`;
+  }
 
   function updateStyleFavoriteButton(button, style) {
     const selected = favoriteStyleIds.has(style.id);
@@ -193,7 +210,6 @@ export function createStyleExplorer({
         state = reduceExplorer(state, { type: "scene", scene }, library);
         render();
         updateLocation(windowObject, state);
-        onTrack("style_scene_select", { scene, targetId: scene, targetLabel: sceneLabels[scene] });
         onSelectionChange(state, { type: "scene", scene });
       },
     })));
@@ -212,11 +228,6 @@ export function createStyleExplorer({
         state = reduceExplorer(state, { type: "family", familyId: family.id }, library);
         render();
         updateLocation(windowObject, state);
-        onTrack("style_family_select", {
-          scene: state.scene,
-          targetId: family.id,
-          targetLabel: family.label,
-        });
         onSelectionChange(state, { type: "family", familyId: family.id });
       },
     })));
@@ -505,11 +516,6 @@ export function createStyleExplorer({
     const card = cardGrid.querySelector(`[data-style-id="${style.id}"] .portrait-style-card-open`);
     card?.focus({ preventScroll: true });
     card?.scrollIntoView({ block: "nearest", inline: "nearest" });
-    onTrack("style_featured_select", {
-      scene: style.scene,
-      targetId: style.id,
-      targetLabel: style.label,
-    });
     onSelectionChange(state, { type: "featured", styleId: style.id });
   }
 
@@ -535,6 +541,7 @@ export function createStyleExplorer({
 
   function render() {
     if (destroyed) return;
+    renderCounts();
     renderSceneTabs();
     renderFamilyTabs();
     renderCards();

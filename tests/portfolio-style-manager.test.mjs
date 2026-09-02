@@ -23,6 +23,8 @@ import {
   buildPortfolioItems,
   portfolioCatalog,
 } from "../apps/portfolio-v2/catalog.js";
+import { buildStyleLibrary } from "../apps/portfolio-v2/style-library.js";
+import { readStylePreferences } from "../apps/portfolio-v2/style-preferences.js";
 import * as photoLib from "../tools/portfolio-photo-lib.mjs";
 
 const styleStoreUrl = new URL("../tools/portfolio-style-store.mjs", import.meta.url);
@@ -1209,6 +1211,42 @@ test("persisted reorder keeps slot identity, cover, pose, and replacement histor
   assert.equal(afterUndo.slotById[firstSlotId].isCover, true);
 });
 
+test("manager reorder exports stable public identity so an existing pose preference keeps the same asset", async (t) => {
+  const fixture = await createStyleStoreFixture(t);
+  const styleId = "ST-IN-01-01";
+  const selectedSlotId = `${styleId}-P01`;
+  const before = await fixture.store.read();
+  const beforeAssetId = before.slotById[selectedSlotId].assetId;
+  const style = before.styles.find(({ id }) => id === styleId);
+
+  await fixture.store.updateLayout({
+    styleId,
+    orderedSlotIds: [style.slots[1].id, style.slots[0].id, ...style.slots.slice(2).map(({ id }) => id)],
+    coverSlotId: selectedSlotId,
+    maturity: "reference",
+  });
+
+  const [catalog, assignments, after] = await Promise.all([
+    readFile(fixture.catalogPath, "utf8").then(JSON.parse),
+    readFile(fixture.assignmentsPath, "utf8").then(JSON.parse),
+    fixture.createStore().read(),
+  ]);
+  const publicLibrary = buildStyleLibrary({ catalog, assignments, assets: after.assets });
+  const storage = {
+    getItem(key) {
+      return key === "nanbo-selected-poses" ? JSON.stringify([selectedSlotId]) : "[]";
+    },
+    setItem() {},
+  };
+  const preferences = readStylePreferences(storage, publicLibrary);
+  const selectedPublicSlot = publicLibrary.slots.find(({ id }) => preferences.slotIds.has(id));
+
+  assert.equal(selectedPublicSlot.id, selectedSlotId);
+  assert.equal(selectedPublicSlot.assetId, beforeAssetId);
+  assert.equal(selectedPublicSlot.position, 2);
+  assert.equal(selectedPublicSlot.isCover, true);
+});
+
 test("maturity is derived from upload sources and complete requires same-style origin plus explicit public confirmation", { timeout: 240_000 }, async (t) => {
   const fixture = await createStyleStoreFixture(t);
   const styleId = "ST-IN-01-01";
@@ -1878,6 +1916,243 @@ test("raw style uploads enforce Content-Length, clean temporary files, and relea
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   assert.equal(afterAbort.status, 200);
+});
+
+test("single-slot replacement replays a dropped committed response without allocating another asset", { timeout: 90_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const operationId = "11111111-1111-4111-8111-111111111111";
+  const image = await readFile(validPhoto);
+  const request = (body = image, overrides = {}) => fetch(new URL("api/style-slots/replace?slot=ST-IN-01-01-P01", server.url), {
+    method: "POST",
+    body,
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "ambiguous-single.jpg",
+      "x-nanbo-operation-id": operationId,
+      "x-nanbo-token": server.token,
+      ...overrides,
+    },
+  });
+
+  const committedButDropped = await request();
+  assert.equal(committedButDropped.status, 200);
+  await committedButDropped.arrayBuffer();
+
+  const replay = await request();
+  assert.equal(replay.status, 200);
+  assert.deepEqual((await replay.json()).result, {
+    assetId: 159,
+    code: "NB-159",
+    slotId: "ST-IN-01-01-P01",
+  });
+  const state = await (await fetch(new URL("api/style-library", server.url))).json();
+  assert.equal(state.counts.assets, 159);
+  assert.equal(state.styles.find(({ id }) => id === "ST-IN-01-01").slots.find(({ id }) => id === "ST-IN-01-01-P01").assetId, 159);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-slot").length, 1);
+
+  const mismatchedFile = await request(await readFile(newerValidPhoto));
+  assert.equal(mismatchedFile.status, 400);
+  assert.match((await mismatchedFile.json()).error, /operation|操作编号|重试内容|不一致/i);
+
+  const missingToken = await request(image, { "x-nanbo-token": "" });
+  assert.equal(missingToken.status, 403);
+  const foreignOrigin = await request(image, { origin: "https://evil.example" });
+  assert.equal(foreignOrigin.status, 403);
+});
+
+test("batch position staging replays a dropped response only for the exact same file", { timeout: 90_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const created = await server.postJson("api/style-batches", null);
+  const { batchId } = (await created.json()).result;
+  const operationId = "22222222-2222-4222-8222-222222222222";
+  const stage = (body) => fetch(new URL(`api/style-batches/${batchId}/files/1`, server.url), {
+    method: "PUT",
+    body,
+    headers: {
+      "content-type": "image/jpeg",
+      origin: server.exactOrigin,
+      "x-file-name": "ambiguous-stage.jpg",
+      "x-nanbo-operation-id": operationId,
+      "x-nanbo-token": server.token,
+    },
+  });
+
+  const image = await readFile(validPhoto);
+  const committedButDropped = await stage(image);
+  assert.equal(committedButDropped.status, 200);
+  await committedButDropped.arrayBuffer();
+
+  const replay = await stage(image);
+  assert.equal(replay.status, 200);
+  assert.deepEqual((await replay.json()).result, { batchId, position: 1 });
+
+  const mismatchedFile = await stage(await readFile(newerValidPhoto));
+  assert.equal(mismatchedFile.status, 400);
+  assert.match((await mismatchedFile.json()).error, /operation|操作编号|重试内容|不一致/i);
+});
+
+test("batch commit replays a dropped committed response and leaves the authoritative batch state complete", { timeout: 180_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const created = await server.postJson("api/style-batches", null);
+  const { batchId } = (await created.json()).result;
+  const image = await readFile(validPhoto);
+  for (let position = 1; position <= 9; position += 1) {
+    const staged = await fetch(new URL(`api/style-batches/${batchId}/files/${position}`, server.url), {
+      method: "PUT",
+      body: image,
+      headers: {
+        "content-type": "image/jpeg",
+        origin: server.exactOrigin,
+        "x-file-name": `commit-${position}.jpg`,
+        "x-nanbo-token": server.token,
+      },
+    });
+    assert.equal(staged.status, 200, `position ${position}`);
+  }
+  const operationId = "33333333-3333-4333-8333-333333333333";
+  const payload = {
+    styleId: "ST-IN-01-01",
+    orderedPositions: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  };
+  const commit = () => server.postJson(`api/style-batches/${batchId}/commit`, payload, {
+    "x-nanbo-operation-id": operationId,
+  });
+
+  const committedButDropped = await commit();
+  assert.equal(committedButDropped.status, 200);
+  await committedButDropped.arrayBuffer();
+
+  const replay = await commit();
+  assert.equal(replay.status, 200);
+  const replayedResult = (await replay.json()).result;
+  assert.deepEqual(replayedResult, {
+    batchId,
+    styleId: "ST-IN-01-01",
+    assetIds: [159, 160, 161, 162, 163, 164, 165, 166, 167],
+  });
+  const state = await (await fetch(new URL("api/style-library", server.url))).json();
+  assert.deepEqual(
+    state.styles.find(({ id }) => id === "ST-IN-01-01").slots.map(({ assetId }) => assetId),
+    replayedResult.assetIds,
+  );
+  assert.equal(state.counts.assets, 167);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-style-batch").length, 1);
+});
+
+test("single-slot manager retries a dropped committed response with the same operation id", { skip: !hasChrome, timeout: 120_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const nativeFetch = window.fetch.bind(window);
+    window.__ambiguousSingleOperations = [];
+    window.__dropSingleResponse = true;
+    window.fetch = async (input, init = {}) => {
+      const url = typeof input === "string" ? input : input.url;
+      const isReplacement = (init.method || "GET") === "POST" && String(url).includes("/api/style-slots/replace");
+      if (isReplacement) {
+        window.__ambiguousSingleOperations.push(new Headers(init.headers).get("x-nanbo-operation-id"));
+      }
+      const response = await nativeFetch(input, init);
+      if (isReplacement && response.ok && window.__dropSingleResponse) {
+        window.__dropSingleResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟单张响应丢失");
+      }
+      return response;
+    };
+    const mode = document.querySelector('input[name="library-mode"][value="styles"]');
+    mode.checked = true;
+    mode.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.evaluate('document.querySelector("[data-style-slot-id=\\"ST-IN-01-01-P01\\"] .style-slot-replace").click()');
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open');
+  await browser.setFileInput("#style-slot-file", validPhoto);
+  await browser.waitFor('document.querySelector("#style-slot-confirm")?.disabled === false');
+  await browser.evaluate('document.querySelector("#style-slot-confirm").click()');
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("模拟单张响应丢失")', 30_000);
+  assert.equal(await browser.evaluate('document.querySelector("#style-slot-replace-dialog")?.open'), true);
+
+  await browser.evaluate('document.querySelector("#style-slot-confirm").click()');
+  await browser.waitFor('document.querySelector("#style-slot-replace-dialog")?.open === false', 30_000);
+  const result = await browser.evaluate(`(() => ({
+    assetCode: document.querySelector('[data-style-slot-id="ST-IN-01-01-P01"] [data-asset-code]')?.dataset.assetCode,
+    operationIds: [...window.__ambiguousSingleOperations],
+  }))()`);
+  assert.equal(result.assetCode, "NB-159");
+  assert.equal(result.operationIds.length, 2);
+  assert.match(result.operationIds[0] || "", /^[0-9a-f-]{36}$/);
+  assert.equal(result.operationIds[1], result.operationIds[0]);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-slot").length, 1);
+});
+
+test("batch manager retries dropped stage and commit responses with stable operation ids", { skip: !hasChrome, timeout: 180_000 }, async (t) => {
+  const server = await startManagerFixture(t);
+  const copies = [];
+  const bytes = await readFile(validPhoto);
+  for (let position = 1; position <= 9; position += 1) {
+    const path = join(server.sandbox, `ambiguous-ui-${position}.jpg`);
+    await writeFile(path, bytes);
+    copies.push(path);
+  }
+  const browser = await startManagerBrowser(t, server.url, { width: 1280 });
+  await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
+  await browser.evaluate(`(() => {
+    const nativeFetch = window.fetch.bind(window);
+    window.__ambiguousBatchOperations = { stage: [], commit: [] };
+    window.__dropStageResponse = true;
+    window.__dropCommitResponse = true;
+    window.fetch = async (input, init = {}) => {
+      const url = String(typeof input === "string" ? input : input.url);
+      const method = init.method || "GET";
+      const isStage = method === "PUT" && url.includes("/api/style-batches/") && url.endsWith("/files/1");
+      const isCommit = method === "POST" && url.includes("/api/style-batches/") && url.endsWith("/commit");
+      if (isStage) window.__ambiguousBatchOperations.stage.push(new Headers(init.headers).get("x-nanbo-operation-id"));
+      if (isCommit) window.__ambiguousBatchOperations.commit.push(new Headers(init.headers).get("x-nanbo-operation-id"));
+      const response = await nativeFetch(input, init);
+      if (isStage && response.ok && window.__dropStageResponse) {
+        window.__dropStageResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟暂存响应丢失");
+      }
+      if (isCommit && response.ok && window.__dropCommitResponse) {
+        window.__dropCommitResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟提交响应丢失");
+      }
+      return response;
+    };
+    const mode = document.querySelector('input[name="library-mode"][value="styles"]');
+    mode.checked = true;
+    mode.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await browser.waitFor('document.querySelectorAll("#style-slot-grid [data-style-slot-id]").length === 9');
+  await browser.evaluate('document.querySelector("#style-batch-open").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open');
+  await browser.setFileInput("#style-batch-files", copies);
+  await browser.waitFor('document.querySelector("[data-batch-position=\\"1\\"]")?.dataset.batchStatus === "error"', 30_000);
+  await browser.waitFor('document.querySelector("[data-batch-position=\\"9\\"]")?.dataset.batchStatus === "ready"', 30_000);
+  await browser.setFileInput('[data-batch-position="1"] .style-batch-retry input', copies[0]);
+  await browser.waitFor('window.__ambiguousBatchOperations.stage.length === 2', 30_000);
+  const stageOperations = await browser.evaluate('[...window.__ambiguousBatchOperations.stage]');
+  assert.match(stageOperations[0] || "", /^[0-9a-f-]{36}$/);
+  assert.equal(stageOperations[1], stageOperations[0]);
+  await browser.waitFor('document.querySelector("#style-batch-commit")?.disabled === false', 30_000);
+
+  await browser.evaluate('document.querySelector("#style-batch-commit").click()');
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("模拟提交响应丢失")', 30_000);
+  assert.equal(await browser.evaluate('document.querySelector("#style-batch-dialog")?.open'), true);
+  await browser.evaluate('document.querySelector("#style-batch-commit").click()');
+  await browser.waitFor('document.querySelector("#style-batch-dialog")?.open === false', 30_000);
+  const commitOperations = await browser.evaluate('[...window.__ambiguousBatchOperations.commit]');
+  assert.equal(commitOperations.length, 2);
+  assert.match(commitOperations[0] || "", /^[0-9a-f-]{36}$/);
+  assert.equal(commitOperations[1], commitOperations[0]);
+  const state = await (await fetch(new URL("api/style-library", server.url))).json();
+  assert.equal(state.counts.assets, 167);
+  assert.equal((await transactionMetas(server.sandbox)).filter(({ operation }) => operation === "replace-style-batch").length, 1);
 });
 
 test("batch API requires token and exact origin for POST, PUT, and DELETE and keeps partial staging private", { timeout: 180_000 }, async (t) => {
@@ -2608,11 +2883,21 @@ test("global NB replacement lists all references, recommends one slot, and cance
   await browser.waitFor('document.querySelector("#photo-grid")?.getAttribute("aria-busy") === "false"');
   await browser.evaluate(`(() => {
     window.__managerMutationRequests = [];
+    window.__globalSlotOperationIds = [];
+    window.__dropGlobalSlotResponse = false;
     const originalFetch = window.fetch.bind(window);
-    window.fetch = (input, init = {}) => {
+    window.fetch = async (input, init = {}) => {
       const url = typeof input === "string" ? input : input.url;
       if ((init.method || "GET") !== "GET") window.__managerMutationRequests.push(url);
-      return originalFetch(input, init);
+      const isSlotReplace = (init.method || "GET") === "POST" && String(url).includes("/api/style-slots/replace");
+      if (isSlotReplace) window.__globalSlotOperationIds.push(new Headers(init.headers).get("x-nanbo-operation-id"));
+      const response = await originalFetch(input, init);
+      if (isSlotReplace && response.ok && window.__dropGlobalSlotResponse) {
+        window.__dropGlobalSlotResponse = false;
+        await response.clone().arrayBuffer();
+        throw new TypeError("模拟全局单槽响应丢失");
+      }
+      return response;
     };
     document.querySelector('[data-id="137"]').click();
   })()`);
@@ -2659,8 +2944,11 @@ test("global NB replacement lists all references, recommends one slot, and cance
   await browser.evaluate(`(() => {
     const target = document.querySelector('input[name="global-slot-target"][value="${targetSlotId}"]');
     target.checked = true;
+    window.__dropGlobalSlotResponse = true;
     document.querySelector("#global-replace-one").click();
   })()`);
+  await browser.waitFor('document.querySelector("#toast")?.textContent.includes("模拟全局单槽响应丢失")', 30_000);
+  await browser.evaluate('document.querySelector("#global-replace-one").click()');
   await browser.waitFor(`document.querySelector('input[name="library-mode"][value="styles"]')?.checked
     && document.querySelector("#style-library-view")?.dataset.selectedStyle === "${targetStyleId}"
     && document.querySelector('[data-style-slot-id="${targetSlotId}"] [data-asset-code="NB-159"]')`);
@@ -2668,6 +2956,10 @@ test("global NB replacement lists all references, recommends one slot, and cance
   assert.equal(afterSingleSlot.count, expected.count - 1);
   assert.ok(!afterSingleSlot.slotIds.includes(targetSlotId));
   assert.equal((await (await fetch(new URL("api/assets/references?id=159", server.url))).json()).slotIds[0], targetSlotId);
+  const operationIds = await browser.evaluate('[...window.__globalSlotOperationIds]');
+  assert.equal(operationIds.length, 2);
+  assert.match(operationIds[0] || "", /^[0-9a-f-]{36}$/);
+  assert.equal(operationIds[1], operationIds[0]);
 });
 
 test("style manager fits 320px, 390px, and desktop with reduced-motion feedback", { skip: !hasChrome, timeout: 120_000 }, async (t) => {

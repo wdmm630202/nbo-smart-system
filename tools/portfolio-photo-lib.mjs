@@ -612,7 +612,9 @@ function preflightStyleAssignments(rawCatalog, rawAssignments, assetMap) {
     }
     const firstPositionByAsset = new Map();
     layout.slots.forEach((slot, index) => {
-      const label = stableSlotLabel(style.id, index);
+      const label = typeof layout.slotIds?.[index] === "string" && layout.slotIds[index]
+        ? layout.slotIds[index]
+        : stableSlotLabel(style.id, index);
       if (!slot || Array.isArray(slot) || typeof slot !== "object") {
         errors.push(`${label} 格式无效`);
         return;
@@ -684,7 +686,12 @@ async function validateStylePublication({ rawCatalog, rawAssignments, assets, ad
   let library = null;
   if (!errors.length) {
     try {
-      library = buildStyleLibrary({ catalog: rawCatalog, assignments: rawAssignments, assets });
+      library = buildStyleLibrary({
+        catalog: rawCatalog,
+        assignments: rawAssignments,
+        assets,
+        requireExplicitSlotIds: true,
+      });
     } catch (error) {
       errors.push(error.message);
     }

@@ -300,6 +300,23 @@ test("style publication rejects missing, unsafe, unknown, duplicate, and forged 
       pattern: /ST-IN-01-01-P01.*_slotId/,
     },
     {
+      name: "missing public slot identity",
+      mutate({ assignments }) { delete assignments.assignments["ST-IN-01-01"].slotIds; },
+      pattern: /ST-IN-01-01.*照片位身份.*缺少/,
+    },
+    {
+      name: "duplicate public slot identity",
+      mutate({ assignments }) {
+        assignments.assignments["ST-IN-01-01"].slotIds[1] = assignments.assignments["ST-IN-01-01"].slotIds[0];
+      },
+      pattern: /ST-IN-01-01.*照片位身份.*重复/,
+    },
+    {
+      name: "foreign public slot identity",
+      mutate({ assignments }) { assignments.assignments["ST-IN-01-01"].slotIds[1] = "ST-IN-01-02-P02"; },
+      pattern: /ST-IN-01-01.*照片位身份.*不属于/,
+    },
+    {
       name: "private catalog field",
       mutate({ catalog }) { catalog.slotIdentities = { local: true }; },
       pattern: /slotIdentities/,

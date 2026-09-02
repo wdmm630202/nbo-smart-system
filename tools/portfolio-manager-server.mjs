@@ -613,10 +613,20 @@ function styleOperationError(error) {
   if (/ffprobe failed|Invalid data found|moov atom/i.test(message)) {
     return apiError("INVALID_IMAGE", "上传的文件不是可读取的 JPG、PNG 或 WebP 图片");
   }
-  if (/不存在|已处理|已经暂存|过期|重复|没有更早|必须|格式无效|不允许字段|缺少|只支持|图片只有|图片比例|可见性|成熟度/.test(message)) {
+  if (/不存在|已处理|已经暂存|过期|重复|没有更早|必须|格式无效|不允许字段|缺少|只支持|图片只有|图片比例|可见性|成熟度|操作编号|重试内容|不一致/.test(message)) {
     return apiError("STYLE_VALIDATION_FAILED", message);
   }
   return apiError("STYLE_OPERATION_FAILED", "风格操作未完成，请稍后重试", 500);
+}
+
+function styleOperationId(request) {
+  const value = request.headers["x-nanbo-operation-id"];
+  if (value === undefined) return null;
+  if (typeof value !== "string"
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value)) {
+    throw apiError("INVALID_OPERATION_ID", "操作编号格式无效");
+  }
+  return value;
 }
 
 async function runStyleMutation(response, label, operation) {
@@ -647,6 +657,7 @@ function decodedStyleUploadName(request) {
 
 async function replaceStyleSlotRequest(request, response, url) {
   await runStyleMutation(response, "替换风格照片位", async () => {
+    const operationId = styleOperationId(request);
     const slotId = requireStyleSlotId(exactQueryValue(url, "slot", "INVALID_SLOT_ID", "照片位编号无效"));
     const originalName = decodedStyleUploadName(request);
     const extension = extname(originalName).toLowerCase();
@@ -657,7 +668,7 @@ async function replaceStyleSlotRequest(request, response, url) {
     const buffer = await readBody(request);
     const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".upload");
     try {
-      return await requireStyleStore().replaceSlot({ slotId, inputPath: temporary.path, originalName });
+      return await requireStyleStore().replaceSlot({ slotId, inputPath: temporary.path, originalName, operationId });
     } finally {
       await rm(temporary.directory, { recursive: true, force: true });
     }
@@ -731,6 +742,7 @@ async function createStyleBatchRequest(response, url) {
 
 async function stageStyleBatchFileRequest(request, response, url, routeMatch) {
   await runStyleMutation(response, `暂存整组第 ${routeMatch.position} 张`, async () => {
+    const operationId = styleOperationId(request);
     assertNoQuery(url, "INVALID_BATCH_POSITION", "整组照片接口不接受查询参数");
     const originalName = decodedStyleUploadName(request);
     const extension = extname(originalName).toLowerCase();
@@ -741,7 +753,10 @@ async function stageStyleBatchFileRequest(request, response, url, routeMatch) {
     const buffer = await readBody(request);
     const temporary = await writeUploadToTemporaryFile(buffer, allowedPhotoExtensions.has(extension) ? extension : ".upload");
     try {
-      return await requireStyleStore().stageBatchFile(routeMatch.batchId, routeMatch.position, temporary.path);
+      return await requireStyleStore().stageBatchFile(routeMatch.batchId, routeMatch.position, temporary.path, {
+        operationId,
+        originalName,
+      });
     } finally {
       await rm(temporary.directory, { recursive: true, force: true });
     }
@@ -750,10 +765,11 @@ async function stageStyleBatchFileRequest(request, response, url, routeMatch) {
 
 async function commitStyleBatchRequest(request, response, url, routeMatch) {
   await runStyleMutation(response, "提交整组换图", async () => {
+    const operationId = styleOperationId(request);
     assertNoQuery(url, "INVALID_BATCH_ID", "整组提交接口不接受查询参数");
     const input = exactJsonObject(await readJsonBody(request), ["styleId", "orderedPositions"], "整组提交");
     requireStyleId(input?.styleId);
-    return requireStyleStore().commitBatch({ ...input, batchId: routeMatch.batchId });
+    return requireStyleStore().commitBatch({ ...input, batchId: routeMatch.batchId, operationId });
   });
 }
 

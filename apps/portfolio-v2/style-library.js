@@ -12,7 +12,7 @@ const styleKeys = new Set([
   "visibility",
 ]);
 const assignmentDocumentKeys = new Set(["schemaVersion", "assignments"]);
-const assignmentKeys = new Set(["slots", "coverPosition", "maturity", "updatedAt"]);
+const assignmentKeys = new Set(["slotIds", "slots", "coverPosition", "maturity", "updatedAt"]);
 const slotAssignmentKeys = new Set(["assetId", "poseLabel", "source", "updatedAt"]);
 const styleIdPattern = /^ST-(IN|OUT)-(0[1-6])-(0[1-9]|1[01])$/;
 const familyIdPattern = /^(IN|OUT)-0[1-6]$/;
@@ -166,7 +166,7 @@ export function normalizeStyleCatalog(value) {
   };
 }
 
-export function normalizeStyleAssignments(value, catalog, assetMap) {
+export function normalizeStyleAssignments(value, catalog, assetMap, { requireExplicitSlotIds = false } = {}) {
   assertRecord(value, "照片位清单");
   assertAllowedKeys(value, assignmentDocumentKeys, "照片位清单顶层");
   if (value.schemaVersion !== 1) throw new Error("照片位清单格式无效");
@@ -193,6 +193,20 @@ export function normalizeStyleAssignments(value, catalog, assetMap) {
     if (!validMaturity.has(assignment.maturity)) throw new Error(`风格 ${style.id} 成熟度无效`);
     const updatedAt = normalizeTimestamp(assignment.updatedAt, `风格 ${style.id} 更新时间`);
     const assetIds = new Set();
+    const expectedSlotIds = new Set(Array.from({ length: 9 }, (_, index) => styleSlotId(style.id, index + 1)));
+    if (requireExplicitSlotIds && !Object.hasOwn(assignment, "slotIds")) {
+      throw new Error(`风格 ${style.id} 照片位身份缺少，必须公开保存完整 9 个身份`);
+    }
+    const normalizedSlotIds = Object.hasOwn(assignment, "slotIds")
+      ? assignment.slotIds
+      : Array.from(expectedSlotIds);
+    if (!Array.isArray(normalizedSlotIds) || normalizedSlotIds.length !== 9
+      || normalizedSlotIds.some((slotId) => typeof slotId !== "string" || !slotId.trim())) {
+      throw new Error(`风格 ${style.id} 照片位身份缺少，必须公开保存完整 9 个身份`);
+    }
+    const foreignSlotId = normalizedSlotIds.find((slotId) => !expectedSlotIds.has(slotId));
+    if (foreignSlotId) throw new Error(`风格 ${style.id} 照片位身份 ${foreignSlotId} 不属于该风格`);
+    if (new Set(normalizedSlotIds).size !== 9) throw new Error(`风格 ${style.id} 照片位身份重复`);
     const slots = assignment.slots.map((slot, index) => {
       assertRecord(slot, `风格 ${style.id} 照片位 ${index + 1}`);
       assertAllowedKeys(slot, slotAssignmentKeys, `风格 ${style.id} 照片位 ${index + 1}`);
@@ -219,6 +233,7 @@ export function normalizeStyleAssignments(value, catalog, assetMap) {
       };
     });
     return [style.id, {
+      slotIds: [...normalizedSlotIds],
       slots,
       coverPosition: assignment.coverPosition,
       maturity: assignment.maturity,
@@ -229,7 +244,7 @@ export function normalizeStyleAssignments(value, catalog, assetMap) {
   return { schemaVersion: 1, assignments };
 }
 
-export function buildStyleLibrary({ catalog, assignments, assets }) {
+export function buildStyleLibrary({ catalog, assignments, assets, requireExplicitSlotIds = false }) {
   if (!Array.isArray(assets)) throw new Error("公共资产列表格式无效");
   const normalizedCatalog = normalizeStyleCatalog(catalog);
   for (const asset of assets) {
@@ -239,11 +254,16 @@ export function buildStyleLibrary({ catalog, assignments, assets }) {
   }
   const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
   if (assetMap.size !== assets.length) throw new Error("公共资产编号重复或无效");
-  const normalizedAssignments = normalizeStyleAssignments(assignments, normalizedCatalog, assetMap);
+  const normalizedAssignments = normalizeStyleAssignments(
+    assignments,
+    normalizedCatalog,
+    assetMap,
+    { requireExplicitSlotIds },
+  );
   const publishedStyles = normalizedCatalog.styles.filter(({ visibility }) => visibility === "published");
   const slots = normalizedCatalog.styles.flatMap((style) =>
     normalizedAssignments.assignments[style.id].slots.map((assignment, index) => ({
-      id: styleSlotId(style.id, index + 1),
+      id: normalizedAssignments.assignments[style.id].slotIds[index],
       styleId: style.id,
       position: index + 1,
       assetId: assignment.assetId,

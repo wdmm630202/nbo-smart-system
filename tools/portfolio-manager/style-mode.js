@@ -36,6 +36,15 @@ function styleIdFromSlot(slotId) {
   return slotId.replace(/-P0[1-9]$/, "");
 }
 
+function createOperationId() {
+  if (typeof globalThis.crypto?.randomUUID !== "function") throw new Error("当前浏览器无法创建安全操作编号，请升级浏览器");
+  return globalThis.crypto.randomUUID();
+}
+
+function fileRetrySignature(file) {
+  return JSON.stringify([file.name, file.type, file.size, file.lastModified]);
+}
+
 function moveSelection(event, elements, selectedIndex, choose) {
   const keys = new Set(["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Home", "End"]);
   if (!keys.has(event.key) || !elements.length) return;
@@ -110,6 +119,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     replaceCandidate: null,
     replaceGeneration: 0,
     replaceValid: false,
+    replaceOperationId: "",
     replaceOpener: null,
     layoutDrafts: new Map(),
     pointerDrag: null,
@@ -118,7 +128,9 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     batchEntries: new Map(),
     batchOrder: [],
     batchOpener: null,
+    batchCommitOperationId: "",
   };
+  const externalReplacementOperations = new Map();
 
   function activeFamilies() {
     return sorted((state.library?.families || []).filter(({ scene }) => scene === state.scene));
@@ -555,6 +567,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     }
     state.batchEntries.clear();
     state.batchOrder = [];
+    state.batchCommitOperationId = "";
     elements.batchFiles.value = "";
     elements.batchList.replaceChildren();
   }
@@ -575,6 +588,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     if (index < 0 || nextIndex < 0 || nextIndex >= state.batchOrder.length) return;
     state.batchOrder.splice(index, 1);
     state.batchOrder.splice(nextIndex, 0, position);
+    state.batchCommitOperationId = "";
     renderBatchEntries();
     elements.batchList.querySelector(`[data-batch-position="${position}"] .style-batch-move`)?.focus({ preventScroll: true });
   }
@@ -638,13 +652,25 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function stageBatchPosition(position, file) {
     const entry = state.batchEntries.get(position);
     if (!entry || !state.batchId) return;
+    const retrySignature = fileRetrySignature(file);
+    if (entry.retrySignature !== retrySignature) {
+      entry.operationId = createOperationId();
+      entry.retrySignature = retrySignature;
+      state.batchCommitOperationId = "";
+    } else if (!entry.operationId) {
+      entry.operationId = createOperationId();
+    }
     entry.status = "checking";
     entry.error = "";
     renderBatchEntries();
     try {
       await requestJson(`/api/style-batches/${encodeURIComponent(state.batchId)}/files/${position}`, {
         method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(file.name),
+          "X-Nanbo-Operation-Id": entry.operationId,
+        },
         body: file,
       });
       entry.status = "ready";
@@ -667,6 +693,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
     entry.file = file;
     entry.objectUrl = URL.createObjectURL(file);
+    if (entry.retrySignature !== fileRetrySignature(file)) entry.operationId = "";
     setBusy(true);
     try {
       await stageBatchPosition(position, file);
@@ -714,6 +741,8 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
           objectUrl: URL.createObjectURL(file),
           status: error ? "error" : "checking",
           error,
+          operationId: "",
+          retrySignature: fileRetrySignature(file),
         });
         state.batchOrder.push(position);
       });
@@ -721,6 +750,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
       const created = await requestJson("/api/style-batches", { method: "POST" });
       state.batchId = created.result.batchId;
       state.batchStyleId = selectedStyle()?.id || "";
+      state.batchCommitOperationId = "";
       for (let position = 1; position <= 9; position += 1) {
         const entry = state.batchEntries.get(position);
         if (entry.status === "checking") await stageBatchPosition(position, entry.file);
@@ -777,17 +807,22 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
 
   async function commitOpenBatch() {
     if (state.busy || !state.batchId || state.batchOrder.length !== 9) return;
+    if (!state.batchCommitOperationId) state.batchCommitOperationId = createOperationId();
     setBusy(true);
     try {
       await requestJson(`/api/style-batches/${encodeURIComponent(state.batchId)}/commit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Nanbo-Operation-Id": state.batchCommitOperationId,
+        },
         body: JSON.stringify({
           styleId: state.batchStyleId,
           orderedPositions: [...state.batchOrder],
         }),
       });
       state.batchId = "";
+      state.batchCommitOperationId = "";
       state.layoutDrafts.delete(state.batchStyleId);
       if (elements.batchDialog.open) elements.batchDialog.close();
       clearBatchEntries();
@@ -849,6 +884,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     state.replaceUrl = "";
     state.replaceFile = null;
     state.replaceValid = false;
+    state.replaceOperationId = "";
     elements.replaceFile.value = "";
     elements.replaceNew.hidden = true;
     elements.replaceNew.removeAttribute("src");
@@ -947,13 +983,20 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     }
     state.replaceFile = file;
     state.replaceValid = true;
+    state.replaceOperationId = createOperationId();
     elements.replaceNew.src = objectUrl;
     elements.replaceNew.hidden = false;
     elements.replaceNewLabel.textContent = `${result.width}×${result.height}`;
     elements.replaceConfirm.disabled = state.busy;
   }
 
-  async function replaceSlot(slotId, file) {
+  async function replaceSlot(slotId, file, operationId) {
+    const externalOperationKey = `${slotId}\0${fileRetrySignature(file)}`;
+    const managesOperationId = !operationId;
+    if (managesOperationId) {
+      operationId = externalReplacementOperations.get(externalOperationKey) || createOperationId();
+      externalReplacementOperations.set(externalOperationKey, operationId);
+    }
     const styleId = styleIdFromSlot(slotId);
     const target = state.library?.styles.find(({ id }) => id === styleId);
     if (target) {
@@ -972,10 +1015,15 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
     try {
       await requestJson(`/api/style-slots/replace?slot=${encodeURIComponent(slotId)}`, {
         method: "POST",
-        headers: { "Content-Type": file.type, "X-File-Name": encodeURIComponent(file.name) },
+        headers: {
+          "Content-Type": file.type,
+          "X-File-Name": encodeURIComponent(file.name),
+          "X-Nanbo-Operation-Id": operationId,
+        },
         body: file,
       });
       await refresh();
+      if (managesOperationId) externalReplacementOperations.delete(externalOperationKey);
       showToast("只替换了当前照片位，其他复用位置不变", "success");
     } finally {
       setBusy(false);
@@ -985,7 +1033,7 @@ export function createStyleMode({ root, requestJson, showToast, openPreview }) {
   async function confirmReplace() {
     if (!state.replaceValid || !state.replaceFile || !state.replaceSlotId || !isCurrentReplaceCandidate(state.replaceCandidate)) return;
     try {
-      await replaceSlot(state.replaceSlotId, state.replaceFile);
+      await replaceSlot(state.replaceSlotId, state.replaceFile, state.replaceOperationId);
       closeReplaceDialog();
     } catch (error) {
       showToast(error.message, "error");

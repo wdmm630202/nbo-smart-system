@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "assignments": {
     "ST-IN-01-01": {
+      "slotIds": ["ST-IN-01-01-P01","ST-IN-01-01-P02","ST-IN-01-01-P03","ST-IN-01-01-P04","ST-IN-01-01-P05","ST-IN-01-01-P06","ST-IN-01-01-P07","ST-IN-01-01-P08","ST-IN-01-01-P09"],
       "slots": [
         {
           "assetId": 51,
@@ -63,6 +64,7 @@
       "updatedAt": null
     },
     "ST-IN-01-02": {
+      "slotIds": ["ST-IN-01-02-P01","ST-IN-01-02-P02","ST-IN-01-02-P03","ST-IN-01-02-P04","ST-IN-01-02-P05","ST-IN-01-02-P06","ST-IN-01-02-P07","ST-IN-01-02-P08","ST-IN-01-02-P09"],
       "slots": [
         {
           "assetId": 28,
@@ -124,6 +126,7 @@
       "updatedAt": null
     },
     "ST-IN-01-03": {
+      "slotIds": ["ST-IN-01-03-P01","ST-IN-01-03-P02","ST-IN-01-03-P03","ST-IN-01-03-P04","ST-IN-01-03-P05","ST-IN-01-03-P06","ST-IN-01-03-P07","ST-IN-01-03-P08","ST-IN-01-03-P09"],
       "slots": [
         {
           "assetId": 129,
@@ -185,6 +188,7 @@
       "updatedAt": null
     },
     "ST-IN-01-04": {
+      "slotIds": ["ST-IN-01-04-P01","ST-IN-01-04-P02","ST-IN-01-04-P03","ST-IN-01-04-P04","ST-IN-01-04-P05","ST-IN-01-04-P06","ST-IN-01-04-P07","ST-IN-01-04-P08","ST-IN-01-04-P09"],
       "slots": [
         {
           "assetId": 12,
@@ -246,6 +250,7 @@
       "updatedAt": null
     },
     "ST-IN-01-05": {
+      "slotIds": ["ST-IN-01-05-P01","ST-IN-01-05-P02","ST-IN-01-05-P03","ST-IN-01-05-P04","ST-IN-01-05-P05","ST-IN-01-05-P06","ST-IN-01-05-P07","ST-IN-01-05-P08","ST-IN-01-05-P09"],
       "slots": [
         {
           "assetId": 137,
@@ -307,6 +312,7 @@
       "updatedAt": null
     },
     "ST-IN-01-06": {
+      "slotIds": ["ST-IN-01-06-P01","ST-IN-01-06-P02","ST-IN-01-06-P03","ST-IN-01-06-P04","ST-IN-01-06-P05","ST-IN-01-06-P06","ST-IN-01-06-P07","ST-IN-01-06-P08","ST-IN-01-06-P09"],
       "slots": [
         {
           "assetId": 16,
@@ -368,6 +374,7 @@
       "updatedAt": null
     },
     "ST-IN-01-07": {
+      "slotIds": ["ST-IN-01-07-P01","ST-IN-01-07-P02","ST-IN-01-07-P03","ST-IN-01-07-P04","ST-IN-01-07-P05","ST-IN-01-07-P06","ST-IN-01-07-P07","ST-IN-01-07-P08","ST-IN-01-07-P09"],
       "slots": [
         {
           "assetId": 73,
@@ -429,6 +436,7 @@
       "updatedAt": null
     },
     "ST-IN-01-08": {
+      "slotIds": ["ST-IN-01-08-P01","ST-IN-01-08-P02","ST-IN-01-08-P03","ST-IN-01-08-P04","ST-IN-01-08-P05","ST-IN-01-08-P06","ST-IN-01-08-P07","ST-IN-01-08-P08","ST-IN-01-08-P09"],
       "slots": [
         {
           "assetId": 2,
@@ -490,6 +498,7 @@
       "updatedAt": null
     },
     "ST-IN-01-09": {
+      "slotIds": ["ST-IN-01-09-P01","ST-IN-01-09-P02","ST-IN-01-09-P03","ST-IN-01-09-P04","ST-IN-01-09-P05","ST-IN-01-09-P06","ST-IN-01-09-P07","ST-IN-01-09-P08","ST-IN-01-09-P09"],
       "slots": [
         {
           "assetId": 18,
@@ -551,6 +560,7 @@
       "updatedAt": null
     },
     "ST-IN-01-10": {
+      "slotIds": ["ST-IN-01-10-P01","ST-IN-01-10-P02","ST-IN-01-10-P03","ST-IN-01-10-P04","ST-IN-01-10-P05","ST-IN-01-10-P06","ST-IN-01-10-P07","ST-IN-01-10-P08","ST-IN-01-10-P09"],
       "slots": [
         {
           "assetId": 128,
@@ -612,6 +622,7 @@
       "updatedAt": null
     },
     "ST-IN-01-11": {
+      "slotIds": ["ST-IN-01-11-P01","ST-IN-01-11-P02","ST-IN-01-11-P03","ST-IN-01-11-P04","ST-IN-01-11-P05","ST-IN-01-11-P06","ST-IN-01-11-P07","ST-IN-01-11-P08","ST-IN-01-11-P09"],
       "slots": [
         {
           "assetId": 63,
@@ -673,6 +684,7 @@
       "updatedAt": null
     },
     "ST-IN-02-01": {
+      "slotIds": ["ST-IN-02-01-P01","ST-IN-02-01-P02","ST-IN-02-01-P03","ST-IN-02-01-P04","ST-IN-02-01-P05","ST-IN-02-01-P06","ST-IN-02-01-P07","ST-IN-02-01-P08","ST-IN-02-01-P09"],
       "slots": [
         {
           "assetId": 132,
@@ -734,6 +746,7 @@
       "updatedAt": null
     },
     "ST-IN-02-02": {
+      "slotIds": ["ST-IN-02-02-P01","ST-IN-02-02-P02","ST-IN-02-02-P03","ST-IN-02-02-P04","ST-IN-02-02-P05","ST-IN-02-02-P06","ST-IN-02-02-P07","ST-IN-02-02-P08","ST-IN-02-02-P09"],
       "slots": [
         {
           "assetId": 83,
@@ -795,6 +808,7 @@
       "updatedAt": null
     },
     "ST-IN-02-03": {
+      "slotIds": ["ST-IN-02-03-P01","ST-IN-02-03-P02","ST-IN-02-03-P03","ST-IN-02-03-P04","ST-IN-02-03-P05","ST-IN-02-03-P06","ST-IN-02-03-P07","ST-IN-02-03-P08","ST-IN-02-03-P09"],
       "slots": [
         {
           "assetId": 140,
@@ -856,6 +870,7 @@
       "updatedAt": null
     },
     "ST-IN-02-04": {
+      "slotIds": ["ST-IN-02-04-P01","ST-IN-02-04-P02","ST-IN-02-04-P03","ST-IN-02-04-P04","ST-IN-02-04-P05","ST-IN-02-04-P06","ST-IN-02-04-P07","ST-IN-02-04-P08","ST-IN-02-04-P09"],
       "slots": [
         {
           "assetId": 91,
@@ -917,6 +932,7 @@
       "updatedAt": null
     },
     "ST-IN-02-05": {
+      "slotIds": ["ST-IN-02-05-P01","ST-IN-02-05-P02","ST-IN-02-05-P03","ST-IN-02-05-P04","ST-IN-02-05-P05","ST-IN-02-05-P06","ST-IN-02-05-P07","ST-IN-02-05-P08","ST-IN-02-05-P09"],
       "slots": [
         {
           "assetId": 146,
@@ -978,6 +994,7 @@
       "updatedAt": null
     },
     "ST-IN-02-06": {
+      "slotIds": ["ST-IN-02-06-P01","ST-IN-02-06-P02","ST-IN-02-06-P03","ST-IN-02-06-P04","ST-IN-02-06-P05","ST-IN-02-06-P06","ST-IN-02-06-P07","ST-IN-02-06-P08","ST-IN-02-06-P09"],
       "slots": [
         {
           "assetId": 101,
@@ -1039,6 +1056,7 @@
       "updatedAt": null
     },
     "ST-IN-02-07": {
+      "slotIds": ["ST-IN-02-07-P01","ST-IN-02-07-P02","ST-IN-02-07-P03","ST-IN-02-07-P04","ST-IN-02-07-P05","ST-IN-02-07-P06","ST-IN-02-07-P07","ST-IN-02-07-P08","ST-IN-02-07-P09"],
       "slots": [
         {
           "assetId": 150,
@@ -1100,6 +1118,7 @@
       "updatedAt": null
     },
     "ST-IN-02-08": {
+      "slotIds": ["ST-IN-02-08-P01","ST-IN-02-08-P02","ST-IN-02-08-P03","ST-IN-02-08-P04","ST-IN-02-08-P05","ST-IN-02-08-P06","ST-IN-02-08-P07","ST-IN-02-08-P08","ST-IN-02-08-P09"],
       "slots": [
         {
           "assetId": 117,
@@ -1161,6 +1180,7 @@
       "updatedAt": null
     },
     "ST-IN-02-09": {
+      "slotIds": ["ST-IN-02-09-P01","ST-IN-02-09-P02","ST-IN-02-09-P03","ST-IN-02-09-P04","ST-IN-02-09-P05","ST-IN-02-09-P06","ST-IN-02-09-P07","ST-IN-02-09-P08","ST-IN-02-09-P09"],
       "slots": [
         {
           "assetId": 154,
@@ -1222,6 +1242,7 @@
       "updatedAt": null
     },
     "ST-IN-02-10": {
+      "slotIds": ["ST-IN-02-10-P01","ST-IN-02-10-P02","ST-IN-02-10-P03","ST-IN-02-10-P04","ST-IN-02-10-P05","ST-IN-02-10-P06","ST-IN-02-10-P07","ST-IN-02-10-P08","ST-IN-02-10-P09"],
       "slots": [
         {
           "assetId": 75,
@@ -1283,6 +1304,7 @@
       "updatedAt": null
     },
     "ST-IN-02-11": {
+      "slotIds": ["ST-IN-02-11-P01","ST-IN-02-11-P02","ST-IN-02-11-P03","ST-IN-02-11-P04","ST-IN-02-11-P05","ST-IN-02-11-P06","ST-IN-02-11-P07","ST-IN-02-11-P08","ST-IN-02-11-P09"],
       "slots": [
         {
           "assetId": 144,
@@ -1344,6 +1366,7 @@
       "updatedAt": null
     },
     "ST-IN-03-01": {
+      "slotIds": ["ST-IN-03-01-P01","ST-IN-03-01-P02","ST-IN-03-01-P03","ST-IN-03-01-P04","ST-IN-03-01-P05","ST-IN-03-01-P06","ST-IN-03-01-P07","ST-IN-03-01-P08","ST-IN-03-01-P09"],
       "slots": [
         {
           "assetId": 64,
@@ -1405,6 +1428,7 @@
       "updatedAt": null
     },
     "ST-IN-03-02": {
+      "slotIds": ["ST-IN-03-02-P01","ST-IN-03-02-P02","ST-IN-03-02-P03","ST-IN-03-02-P04","ST-IN-03-02-P05","ST-IN-03-02-P06","ST-IN-03-02-P07","ST-IN-03-02-P08","ST-IN-03-02-P09"],
       "slots": [
         {
           "assetId": 151,
@@ -1466,6 +1490,7 @@
       "updatedAt": null
     },
     "ST-IN-03-03": {
+      "slotIds": ["ST-IN-03-03-P01","ST-IN-03-03-P02","ST-IN-03-03-P03","ST-IN-03-03-P04","ST-IN-03-03-P05","ST-IN-03-03-P06","ST-IN-03-03-P07","ST-IN-03-03-P08","ST-IN-03-03-P09"],
       "slots": [
         {
           "assetId": 127,
@@ -1527,6 +1552,7 @@
       "updatedAt": null
     },
     "ST-IN-03-04": {
+      "slotIds": ["ST-IN-03-04-P01","ST-IN-03-04-P02","ST-IN-03-04-P03","ST-IN-03-04-P04","ST-IN-03-04-P05","ST-IN-03-04-P06","ST-IN-03-04-P07","ST-IN-03-04-P08","ST-IN-03-04-P09"],
       "slots": [
         {
           "assetId": 8,
@@ -1588,6 +1614,7 @@
       "updatedAt": null
     },
     "ST-IN-03-05": {
+      "slotIds": ["ST-IN-03-05-P01","ST-IN-03-05-P02","ST-IN-03-05-P03","ST-IN-03-05-P04","ST-IN-03-05-P05","ST-IN-03-05-P06","ST-IN-03-05-P07","ST-IN-03-05-P08","ST-IN-03-05-P09"],
       "slots": [
         {
           "assetId": 93,
@@ -1649,6 +1676,7 @@
       "updatedAt": null
     },
     "ST-IN-03-06": {
+      "slotIds": ["ST-IN-03-06-P01","ST-IN-03-06-P02","ST-IN-03-06-P03","ST-IN-03-06-P04","ST-IN-03-06-P05","ST-IN-03-06-P06","ST-IN-03-06-P07","ST-IN-03-06-P08","ST-IN-03-06-P09"],
       "slots": [
         {
           "assetId": 4,
@@ -1710,6 +1738,7 @@
       "updatedAt": null
     },
     "ST-IN-03-07": {
+      "slotIds": ["ST-IN-03-07-P01","ST-IN-03-07-P02","ST-IN-03-07-P03","ST-IN-03-07-P04","ST-IN-03-07-P05","ST-IN-03-07-P06","ST-IN-03-07-P07","ST-IN-03-07-P08","ST-IN-03-07-P09"],
       "slots": [
         {
           "assetId": 108,
@@ -1771,6 +1800,7 @@
       "updatedAt": null
     },
     "ST-IN-03-08": {
+      "slotIds": ["ST-IN-03-08-P01","ST-IN-03-08-P02","ST-IN-03-08-P03","ST-IN-03-08-P04","ST-IN-03-08-P05","ST-IN-03-08-P06","ST-IN-03-08-P07","ST-IN-03-08-P08","ST-IN-03-08-P09"],
       "slots": [
         {
           "assetId": 145,
@@ -1832,6 +1862,7 @@
       "updatedAt": null
     },
     "ST-IN-03-09": {
+      "slotIds": ["ST-IN-03-09-P01","ST-IN-03-09-P02","ST-IN-03-09-P03","ST-IN-03-09-P04","ST-IN-03-09-P05","ST-IN-03-09-P06","ST-IN-03-09-P07","ST-IN-03-09-P08","ST-IN-03-09-P09"],
       "slots": [
         {
           "assetId": 147,
@@ -1893,6 +1924,7 @@
       "updatedAt": null
     },
     "ST-IN-03-10": {
+      "slotIds": ["ST-IN-03-10-P01","ST-IN-03-10-P02","ST-IN-03-10-P03","ST-IN-03-10-P04","ST-IN-03-10-P05","ST-IN-03-10-P06","ST-IN-03-10-P07","ST-IN-03-10-P08","ST-IN-03-10-P09"],
       "slots": [
         {
           "assetId": 100,
@@ -1954,6 +1986,7 @@
       "updatedAt": null
     },
     "ST-IN-03-11": {
+      "slotIds": ["ST-IN-03-11-P01","ST-IN-03-11-P02","ST-IN-03-11-P03","ST-IN-03-11-P04","ST-IN-03-11-P05","ST-IN-03-11-P06","ST-IN-03-11-P07","ST-IN-03-11-P08","ST-IN-03-11-P09"],
       "slots": [
         {
           "assetId": 152,
@@ -2015,6 +2048,7 @@
       "updatedAt": null
     },
     "ST-IN-04-01": {
+      "slotIds": ["ST-IN-04-01-P01","ST-IN-04-01-P02","ST-IN-04-01-P03","ST-IN-04-01-P04","ST-IN-04-01-P05","ST-IN-04-01-P06","ST-IN-04-01-P07","ST-IN-04-01-P08","ST-IN-04-01-P09"],
       "slots": [
         {
           "assetId": 116,
@@ -2076,6 +2110,7 @@
       "updatedAt": null
     },
     "ST-IN-04-02": {
+      "slotIds": ["ST-IN-04-02-P01","ST-IN-04-02-P02","ST-IN-04-02-P03","ST-IN-04-02-P04","ST-IN-04-02-P05","ST-IN-04-02-P06","ST-IN-04-02-P07","ST-IN-04-02-P08","ST-IN-04-02-P09"],
       "slots": [
         {
           "assetId": 16,
@@ -2137,6 +2172,7 @@
       "updatedAt": null
     },
     "ST-IN-04-03": {
+      "slotIds": ["ST-IN-04-03-P01","ST-IN-04-03-P02","ST-IN-04-03-P03","ST-IN-04-03-P04","ST-IN-04-03-P05","ST-IN-04-03-P06","ST-IN-04-03-P07","ST-IN-04-03-P08","ST-IN-04-03-P09"],
       "slots": [
         {
           "assetId": 98,
@@ -2198,6 +2234,7 @@
       "updatedAt": null
     },
     "ST-IN-04-04": {
+      "slotIds": ["ST-IN-04-04-P01","ST-IN-04-04-P02","ST-IN-04-04-P03","ST-IN-04-04-P04","ST-IN-04-04-P05","ST-IN-04-04-P06","ST-IN-04-04-P07","ST-IN-04-04-P08","ST-IN-04-04-P09"],
       "slots": [
         {
           "assetId": 121,
@@ -2259,6 +2296,7 @@
       "updatedAt": null
     },
     "ST-IN-04-05": {
+      "slotIds": ["ST-IN-04-05-P01","ST-IN-04-05-P02","ST-IN-04-05-P03","ST-IN-04-05-P04","ST-IN-04-05-P05","ST-IN-04-05-P06","ST-IN-04-05-P07","ST-IN-04-05-P08","ST-IN-04-05-P09"],
       "slots": [
         {
           "assetId": 102,
@@ -2320,6 +2358,7 @@
       "updatedAt": null
     },
     "ST-IN-04-06": {
+      "slotIds": ["ST-IN-04-06-P01","ST-IN-04-06-P02","ST-IN-04-06-P03","ST-IN-04-06-P04","ST-IN-04-06-P05","ST-IN-04-06-P06","ST-IN-04-06-P07","ST-IN-04-06-P08","ST-IN-04-06-P09"],
       "slots": [
         {
           "assetId": 33,
@@ -2381,6 +2420,7 @@
       "updatedAt": null
     },
     "ST-IN-04-07": {
+      "slotIds": ["ST-IN-04-07-P01","ST-IN-04-07-P02","ST-IN-04-07-P03","ST-IN-04-07-P04","ST-IN-04-07-P05","ST-IN-04-07-P06","ST-IN-04-07-P07","ST-IN-04-07-P08","ST-IN-04-07-P09"],
       "slots": [
         {
           "assetId": 100,
@@ -2442,6 +2482,7 @@
       "updatedAt": null
     },
     "ST-IN-04-08": {
+      "slotIds": ["ST-IN-04-08-P01","ST-IN-04-08-P02","ST-IN-04-08-P03","ST-IN-04-08-P04","ST-IN-04-08-P05","ST-IN-04-08-P06","ST-IN-04-08-P07","ST-IN-04-08-P08","ST-IN-04-08-P09"],
       "slots": [
         {
           "assetId": 67,
@@ -2503,6 +2544,7 @@
       "updatedAt": null
     },
     "ST-IN-04-09": {
+      "slotIds": ["ST-IN-04-09-P01","ST-IN-04-09-P02","ST-IN-04-09-P03","ST-IN-04-09-P04","ST-IN-04-09-P05","ST-IN-04-09-P06","ST-IN-04-09-P07","ST-IN-04-09-P08","ST-IN-04-09-P09"],
       "slots": [
         {
           "assetId": 134,
@@ -2564,6 +2606,7 @@
       "updatedAt": null
     },
     "ST-IN-04-10": {
+      "slotIds": ["ST-IN-04-10-P01","ST-IN-04-10-P02","ST-IN-04-10-P03","ST-IN-04-10-P04","ST-IN-04-10-P05","ST-IN-04-10-P06","ST-IN-04-10-P07","ST-IN-04-10-P08","ST-IN-04-10-P09"],
       "slots": [
         {
           "assetId": 139,
@@ -2625,6 +2668,7 @@
       "updatedAt": null
     },
     "ST-IN-04-11": {
+      "slotIds": ["ST-IN-04-11-P01","ST-IN-04-11-P02","ST-IN-04-11-P03","ST-IN-04-11-P04","ST-IN-04-11-P05","ST-IN-04-11-P06","ST-IN-04-11-P07","ST-IN-04-11-P08","ST-IN-04-11-P09"],
       "slots": [
         {
           "assetId": 22,
@@ -2686,6 +2730,7 @@
       "updatedAt": null
     },
     "ST-IN-05-01": {
+      "slotIds": ["ST-IN-05-01-P01","ST-IN-05-01-P02","ST-IN-05-01-P03","ST-IN-05-01-P04","ST-IN-05-01-P05","ST-IN-05-01-P06","ST-IN-05-01-P07","ST-IN-05-01-P08","ST-IN-05-01-P09"],
       "slots": [
         {
           "assetId": 35,
@@ -2747,6 +2792,7 @@
       "updatedAt": null
     },
     "ST-IN-05-02": {
+      "slotIds": ["ST-IN-05-02-P01","ST-IN-05-02-P02","ST-IN-05-02-P03","ST-IN-05-02-P04","ST-IN-05-02-P05","ST-IN-05-02-P06","ST-IN-05-02-P07","ST-IN-05-02-P08","ST-IN-05-02-P09"],
       "slots": [
         {
           "assetId": 31,
@@ -2808,6 +2854,7 @@
       "updatedAt": null
     },
     "ST-IN-05-03": {
+      "slotIds": ["ST-IN-05-03-P01","ST-IN-05-03-P02","ST-IN-05-03-P03","ST-IN-05-03-P04","ST-IN-05-03-P05","ST-IN-05-03-P06","ST-IN-05-03-P07","ST-IN-05-03-P08","ST-IN-05-03-P09"],
       "slots": [
         {
           "assetId": 36,
@@ -2869,6 +2916,7 @@
       "updatedAt": null
     },
     "ST-IN-05-04": {
+      "slotIds": ["ST-IN-05-04-P01","ST-IN-05-04-P02","ST-IN-05-04-P03","ST-IN-05-04-P04","ST-IN-05-04-P05","ST-IN-05-04-P06","ST-IN-05-04-P07","ST-IN-05-04-P08","ST-IN-05-04-P09"],
       "slots": [
         {
           "assetId": 103,
@@ -2930,6 +2978,7 @@
       "updatedAt": null
     },
     "ST-IN-05-05": {
+      "slotIds": ["ST-IN-05-05-P01","ST-IN-05-05-P02","ST-IN-05-05-P03","ST-IN-05-05-P04","ST-IN-05-05-P05","ST-IN-05-05-P06","ST-IN-05-05-P07","ST-IN-05-05-P08","ST-IN-05-05-P09"],
       "slots": [
         {
           "assetId": 104,
@@ -2991,6 +3040,7 @@
       "updatedAt": null
     },
     "ST-IN-05-06": {
+      "slotIds": ["ST-IN-05-06-P01","ST-IN-05-06-P02","ST-IN-05-06-P03","ST-IN-05-06-P04","ST-IN-05-06-P05","ST-IN-05-06-P06","ST-IN-05-06-P07","ST-IN-05-06-P08","ST-IN-05-06-P09"],
       "slots": [
         {
           "assetId": 10,
@@ -3052,6 +3102,7 @@
       "updatedAt": null
     },
     "ST-IN-05-07": {
+      "slotIds": ["ST-IN-05-07-P01","ST-IN-05-07-P02","ST-IN-05-07-P03","ST-IN-05-07-P04","ST-IN-05-07-P05","ST-IN-05-07-P06","ST-IN-05-07-P07","ST-IN-05-07-P08","ST-IN-05-07-P09"],
       "slots": [
         {
           "assetId": 96,
@@ -3113,6 +3164,7 @@
       "updatedAt": null
     },
     "ST-IN-05-08": {
+      "slotIds": ["ST-IN-05-08-P01","ST-IN-05-08-P02","ST-IN-05-08-P03","ST-IN-05-08-P04","ST-IN-05-08-P05","ST-IN-05-08-P06","ST-IN-05-08-P07","ST-IN-05-08-P08","ST-IN-05-08-P09"],
       "slots": [
         {
           "assetId": 135,
@@ -3174,6 +3226,7 @@
       "updatedAt": null
     },
     "ST-IN-05-09": {
+      "slotIds": ["ST-IN-05-09-P01","ST-IN-05-09-P02","ST-IN-05-09-P03","ST-IN-05-09-P04","ST-IN-05-09-P05","ST-IN-05-09-P06","ST-IN-05-09-P07","ST-IN-05-09-P08","ST-IN-05-09-P09"],
       "slots": [
         {
           "assetId": 148,
@@ -3235,6 +3288,7 @@
       "updatedAt": null
     },
     "ST-IN-05-10": {
+      "slotIds": ["ST-IN-05-10-P01","ST-IN-05-10-P02","ST-IN-05-10-P03","ST-IN-05-10-P04","ST-IN-05-10-P05","ST-IN-05-10-P06","ST-IN-05-10-P07","ST-IN-05-10-P08","ST-IN-05-10-P09"],
       "slots": [
         {
           "assetId": 32,
@@ -3296,6 +3350,7 @@
       "updatedAt": null
     },
     "ST-IN-05-11": {
+      "slotIds": ["ST-IN-05-11-P01","ST-IN-05-11-P02","ST-IN-05-11-P03","ST-IN-05-11-P04","ST-IN-05-11-P05","ST-IN-05-11-P06","ST-IN-05-11-P07","ST-IN-05-11-P08","ST-IN-05-11-P09"],
       "slots": [
         {
           "assetId": 147,
@@ -3357,6 +3412,7 @@
       "updatedAt": null
     },
     "ST-IN-06-01": {
+      "slotIds": ["ST-IN-06-01-P01","ST-IN-06-01-P02","ST-IN-06-01-P03","ST-IN-06-01-P04","ST-IN-06-01-P05","ST-IN-06-01-P06","ST-IN-06-01-P07","ST-IN-06-01-P08","ST-IN-06-01-P09"],
       "slots": [
         {
           "assetId": 143,
@@ -3418,6 +3474,7 @@
       "updatedAt": null
     },
     "ST-IN-06-02": {
+      "slotIds": ["ST-IN-06-02-P01","ST-IN-06-02-P02","ST-IN-06-02-P03","ST-IN-06-02-P04","ST-IN-06-02-P05","ST-IN-06-02-P06","ST-IN-06-02-P07","ST-IN-06-02-P08","ST-IN-06-02-P09"],
       "slots": [
         {
           "assetId": 149,
@@ -3479,6 +3536,7 @@
       "updatedAt": null
     },
     "ST-IN-06-03": {
+      "slotIds": ["ST-IN-06-03-P01","ST-IN-06-03-P02","ST-IN-06-03-P03","ST-IN-06-03-P04","ST-IN-06-03-P05","ST-IN-06-03-P06","ST-IN-06-03-P07","ST-IN-06-03-P08","ST-IN-06-03-P09"],
       "slots": [
         {
           "assetId": 131,
@@ -3540,6 +3598,7 @@
       "updatedAt": null
     },
     "ST-IN-06-04": {
+      "slotIds": ["ST-IN-06-04-P01","ST-IN-06-04-P02","ST-IN-06-04-P03","ST-IN-06-04-P04","ST-IN-06-04-P05","ST-IN-06-04-P06","ST-IN-06-04-P07","ST-IN-06-04-P08","ST-IN-06-04-P09"],
       "slots": [
         {
           "assetId": 121,
@@ -3601,6 +3660,7 @@
       "updatedAt": null
     },
     "ST-IN-06-05": {
+      "slotIds": ["ST-IN-06-05-P01","ST-IN-06-05-P02","ST-IN-06-05-P03","ST-IN-06-05-P04","ST-IN-06-05-P05","ST-IN-06-05-P06","ST-IN-06-05-P07","ST-IN-06-05-P08","ST-IN-06-05-P09"],
       "slots": [
         {
           "assetId": 154,
@@ -3662,6 +3722,7 @@
       "updatedAt": null
     },
     "ST-IN-06-06": {
+      "slotIds": ["ST-IN-06-06-P01","ST-IN-06-06-P02","ST-IN-06-06-P03","ST-IN-06-06-P04","ST-IN-06-06-P05","ST-IN-06-06-P06","ST-IN-06-06-P07","ST-IN-06-06-P08","ST-IN-06-06-P09"],
       "slots": [
         {
           "assetId": 119,
@@ -3723,6 +3784,7 @@
       "updatedAt": null
     },
     "ST-IN-06-07": {
+      "slotIds": ["ST-IN-06-07-P01","ST-IN-06-07-P02","ST-IN-06-07-P03","ST-IN-06-07-P04","ST-IN-06-07-P05","ST-IN-06-07-P06","ST-IN-06-07-P07","ST-IN-06-07-P08","ST-IN-06-07-P09"],
       "slots": [
         {
           "assetId": 158,
@@ -3784,6 +3846,7 @@
       "updatedAt": null
     },
     "ST-IN-06-08": {
+      "slotIds": ["ST-IN-06-08-P01","ST-IN-06-08-P02","ST-IN-06-08-P03","ST-IN-06-08-P04","ST-IN-06-08-P05","ST-IN-06-08-P06","ST-IN-06-08-P07","ST-IN-06-08-P08","ST-IN-06-08-P09"],
       "slots": [
         {
           "assetId": 27,
@@ -3845,6 +3908,7 @@
       "updatedAt": null
     },
     "ST-IN-06-09": {
+      "slotIds": ["ST-IN-06-09-P01","ST-IN-06-09-P02","ST-IN-06-09-P03","ST-IN-06-09-P04","ST-IN-06-09-P05","ST-IN-06-09-P06","ST-IN-06-09-P07","ST-IN-06-09-P08","ST-IN-06-09-P09"],
       "slots": [
         {
           "assetId": 96,
@@ -3906,6 +3970,7 @@
       "updatedAt": null
     },
     "ST-IN-06-10": {
+      "slotIds": ["ST-IN-06-10-P01","ST-IN-06-10-P02","ST-IN-06-10-P03","ST-IN-06-10-P04","ST-IN-06-10-P05","ST-IN-06-10-P06","ST-IN-06-10-P07","ST-IN-06-10-P08","ST-IN-06-10-P09"],
       "slots": [
         {
           "assetId": 19,
@@ -3967,6 +4032,7 @@
       "updatedAt": null
     },
     "ST-IN-06-11": {
+      "slotIds": ["ST-IN-06-11-P01","ST-IN-06-11-P02","ST-IN-06-11-P03","ST-IN-06-11-P04","ST-IN-06-11-P05","ST-IN-06-11-P06","ST-IN-06-11-P07","ST-IN-06-11-P08","ST-IN-06-11-P09"],
       "slots": [
         {
           "assetId": 123,
@@ -4028,6 +4094,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-01": {
+      "slotIds": ["ST-OUT-01-01-P01","ST-OUT-01-01-P02","ST-OUT-01-01-P03","ST-OUT-01-01-P04","ST-OUT-01-01-P05","ST-OUT-01-01-P06","ST-OUT-01-01-P07","ST-OUT-01-01-P08","ST-OUT-01-01-P09"],
       "slots": [
         {
           "assetId": 80,
@@ -4089,6 +4156,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-02": {
+      "slotIds": ["ST-OUT-01-02-P01","ST-OUT-01-02-P02","ST-OUT-01-02-P03","ST-OUT-01-02-P04","ST-OUT-01-02-P05","ST-OUT-01-02-P06","ST-OUT-01-02-P07","ST-OUT-01-02-P08","ST-OUT-01-02-P09"],
       "slots": [
         {
           "assetId": 111,
@@ -4150,6 +4218,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-03": {
+      "slotIds": ["ST-OUT-01-03-P01","ST-OUT-01-03-P02","ST-OUT-01-03-P03","ST-OUT-01-03-P04","ST-OUT-01-03-P05","ST-OUT-01-03-P06","ST-OUT-01-03-P07","ST-OUT-01-03-P08","ST-OUT-01-03-P09"],
       "slots": [
         {
           "assetId": 57,
@@ -4211,6 +4280,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-04": {
+      "slotIds": ["ST-OUT-01-04-P01","ST-OUT-01-04-P02","ST-OUT-01-04-P03","ST-OUT-01-04-P04","ST-OUT-01-04-P05","ST-OUT-01-04-P06","ST-OUT-01-04-P07","ST-OUT-01-04-P08","ST-OUT-01-04-P09"],
       "slots": [
         {
           "assetId": 55,
@@ -4272,6 +4342,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-05": {
+      "slotIds": ["ST-OUT-01-05-P01","ST-OUT-01-05-P02","ST-OUT-01-05-P03","ST-OUT-01-05-P04","ST-OUT-01-05-P05","ST-OUT-01-05-P06","ST-OUT-01-05-P07","ST-OUT-01-05-P08","ST-OUT-01-05-P09"],
       "slots": [
         {
           "assetId": 38,
@@ -4333,6 +4404,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-06": {
+      "slotIds": ["ST-OUT-01-06-P01","ST-OUT-01-06-P02","ST-OUT-01-06-P03","ST-OUT-01-06-P04","ST-OUT-01-06-P05","ST-OUT-01-06-P06","ST-OUT-01-06-P07","ST-OUT-01-06-P08","ST-OUT-01-06-P09"],
       "slots": [
         {
           "assetId": 37,
@@ -4394,6 +4466,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-07": {
+      "slotIds": ["ST-OUT-01-07-P01","ST-OUT-01-07-P02","ST-OUT-01-07-P03","ST-OUT-01-07-P04","ST-OUT-01-07-P05","ST-OUT-01-07-P06","ST-OUT-01-07-P07","ST-OUT-01-07-P08","ST-OUT-01-07-P09"],
       "slots": [
         {
           "assetId": 43,
@@ -4455,6 +4528,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-08": {
+      "slotIds": ["ST-OUT-01-08-P01","ST-OUT-01-08-P02","ST-OUT-01-08-P03","ST-OUT-01-08-P04","ST-OUT-01-08-P05","ST-OUT-01-08-P06","ST-OUT-01-08-P07","ST-OUT-01-08-P08","ST-OUT-01-08-P09"],
       "slots": [
         {
           "assetId": 49,
@@ -4516,6 +4590,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-09": {
+      "slotIds": ["ST-OUT-01-09-P01","ST-OUT-01-09-P02","ST-OUT-01-09-P03","ST-OUT-01-09-P04","ST-OUT-01-09-P05","ST-OUT-01-09-P06","ST-OUT-01-09-P07","ST-OUT-01-09-P08","ST-OUT-01-09-P09"],
       "slots": [
         {
           "assetId": 55,
@@ -4577,6 +4652,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-10": {
+      "slotIds": ["ST-OUT-01-10-P01","ST-OUT-01-10-P02","ST-OUT-01-10-P03","ST-OUT-01-10-P04","ST-OUT-01-10-P05","ST-OUT-01-10-P06","ST-OUT-01-10-P07","ST-OUT-01-10-P08","ST-OUT-01-10-P09"],
       "slots": [
         {
           "assetId": 45,
@@ -4638,6 +4714,7 @@
       "updatedAt": null
     },
     "ST-OUT-01-11": {
+      "slotIds": ["ST-OUT-01-11-P01","ST-OUT-01-11-P02","ST-OUT-01-11-P03","ST-OUT-01-11-P04","ST-OUT-01-11-P05","ST-OUT-01-11-P06","ST-OUT-01-11-P07","ST-OUT-01-11-P08","ST-OUT-01-11-P09"],
       "slots": [
         {
           "assetId": 38,
@@ -4699,6 +4776,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-01": {
+      "slotIds": ["ST-OUT-02-01-P01","ST-OUT-02-01-P02","ST-OUT-02-01-P03","ST-OUT-02-01-P04","ST-OUT-02-01-P05","ST-OUT-02-01-P06","ST-OUT-02-01-P07","ST-OUT-02-01-P08","ST-OUT-02-01-P09"],
       "slots": [
         {
           "assetId": 58,
@@ -4760,6 +4838,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-02": {
+      "slotIds": ["ST-OUT-02-02-P01","ST-OUT-02-02-P02","ST-OUT-02-02-P03","ST-OUT-02-02-P04","ST-OUT-02-02-P05","ST-OUT-02-02-P06","ST-OUT-02-02-P07","ST-OUT-02-02-P08","ST-OUT-02-02-P09"],
       "slots": [
         {
           "assetId": 87,
@@ -4821,6 +4900,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-03": {
+      "slotIds": ["ST-OUT-02-03-P01","ST-OUT-02-03-P02","ST-OUT-02-03-P03","ST-OUT-02-03-P04","ST-OUT-02-03-P05","ST-OUT-02-03-P06","ST-OUT-02-03-P07","ST-OUT-02-03-P08","ST-OUT-02-03-P09"],
       "slots": [
         {
           "assetId": 110,
@@ -4882,6 +4962,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-04": {
+      "slotIds": ["ST-OUT-02-04-P01","ST-OUT-02-04-P02","ST-OUT-02-04-P03","ST-OUT-02-04-P04","ST-OUT-02-04-P05","ST-OUT-02-04-P06","ST-OUT-02-04-P07","ST-OUT-02-04-P08","ST-OUT-02-04-P09"],
       "slots": [
         {
           "assetId": 106,
@@ -4943,6 +5024,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-05": {
+      "slotIds": ["ST-OUT-02-05-P01","ST-OUT-02-05-P02","ST-OUT-02-05-P03","ST-OUT-02-05-P04","ST-OUT-02-05-P05","ST-OUT-02-05-P06","ST-OUT-02-05-P07","ST-OUT-02-05-P08","ST-OUT-02-05-P09"],
       "slots": [
         {
           "assetId": 109,
@@ -5004,6 +5086,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-06": {
+      "slotIds": ["ST-OUT-02-06-P01","ST-OUT-02-06-P02","ST-OUT-02-06-P03","ST-OUT-02-06-P04","ST-OUT-02-06-P05","ST-OUT-02-06-P06","ST-OUT-02-06-P07","ST-OUT-02-06-P08","ST-OUT-02-06-P09"],
       "slots": [
         {
           "assetId": 61,
@@ -5065,6 +5148,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-07": {
+      "slotIds": ["ST-OUT-02-07-P01","ST-OUT-02-07-P02","ST-OUT-02-07-P03","ST-OUT-02-07-P04","ST-OUT-02-07-P05","ST-OUT-02-07-P06","ST-OUT-02-07-P07","ST-OUT-02-07-P08","ST-OUT-02-07-P09"],
       "slots": [
         {
           "assetId": 77,
@@ -5126,6 +5210,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-08": {
+      "slotIds": ["ST-OUT-02-08-P01","ST-OUT-02-08-P02","ST-OUT-02-08-P03","ST-OUT-02-08-P04","ST-OUT-02-08-P05","ST-OUT-02-08-P06","ST-OUT-02-08-P07","ST-OUT-02-08-P08","ST-OUT-02-08-P09"],
       "slots": [
         {
           "assetId": 88,
@@ -5187,6 +5272,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-09": {
+      "slotIds": ["ST-OUT-02-09-P01","ST-OUT-02-09-P02","ST-OUT-02-09-P03","ST-OUT-02-09-P04","ST-OUT-02-09-P05","ST-OUT-02-09-P06","ST-OUT-02-09-P07","ST-OUT-02-09-P08","ST-OUT-02-09-P09"],
       "slots": [
         {
           "assetId": 86,
@@ -5248,6 +5334,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-10": {
+      "slotIds": ["ST-OUT-02-10-P01","ST-OUT-02-10-P02","ST-OUT-02-10-P03","ST-OUT-02-10-P04","ST-OUT-02-10-P05","ST-OUT-02-10-P06","ST-OUT-02-10-P07","ST-OUT-02-10-P08","ST-OUT-02-10-P09"],
       "slots": [
         {
           "assetId": 47,
@@ -5309,6 +5396,7 @@
       "updatedAt": null
     },
     "ST-OUT-02-11": {
+      "slotIds": ["ST-OUT-02-11-P01","ST-OUT-02-11-P02","ST-OUT-02-11-P03","ST-OUT-02-11-P04","ST-OUT-02-11-P05","ST-OUT-02-11-P06","ST-OUT-02-11-P07","ST-OUT-02-11-P08","ST-OUT-02-11-P09"],
       "slots": [
         {
           "assetId": 48,
@@ -5370,6 +5458,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-01": {
+      "slotIds": ["ST-OUT-03-01-P01","ST-OUT-03-01-P02","ST-OUT-03-01-P03","ST-OUT-03-01-P04","ST-OUT-03-01-P05","ST-OUT-03-01-P06","ST-OUT-03-01-P07","ST-OUT-03-01-P08","ST-OUT-03-01-P09"],
       "slots": [
         {
           "assetId": 77,
@@ -5431,6 +5520,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-02": {
+      "slotIds": ["ST-OUT-03-02-P01","ST-OUT-03-02-P02","ST-OUT-03-02-P03","ST-OUT-03-02-P04","ST-OUT-03-02-P05","ST-OUT-03-02-P06","ST-OUT-03-02-P07","ST-OUT-03-02-P08","ST-OUT-03-02-P09"],
       "slots": [
         {
           "assetId": 59,
@@ -5492,6 +5582,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-03": {
+      "slotIds": ["ST-OUT-03-03-P01","ST-OUT-03-03-P02","ST-OUT-03-03-P03","ST-OUT-03-03-P04","ST-OUT-03-03-P05","ST-OUT-03-03-P06","ST-OUT-03-03-P07","ST-OUT-03-03-P08","ST-OUT-03-03-P09"],
       "slots": [
         {
           "assetId": 60,
@@ -5553,6 +5644,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-04": {
+      "slotIds": ["ST-OUT-03-04-P01","ST-OUT-03-04-P02","ST-OUT-03-04-P03","ST-OUT-03-04-P04","ST-OUT-03-04-P05","ST-OUT-03-04-P06","ST-OUT-03-04-P07","ST-OUT-03-04-P08","ST-OUT-03-04-P09"],
       "slots": [
         {
           "assetId": 49,
@@ -5614,6 +5706,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-05": {
+      "slotIds": ["ST-OUT-03-05-P01","ST-OUT-03-05-P02","ST-OUT-03-05-P03","ST-OUT-03-05-P04","ST-OUT-03-05-P05","ST-OUT-03-05-P06","ST-OUT-03-05-P07","ST-OUT-03-05-P08","ST-OUT-03-05-P09"],
       "slots": [
         {
           "assetId": 57,
@@ -5675,6 +5768,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-06": {
+      "slotIds": ["ST-OUT-03-06-P01","ST-OUT-03-06-P02","ST-OUT-03-06-P03","ST-OUT-03-06-P04","ST-OUT-03-06-P05","ST-OUT-03-06-P06","ST-OUT-03-06-P07","ST-OUT-03-06-P08","ST-OUT-03-06-P09"],
       "slots": [
         {
           "assetId": 44,
@@ -5736,6 +5830,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-07": {
+      "slotIds": ["ST-OUT-03-07-P01","ST-OUT-03-07-P02","ST-OUT-03-07-P03","ST-OUT-03-07-P04","ST-OUT-03-07-P05","ST-OUT-03-07-P06","ST-OUT-03-07-P07","ST-OUT-03-07-P08","ST-OUT-03-07-P09"],
       "slots": [
         {
           "assetId": 88,
@@ -5797,6 +5892,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-08": {
+      "slotIds": ["ST-OUT-03-08-P01","ST-OUT-03-08-P02","ST-OUT-03-08-P03","ST-OUT-03-08-P04","ST-OUT-03-08-P05","ST-OUT-03-08-P06","ST-OUT-03-08-P07","ST-OUT-03-08-P08","ST-OUT-03-08-P09"],
       "slots": [
         {
           "assetId": 50,
@@ -5858,6 +5954,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-09": {
+      "slotIds": ["ST-OUT-03-09-P01","ST-OUT-03-09-P02","ST-OUT-03-09-P03","ST-OUT-03-09-P04","ST-OUT-03-09-P05","ST-OUT-03-09-P06","ST-OUT-03-09-P07","ST-OUT-03-09-P08","ST-OUT-03-09-P09"],
       "slots": [
         {
           "assetId": 58,
@@ -5919,6 +6016,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-10": {
+      "slotIds": ["ST-OUT-03-10-P01","ST-OUT-03-10-P02","ST-OUT-03-10-P03","ST-OUT-03-10-P04","ST-OUT-03-10-P05","ST-OUT-03-10-P06","ST-OUT-03-10-P07","ST-OUT-03-10-P08","ST-OUT-03-10-P09"],
       "slots": [
         {
           "assetId": 109,
@@ -5980,6 +6078,7 @@
       "updatedAt": null
     },
     "ST-OUT-03-11": {
+      "slotIds": ["ST-OUT-03-11-P01","ST-OUT-03-11-P02","ST-OUT-03-11-P03","ST-OUT-03-11-P04","ST-OUT-03-11-P05","ST-OUT-03-11-P06","ST-OUT-03-11-P07","ST-OUT-03-11-P08","ST-OUT-03-11-P09"],
       "slots": [
         {
           "assetId": 54,
@@ -6041,6 +6140,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-01": {
+      "slotIds": ["ST-OUT-04-01-P01","ST-OUT-04-01-P02","ST-OUT-04-01-P03","ST-OUT-04-01-P04","ST-OUT-04-01-P05","ST-OUT-04-01-P06","ST-OUT-04-01-P07","ST-OUT-04-01-P08","ST-OUT-04-01-P09"],
       "slots": [
         {
           "assetId": 80,
@@ -6102,6 +6202,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-02": {
+      "slotIds": ["ST-OUT-04-02-P01","ST-OUT-04-02-P02","ST-OUT-04-02-P03","ST-OUT-04-02-P04","ST-OUT-04-02-P05","ST-OUT-04-02-P06","ST-OUT-04-02-P07","ST-OUT-04-02-P08","ST-OUT-04-02-P09"],
       "slots": [
         {
           "assetId": 112,
@@ -6163,6 +6264,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-03": {
+      "slotIds": ["ST-OUT-04-03-P01","ST-OUT-04-03-P02","ST-OUT-04-03-P03","ST-OUT-04-03-P04","ST-OUT-04-03-P05","ST-OUT-04-03-P06","ST-OUT-04-03-P07","ST-OUT-04-03-P08","ST-OUT-04-03-P09"],
       "slots": [
         {
           "assetId": 47,
@@ -6224,6 +6326,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-04": {
+      "slotIds": ["ST-OUT-04-04-P01","ST-OUT-04-04-P02","ST-OUT-04-04-P03","ST-OUT-04-04-P04","ST-OUT-04-04-P05","ST-OUT-04-04-P06","ST-OUT-04-04-P07","ST-OUT-04-04-P08","ST-OUT-04-04-P09"],
       "slots": [
         {
           "assetId": 114,
@@ -6285,6 +6388,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-05": {
+      "slotIds": ["ST-OUT-04-05-P01","ST-OUT-04-05-P02","ST-OUT-04-05-P03","ST-OUT-04-05-P04","ST-OUT-04-05-P05","ST-OUT-04-05-P06","ST-OUT-04-05-P07","ST-OUT-04-05-P08","ST-OUT-04-05-P09"],
       "slots": [
         {
           "assetId": 56,
@@ -6346,6 +6450,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-06": {
+      "slotIds": ["ST-OUT-04-06-P01","ST-OUT-04-06-P02","ST-OUT-04-06-P03","ST-OUT-04-06-P04","ST-OUT-04-06-P05","ST-OUT-04-06-P06","ST-OUT-04-06-P07","ST-OUT-04-06-P08","ST-OUT-04-06-P09"],
       "slots": [
         {
           "assetId": 55,
@@ -6407,6 +6512,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-07": {
+      "slotIds": ["ST-OUT-04-07-P01","ST-OUT-04-07-P02","ST-OUT-04-07-P03","ST-OUT-04-07-P04","ST-OUT-04-07-P05","ST-OUT-04-07-P06","ST-OUT-04-07-P07","ST-OUT-04-07-P08","ST-OUT-04-07-P09"],
       "slots": [
         {
           "assetId": 37,
@@ -6468,6 +6574,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-08": {
+      "slotIds": ["ST-OUT-04-08-P01","ST-OUT-04-08-P02","ST-OUT-04-08-P03","ST-OUT-04-08-P04","ST-OUT-04-08-P05","ST-OUT-04-08-P06","ST-OUT-04-08-P07","ST-OUT-04-08-P08","ST-OUT-04-08-P09"],
       "slots": [
         {
           "assetId": 46,
@@ -6529,6 +6636,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-09": {
+      "slotIds": ["ST-OUT-04-09-P01","ST-OUT-04-09-P02","ST-OUT-04-09-P03","ST-OUT-04-09-P04","ST-OUT-04-09-P05","ST-OUT-04-09-P06","ST-OUT-04-09-P07","ST-OUT-04-09-P08","ST-OUT-04-09-P09"],
       "slots": [
         {
           "assetId": 42,
@@ -6590,6 +6698,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-10": {
+      "slotIds": ["ST-OUT-04-10-P01","ST-OUT-04-10-P02","ST-OUT-04-10-P03","ST-OUT-04-10-P04","ST-OUT-04-10-P05","ST-OUT-04-10-P06","ST-OUT-04-10-P07","ST-OUT-04-10-P08","ST-OUT-04-10-P09"],
       "slots": [
         {
           "assetId": 61,
@@ -6651,6 +6760,7 @@
       "updatedAt": null
     },
     "ST-OUT-04-11": {
+      "slotIds": ["ST-OUT-04-11-P01","ST-OUT-04-11-P02","ST-OUT-04-11-P03","ST-OUT-04-11-P04","ST-OUT-04-11-P05","ST-OUT-04-11-P06","ST-OUT-04-11-P07","ST-OUT-04-11-P08","ST-OUT-04-11-P09"],
       "slots": [
         {
           "assetId": 58,
@@ -6712,6 +6822,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-01": {
+      "slotIds": ["ST-OUT-05-01-P01","ST-OUT-05-01-P02","ST-OUT-05-01-P03","ST-OUT-05-01-P04","ST-OUT-05-01-P05","ST-OUT-05-01-P06","ST-OUT-05-01-P07","ST-OUT-05-01-P08","ST-OUT-05-01-P09"],
       "slots": [
         {
           "assetId": 62,
@@ -6773,6 +6884,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-02": {
+      "slotIds": ["ST-OUT-05-02-P01","ST-OUT-05-02-P02","ST-OUT-05-02-P03","ST-OUT-05-02-P04","ST-OUT-05-02-P05","ST-OUT-05-02-P06","ST-OUT-05-02-P07","ST-OUT-05-02-P08","ST-OUT-05-02-P09"],
       "slots": [
         {
           "assetId": 54,
@@ -6834,6 +6946,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-03": {
+      "slotIds": ["ST-OUT-05-03-P01","ST-OUT-05-03-P02","ST-OUT-05-03-P03","ST-OUT-05-03-P04","ST-OUT-05-03-P05","ST-OUT-05-03-P06","ST-OUT-05-03-P07","ST-OUT-05-03-P08","ST-OUT-05-03-P09"],
       "slots": [
         {
           "assetId": 55,
@@ -6895,6 +7008,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-04": {
+      "slotIds": ["ST-OUT-05-04-P01","ST-OUT-05-04-P02","ST-OUT-05-04-P03","ST-OUT-05-04-P04","ST-OUT-05-04-P05","ST-OUT-05-04-P06","ST-OUT-05-04-P07","ST-OUT-05-04-P08","ST-OUT-05-04-P09"],
       "slots": [
         {
           "assetId": 114,
@@ -6956,6 +7070,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-05": {
+      "slotIds": ["ST-OUT-05-05-P01","ST-OUT-05-05-P02","ST-OUT-05-05-P03","ST-OUT-05-05-P04","ST-OUT-05-05-P05","ST-OUT-05-05-P06","ST-OUT-05-05-P07","ST-OUT-05-05-P08","ST-OUT-05-05-P09"],
       "slots": [
         {
           "assetId": 110,
@@ -7017,6 +7132,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-06": {
+      "slotIds": ["ST-OUT-05-06-P01","ST-OUT-05-06-P02","ST-OUT-05-06-P03","ST-OUT-05-06-P04","ST-OUT-05-06-P05","ST-OUT-05-06-P06","ST-OUT-05-06-P07","ST-OUT-05-06-P08","ST-OUT-05-06-P09"],
       "slots": [
         {
           "assetId": 41,
@@ -7078,6 +7194,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-07": {
+      "slotIds": ["ST-OUT-05-07-P01","ST-OUT-05-07-P02","ST-OUT-05-07-P03","ST-OUT-05-07-P04","ST-OUT-05-07-P05","ST-OUT-05-07-P06","ST-OUT-05-07-P07","ST-OUT-05-07-P08","ST-OUT-05-07-P09"],
       "slots": [
         {
           "assetId": 109,
@@ -7139,6 +7256,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-08": {
+      "slotIds": ["ST-OUT-05-08-P01","ST-OUT-05-08-P02","ST-OUT-05-08-P03","ST-OUT-05-08-P04","ST-OUT-05-08-P05","ST-OUT-05-08-P06","ST-OUT-05-08-P07","ST-OUT-05-08-P08","ST-OUT-05-08-P09"],
       "slots": [
         {
           "assetId": 58,
@@ -7200,6 +7318,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-09": {
+      "slotIds": ["ST-OUT-05-09-P01","ST-OUT-05-09-P02","ST-OUT-05-09-P03","ST-OUT-05-09-P04","ST-OUT-05-09-P05","ST-OUT-05-09-P06","ST-OUT-05-09-P07","ST-OUT-05-09-P08","ST-OUT-05-09-P09"],
       "slots": [
         {
           "assetId": 111,
@@ -7261,6 +7380,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-10": {
+      "slotIds": ["ST-OUT-05-10-P01","ST-OUT-05-10-P02","ST-OUT-05-10-P03","ST-OUT-05-10-P04","ST-OUT-05-10-P05","ST-OUT-05-10-P06","ST-OUT-05-10-P07","ST-OUT-05-10-P08","ST-OUT-05-10-P09"],
       "slots": [
         {
           "assetId": 59,
@@ -7322,6 +7442,7 @@
       "updatedAt": null
     },
     "ST-OUT-05-11": {
+      "slotIds": ["ST-OUT-05-11-P01","ST-OUT-05-11-P02","ST-OUT-05-11-P03","ST-OUT-05-11-P04","ST-OUT-05-11-P05","ST-OUT-05-11-P06","ST-OUT-05-11-P07","ST-OUT-05-11-P08","ST-OUT-05-11-P09"],
       "slots": [
         {
           "assetId": 86,
@@ -7383,6 +7504,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-01": {
+      "slotIds": ["ST-OUT-06-01-P01","ST-OUT-06-01-P02","ST-OUT-06-01-P03","ST-OUT-06-01-P04","ST-OUT-06-01-P05","ST-OUT-06-01-P06","ST-OUT-06-01-P07","ST-OUT-06-01-P08","ST-OUT-06-01-P09"],
       "slots": [
         {
           "assetId": 41,
@@ -7444,6 +7566,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-02": {
+      "slotIds": ["ST-OUT-06-02-P01","ST-OUT-06-02-P02","ST-OUT-06-02-P03","ST-OUT-06-02-P04","ST-OUT-06-02-P05","ST-OUT-06-02-P06","ST-OUT-06-02-P07","ST-OUT-06-02-P08","ST-OUT-06-02-P09"],
       "slots": [
         {
           "assetId": 79,
@@ -7505,6 +7628,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-03": {
+      "slotIds": ["ST-OUT-06-03-P01","ST-OUT-06-03-P02","ST-OUT-06-03-P03","ST-OUT-06-03-P04","ST-OUT-06-03-P05","ST-OUT-06-03-P06","ST-OUT-06-03-P07","ST-OUT-06-03-P08","ST-OUT-06-03-P09"],
       "slots": [
         {
           "assetId": 80,
@@ -7566,6 +7690,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-04": {
+      "slotIds": ["ST-OUT-06-04-P01","ST-OUT-06-04-P02","ST-OUT-06-04-P03","ST-OUT-06-04-P04","ST-OUT-06-04-P05","ST-OUT-06-04-P06","ST-OUT-06-04-P07","ST-OUT-06-04-P08","ST-OUT-06-04-P09"],
       "slots": [
         {
           "assetId": 62,
@@ -7627,6 +7752,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-05": {
+      "slotIds": ["ST-OUT-06-05-P01","ST-OUT-06-05-P02","ST-OUT-06-05-P03","ST-OUT-06-05-P04","ST-OUT-06-05-P05","ST-OUT-06-05-P06","ST-OUT-06-05-P07","ST-OUT-06-05-P08","ST-OUT-06-05-P09"],
       "slots": [
         {
           "assetId": 109,
@@ -7688,6 +7814,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-06": {
+      "slotIds": ["ST-OUT-06-06-P01","ST-OUT-06-06-P02","ST-OUT-06-06-P03","ST-OUT-06-06-P04","ST-OUT-06-06-P05","ST-OUT-06-06-P06","ST-OUT-06-06-P07","ST-OUT-06-06-P08","ST-OUT-06-06-P09"],
       "slots": [
         {
           "assetId": 55,
@@ -7749,6 +7876,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-07": {
+      "slotIds": ["ST-OUT-06-07-P01","ST-OUT-06-07-P02","ST-OUT-06-07-P03","ST-OUT-06-07-P04","ST-OUT-06-07-P05","ST-OUT-06-07-P06","ST-OUT-06-07-P07","ST-OUT-06-07-P08","ST-OUT-06-07-P09"],
       "slots": [
         {
           "assetId": 38,
@@ -7810,6 +7938,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-08": {
+      "slotIds": ["ST-OUT-06-08-P01","ST-OUT-06-08-P02","ST-OUT-06-08-P03","ST-OUT-06-08-P04","ST-OUT-06-08-P05","ST-OUT-06-08-P06","ST-OUT-06-08-P07","ST-OUT-06-08-P08","ST-OUT-06-08-P09"],
       "slots": [
         {
           "assetId": 46,
@@ -7871,6 +8000,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-09": {
+      "slotIds": ["ST-OUT-06-09-P01","ST-OUT-06-09-P02","ST-OUT-06-09-P03","ST-OUT-06-09-P04","ST-OUT-06-09-P05","ST-OUT-06-09-P06","ST-OUT-06-09-P07","ST-OUT-06-09-P08","ST-OUT-06-09-P09"],
       "slots": [
         {
           "assetId": 43,
@@ -7932,6 +8062,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-10": {
+      "slotIds": ["ST-OUT-06-10-P01","ST-OUT-06-10-P02","ST-OUT-06-10-P03","ST-OUT-06-10-P04","ST-OUT-06-10-P05","ST-OUT-06-10-P06","ST-OUT-06-10-P07","ST-OUT-06-10-P08","ST-OUT-06-10-P09"],
       "slots": [
         {
           "assetId": 77,
@@ -7993,6 +8124,7 @@
       "updatedAt": null
     },
     "ST-OUT-06-11": {
+      "slotIds": ["ST-OUT-06-11-P01","ST-OUT-06-11-P02","ST-OUT-06-11-P03","ST-OUT-06-11-P04","ST-OUT-06-11-P05","ST-OUT-06-11-P06","ST-OUT-06-11-P07","ST-OUT-06-11-P08","ST-OUT-06-11-P09"],
       "slots": [
         {
           "assetId": 57,

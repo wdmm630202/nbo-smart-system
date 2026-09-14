@@ -1,0 +1,190 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>南铂摄影 · 真实手机写真画布</title><style>
+*{box-sizing:border-box}body{margin:0;background:#ececea;color:#1d1d1f;font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif}button,input,textarea{font:inherit}header{height:68px;padding:0 4%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d8d8d5}header b{font-size:14px;letter-spacing:2px}.tools{display:flex;gap:8px}button,.upload{cursor:pointer;border:1px solid #d3d3d0;background:white;border-radius:24px;padding:10px 16px;font-size:12px}.primary{background:#1d1d1f;color:white;border-color:#1d1d1f}main{display:flex;justify-content:center;align-items:flex-start;gap:28px;padding:28px 16px 50px}.stage{width:min(690px,100%);flex-shrink:0}.canvas{position:relative;width:100%;aspect-ratio:3/4;container-type:inline-size;overflow:hidden;background:#fff;box-shadow:0 15px 55px #0001}.intro{position:absolute;top:4%;left:4%;right:4%;text-align:center;z-index:1}.brand{margin:0;font-size:3.4cqw;font-weight:600}.title{margin:3% 0 0;font-size:8.6cqw;font-weight:600;letter-spacing:-.025em;line-height:1.14}.subtitle{font-size:2.65cqw;line-height:1.4;margin:5% 0 0;white-space:pre-line}.scene{position:absolute;left:0;top:25%;width:100%;height:66.59%;display:block}.foot{position:absolute;bottom:0;left:0;width:100%;height:8.42%;background:#efeff2;display:flex;justify-content:space-between;align-items:center;padding:0 6%}.foot p{font-size:2.15cqw;font-weight:600;line-height:1.45;margin:0;white-space:pre-line}.cta{background:#0071e3;color:white;padding:1.8cqw 3.5cqw;border-radius:8cqw;font-size:2.5cqw;max-width:43%;text-align:center}.below{display:flex;justify-content:space-between;font-size:11px;color:#777;margin-top:14px}.panel{width:300px;max-height:85vh;overflow:auto;position:sticky;top:20px;background:#fafafa;border:1px solid #d9d9d6;border-radius:14px;padding:22px}.panel h2{font-size:18px;margin:0 0 10px}.panel p{font-size:12px;color:#777;line-height:1.7}.upload{display:block;text-align:center;margin:12px 0}.field{display:block;font-size:12px;color:#666;margin:14px 0}.field input,.field textarea{display:block;margin-top:6px;width:100%;border:1px solid #ddd;border-radius:6px;padding:9px;background:#fff;font-size:13px;resize:vertical}.field textarea{min-height:60px}.hidden{display:none!important}.small{font-size:11px!important}#notice{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);border-radius:30px;background:#222;color:white;padding:12px 20px;font-size:12px;z-index:5;display:none}.photo-controls{border-bottom:1px solid #ddd;padding-bottom:12px}.fullmode .widget{display:none}svg text{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif}button:focus-visible,.upload:focus-within{outline:2px solid #0071e3;outline-offset:3px}@media(max-width:1020px){main{flex-direction:column;align-items:center}.panel{position:static;width:min(690px,100%);max-height:none}.fields{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}}@media(max-width:550px){header{padding:0 14px}header b{font-size:11px}.tools button{padding:9px 11px;font-size:11px}main{padding:18px 10px}.fields{grid-template-columns:1fr}.below{font-size:10px}}@media print{header,.panel,.below{display:none!important}main{padding:0}.stage{width:100%}.canvas{box-shadow:none}@page{size:180mm 240mm;margin:0}}
+
+.compare-mode #reference{visibility:hidden}.compare-mode .widget,.compare-mode #fullScreen{display:none}.compare-mode #comparison{display:block}#comparison{display:none}#compareHandle{cursor:ew-resize;touch-action:none;outline:none}#compareHandle:focus-visible .handle-ring{stroke:#0071e3;stroke-width:5}.compare-controls{border-bottom:1px solid #ddd;padding-bottom:12px;margin-bottom:16px}.compare-controls h3{font-size:14px;margin:16px 0 8px}#compareHint{color:#82632c}.field select{margin-top:6px;width:100%;padding:8px}.compare-mode #scene{touch-action:pan-y}
+.upload.drag-over{outline:2px solid #007aff;outline-offset:2px;background:#eef6ff}</style></head><body><header><b>NANBO / 男士写真</b><div class="tools"><button id="edit">编辑画面</button><button id="download" class="primary">下载网页</button></div></header><main><section class="stage"><article class="canvas"><div class="intro"><p class="brand" data-key="brand">南铂摄影</p><h1 class="title" data-key="title">268元拍2套｜底片全送</h1><p class="subtitle" data-key="subtitle">服装、化妆、造型均包含<br>素颜到店即可、即拍即选</p></div>
+<svg class="scene compare-mode" id="scene" viewBox="0 550 1248 1108" xmlns="http://www.w3.org/2000/svg" aria-label="真实双手持折叠手机，屏幕内写真及界面可替换"><defs><clipPath id="photoClip"><path d="M201 737 Q201 698 240 701 L518 721 Q557 724 557 762 L557 1263 Q557 1300 518 1306 L240 1327 Q201 1331 201 1292Z"/></clipPath><clipPath id="screenClip"><rect x="120" y="610" width="1010" height="820"/></clipPath><linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0.55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient><linearGradient id="fold"><stop stop-color="#fff" stop-opacity=".035"/><stop offset=".47" stop-color="#000" stop-opacity="0"/><stop offset=".50" stop-color="#000" stop-opacity=".10"/><stop offset=".53" stop-color="#fff" stop-opacity=".035"/><stop offset="1" stop-color="#000" stop-opacity=".02"/></linearGradient><clipPath id="compareClip"><rect x="120" y="610" width="1010" height="820"/></clipPath><linearGradient id="seamFade" gradientUnits="userSpaceOnUse" x1="613" x2="637"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="black"/></linearGradient><mask id="beforeMask" maskUnits="userSpaceOnUse" x="120" y="610" width="1010" height="820"><rect x="120" y="610" width="1010" height="820" fill="url(#seamFade)"/></mask><linearGradient id="glass" x1="0" x2="1" y1="0" y2="1"><stop stop-color="white" stop-opacity=".045"/><stop offset=".4" stop-color="white" stop-opacity="0"/><stop offset="1" stop-color="black" stop-opacity=".035"/></linearGradient><image id="beforePhoto" href="before.jpg" x="125" y="615" width="471" height="800" preserveAspectRatio="xMidYMid slice"/><image id="afterPhoto" href="after.jpg" x="611" y="615" width="471" height="800" preserveAspectRatio="xMidYMid slice"/><filter id="edgeSoft" x="-2%" y="-2%" width="104%" height="104%"><feGaussianBlur stdDeviation="0.6"/></filter></defs>
+
+<g id="fullScreen" class="hidden" clip-path="url(#screenClip)"><image href="after.jpg" id="screenImage" x="125" y="616" width="1000" height="800" preserveAspectRatio="xMidYMid slice"/></g>
+<g id="comparison" data-position="50" data-before-ready="yes" data-after-ready="yes"><g clip-path="url(#compareClip)"><rect x="125" y="615" width="998" height="800" fill="#20272b"/><g id="afterWarp"/><g mask="url(#beforeMask)"><rect x="125" y="615" width="998" height="800" fill="#20272b"/><g id="beforeWarp"/></g><rect x="125" y="615" width="998" height="800" fill="url(#glass)" pointer-events="none"/><g id="compareHandle" tabindex="0" role="slider" aria-label="前、拍摄、后：左右拖动对比照片" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50"><rect id="handleHit" x="587" y="705" width="76" height="625" fill="transparent"/><path id="divider" d="M625 700V1322" stroke="white" stroke-opacity="0" stroke-width="2"/><g id="knob" transform="translate(625 1012)"><defs><linearGradient id="controlShell" x2="0" y2="1"><stop stop-color="#78787c" stop-opacity=".58"/><stop offset=".14" stop-color="#46464a" stop-opacity=".78"/><stop offset=".62" stop-color="#2b2b2e" stop-opacity=".78"/><stop offset="1" stop-color="#1c1c1f" stop-opacity=".72"/></linearGradient><linearGradient id="controlDisc" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".55" stop-color="#efeff1"/><stop offset="1" stop-color="#cdcdd0"/></linearGradient></defs><rect class="handle-ring" x="-72" y="-24" width="144" height="48" rx="24" fill="url(#controlShell)" stroke="#ffffff7a" stroke-width="1.5"/><circle cx="-48" r="17" fill="url(#controlDisc)" stroke="#ffffffe6" stroke-width="1.2"/><circle cx="48" r="17" fill="url(#controlDisc)" stroke="#ffffffe6" stroke-width="1.2"/><g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" text-anchor="middle" dominant-baseline="central" font-weight="700" font-size="20" fill="#252527"><text x="-48">前</text><text x="48">后</text></g><text text-anchor="middle" dominant-baseline="central" fill="#f8f8fa" font-size="21" letter-spacing="1" dx=".5" font-weight="700">拍摄</text></g></g><g id="demoBadge" class="hidden"><rect x="465" y="1266" width="320" height="40" rx="20" fill="#0009"/><text x="625" y="1293" fill="white" text-anchor="middle" font-size="17">同图演示 · 请上传素颜与成片</text></g></g></g><image id="phoneForeground" href="phone-foreground-v2.png" x="0" y="536.362667" width="1248" height="1121.258667" preserveAspectRatio="none" pointer-events="none"/><defs><linearGradient id="hingeEdgeFade" gradientUnits="userSpaceOnUse" x1="601" x2="665"><stop stop-color="#202223" stop-opacity="0"/><stop offset=".3" stop-color="#202223"/><stop offset=".7" stop-color="#202223"/><stop offset="1" stop-color="#202223" stop-opacity="0"/></linearGradient></defs><path id="hingeEdgeFinish" d="M601 655.4 C613 656.3 622 657.1 632 657.1 C643 657.1 653 655.9 665 654.6" fill="none" stroke="url(#hingeEdgeFade)" stroke-width="2" stroke-linecap="round" pointer-events="none"/></svg>
+<footer class="foot"><p data-key="footer">南铂素人改造计划<br>拍下属于你的光芒。</p><span class="cta" data-key="footerRight">发现另一面的你</span></footer></article><div class="below"><span></span><span>3 : 4</span></div></section><aside class="panel hidden" id="panel"><h2>换内容，保留真实质感。</h2><p>对比图铺满手机屏幕，真实手指覆盖在画面上方。分别上传素颜照与成片照，即可拖动中线查看。</p><div class="format-switch" style="display:flex;gap:8px;margin:16px 0"><button id="formatCompare" aria-pressed="true" class="primary">对比</button><button id="formatSingle" aria-pressed="false">精修单张</button></div><div class="compare-controls"><h3>素颜 / 成片对比</h3><label class="upload">上传左侧素颜照<input id="beforeFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><label class="upload">上传右侧成片照<input id="afterFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><label class="field">对比分界位置<input id="comparePosition" type="range" min="20" max="80" value="50"></label><span hidden><input id="beforeAlign" type="range" min="0" max="100" value="50"></span><span hidden><input id="afterAlign" type="range" min="0" max="100" value="50"></span><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="restore">恢复默认布局</button></div><p id="compareHint">当前用同一张照片演示交互。上传真实素颜与成片后，演示标记自动消失。</p><p class="small">建议选用同一人的两张竖图，尽量让面部位置接近。拖动中线或使用方向键调整，双击中线回到居中。</p><button id="toggleHandle" aria-pressed="false">隐藏拖块</button></div><div class="photo-controls hidden"><label class="upload">上传精修单张<input id="screenFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><span hidden><input id="singleAlign" type="range" min="0" max="100" value="50"></span><p class="small">照片填满手机屏幕，可调整上下取景。</p></div><div style="display:flex;gap:8px;margin:18px 0"><button data-export="png">导出 PNG</button><button data-export="jpeg" class="primary">导出高清 JPG</button></div><p class="small">4500 × 6000 · 3:4</p><div id="fields" class="fields"></div></aside></main><div id="notice" role="status"></div><script>
+const labels={beforeLabel:'左侧标签',afterLabel:'右侧标签',brand:'顶部品牌',title:'主标题',subtitle:'副标题',footer:'底部介绍',footerRight:'底部蓝色文案'};const items=[...document.querySelectorAll('[data-key]')];const fields=document.querySelector('#fields');items.forEach(el=>{let label=document.createElement('label');label.className='field';label.textContent=labels[el.dataset.key];let input=document.createElement(el.tagName.toLowerCase()==='p'?'textarea':'input');input.value=el.innerText??el.textContent;if(el.tagName.toLowerCase()==='p')input.value=el.innerHTML.replace(/<br\s*\/?\s*>/gi,'\n').replace(/<[^>]*>/g,'');input.maxLength=el.dataset.key==='title'?18:el.closest('svg')?24:90;input.oninput=()=>{el.textContent=input.value};label.append(input);fields.append(label)});document.querySelector('#edit').onclick=()=>{let panel=document.querySelector('#panel');panel.classList.toggle('hidden');document.querySelector('#edit').textContent=panel.classList.contains('hidden')?'编辑画面':'完成编辑'};function notice(s){let n=document.querySelector('#notice');n.textContent=s;n.style.display='block';setTimeout(()=>n.style.display='none',3500)}function mode(full){document.querySelector('#scene').classList.toggle('compare-mode',!full);document.querySelector('#scene').classList.toggle('fullmode',full);document.querySelector('#fullScreen').classList.toggle('hidden',!full);document.querySelector('.compare-controls').classList.toggle('hidden',full);document.querySelector('.photo-controls').classList.toggle('hidden',!full);for(const [id,on] of [['formatSingle',full],['formatCompare',!full]]){const button=document.getElementById(id);button.classList.toggle('primary',on);button.setAttribute('aria-pressed',String(on))}}function upload(input,target,full){input.onchange=e=>{const f=e.target.files[0];if(!f)return;if(!['image/jpeg','image/png','image/webp'].includes(f.type)||f.size>20*1024*1024){notice('请选择小于 20MB 的 JPG、PNG 或 WebP 图片');return}let r=new FileReader;r.onload=()=>{document.querySelector(target).setAttribute('href',r.result);mode(full);notice('图片已替换，下载网页即可保存')};r.readAsDataURL(f)}}upload(document.querySelector('#screenFile'),'#screenImage',true);document.querySelector('#restore').onclick=()=>{compareMode();updateCompare(50);for(const side of ['before','after']){document.querySelector('#'+side+'Align').value=50;document.querySelector('#'+side+'Photo').setAttribute('preserveAspectRatio','xMidYMid slice')}};const comparison=document.querySelector('#comparison'),handle=document.querySelector('#compareHandle'),scene=document.querySelector('#scene');
+function buildProjectedPhotos(){const ns='http://www.w3.org/2000/svg';for(const side of ['before','after']){const root=document.querySelector('#'+side+'Warp');root.replaceChildren();const count=256,width=998/count;for(let i=0;i<count;i++){const x=125+i*width;const center=x+width/2;const bend=Math.max(0,1-Math.abs(center-624)/499);const top=595.5,bottom=1435;const strip=document.createElementNS(ns,'svg');strip.setAttribute('x',x-.8);strip.setAttribute('y',top);strip.setAttribute('width',width+1.6);strip.setAttribute('height',bottom-top);strip.setAttribute('viewBox',(x-.8)+' 615 '+(width+1.6)+' 800');strip.setAttribute('preserveAspectRatio','none');strip.setAttribute('overflow','hidden');const image=document.createElementNS(ns,'use');image.setAttribute('href','#'+side+'Photo');strip.append(image);root.append(strip)}}}
+buildProjectedPhotos();
+
+function updateCompare(raw){const value=Math.max(20,Math.min(80,Number(raw)));const x=624+998*(value-50)/100;comparison.dataset.position=value;document.querySelector('#comparePosition').value=value;handle.setAttribute('aria-valuenow',Math.round(value));document.querySelector('#seamFade').setAttribute('x1',x-28);document.querySelector('#seamFade').setAttribute('x2',x+28);document.querySelector('#beforePhoto').setAttribute('width',x-125+28);document.querySelector('#afterPhoto').setAttribute('x',x-28);document.querySelector('#afterPhoto').setAttribute('width',1123-x+28);document.querySelector('#divider').setAttribute('d','M'+x+' 615V1415');document.querySelector('#handleHit').setAttribute('x',x-38);document.querySelector('#knob').setAttribute('transform','translate('+x+' 1012)');}
+function compareMode(){mode(false)}
+document.querySelector('#comparePosition').oninput=e=>updateCompare(e.target.value);let activePointer=null;function drag(e){const m=scene.getScreenCTM();if(!m)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());updateCompare(50+(p.x-624)/998*100)}handle.addEventListener('pointerdown',e=>{activePointer=e.pointerId;handle.setPointerCapture(e.pointerId);drag(e);e.preventDefault()});handle.addEventListener('pointermove',e=>{if(activePointer===e.pointerId)drag(e)});function stopDrag(){activePointer=null}handle.addEventListener('pointerup',stopDrag);handle.addEventListener('pointercancel',stopDrag);handle.addEventListener('lostpointercapture',stopDrag);handle.addEventListener('dblclick',()=>updateCompare(50));handle.addEventListener('keydown',e=>{let value=Number(comparison.dataset.position);if(e.key==='ArrowLeft')value-=2;else if(e.key==='ArrowRight')value+=2;else if(e.key==='Home')value=20;else if(e.key==='End')value=80;else return;e.preventDefault();updateCompare(value)});
+function updateDemo(){const ready=comparison.dataset.beforeReady==='yes'&&comparison.dataset.afterReady==='yes';document.querySelector('#demoBadge').classList.toggle('hidden',ready);document.querySelector('#compareHint').textContent=ready?'两张图片已就绪，下载网页可保存本次对比。':'当前为演示，请分别上传真实素颜与成片。'}
+for(const side of ['before','after']){document.querySelector('#'+side+'File').onchange=e=>{const f=e.target.files[0];if(!f)return;if(!['image/jpeg','image/png','image/webp'].includes(f.type)||f.size>20*1024*1024){notice('请选择小于 20MB 的 JPG、PNG 或 WebP 图片');return}const reader=new FileReader;reader.onload=()=>{const check=new Image;check.onload=()=>{document.querySelector('#'+side+'Photo').setAttribute('href',reader.result);comparison.dataset[side+'Ready']='yes';compareMode();updateDemo();notice('图片已替换')};check.onerror=()=>notice('图片无法读取，请换一张');check.src=reader.result};reader.readAsDataURL(f)};document.querySelector('#'+side+'Align').oninput=e=>{const n=Number(e.target.value);document.querySelector('#'+side+'Photo').setAttribute('preserveAspectRatio','xMidY'+(n<34?'Min':n>66?'Max':'Mid')+' slice')}}
+document.querySelector('#formatCompare').onclick=()=>mode(false);document.querySelector('#formatSingle').onclick=()=>mode(true);document.querySelector('#singleAlign').oninput=e=>{const n=Number(e.target.value);document.querySelector('#screenImage').setAttribute('preserveAspectRatio','xMidY'+(n<34?'Min':n>66?'Max':'Mid')+' slice')};mode(scene.classList.contains('fullmode')&&!scene.classList.contains('compare-mode'));updateCompare(comparison.dataset.position||50);updateDemo();document.querySelector('#toggleHandle').onclick=()=>{const hidden=handle.classList.toggle('hidden');const button=document.querySelector('#toggleHandle');button.textContent=hidden?'显示拖块':'隐藏拖块';button.setAttribute('aria-pressed',String(hidden))};
+document.querySelector('#download').onclick=async()=>{try{let copy=document.documentElement.cloneNode(true);for(const img of copy.querySelectorAll('svg image')){let href=img.getAttribute('href');if(!href||href.startsWith('data:'))continue;let response=await fetch(href);if(!response.ok)throw Error();let blob=await response.blob();let data=await new Promise((res,rej)=>{let r=new FileReader;r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob)});img.setAttribute('href',data)}copy.querySelector('#photoEditor')?.remove();copy.querySelector('#fields').innerHTML='';copy.querySelector('#beforeWarp').replaceChildren();copy.querySelector('#afterWarp').replaceChildren();copy.querySelector('#panel').classList.add('hidden');copy.querySelector('#edit').textContent='编辑画面';copy.querySelector('#notice').style.display='none';copy.querySelectorAll('input[type=range]').forEach(el=>el.setAttribute('value',document.getElementById(el.id).value));let url=URL.createObjectURL(new Blob(['<!doctype html>\n'+copy.outerHTML],{type:'text/html;charset=utf-8'}));let a=document.createElement('a');a.href=url;a.download='南铂写真-真实手机-3比4.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);notice('已下载，双击文件可继续编辑')}catch(e){notice('下载失败，请刷新后重试')}};
+  function capsulePath(context, x, y, width, height) {
+    const radius = Math.min(height / 2, width / 2);
+    const centerY = y + height / 2;
+    context.beginPath();
+    context.moveTo(x + radius, y);
+    context.lineTo(x + width - radius, y);
+    context.arc(x + width - radius, centerY, radius, -Math.PI / 2, Math.PI / 2);
+    context.lineTo(x + radius, y + height);
+    context.arc(x + radius, centerY, radius, Math.PI / 2, Math.PI * 1.5);
+    context.closePath();
+  }
+
+  function drawComparisonCapsule(context, capsule, word, outputScale) {
+    const x = capsule.right - capsule.width;
+    const onePhysicalPixel = 1 / Math.max(.01, outputScale);
+    context.save();
+    context.shadowColor = "rgba(0,0,0,.24)";
+    context.shadowBlur = Math.max(3, 8 * outputScale);
+    context.shadowOffsetY = Math.max(1, 2 * outputScale);
+    capsulePath(context, x, capsule.y, capsule.width, capsule.height);
+    const shellGradient = context.createLinearGradient(0, capsule.y, 0, capsule.y + capsule.height);
+    shellGradient.addColorStop(0, "rgba(120,120,124,.58)");
+    shellGradient.addColorStop(.14, "rgba(70,70,74,.78)");
+    shellGradient.addColorStop(.62, "rgba(43,43,46,.78)");
+    shellGradient.addColorStop(1, "rgba(28,28,31,.72)");
+    context.fillStyle = shellGradient;
+    context.fill();
+    context.shadowColor = "transparent";
+    context.lineWidth = Math.max(1.1, onePhysicalPixel);
+    context.strokeStyle = "rgba(255,255,255,.34)";
+    context.stroke();
+    context.shadowColor = "rgba(255,255,255,.3)";
+    context.shadowBlur = Math.max(2, 6 * outputScale);
+    context.shadowOffsetY = -Math.max(1, 2 * outputScale);
+    context.lineWidth = Math.max(1.5, onePhysicalPixel);
+    context.strokeStyle = "rgba(255,255,255,.48)";
+    context.stroke();
+
+    const circleRadius = capsule.width * (19 / 104);
+    const circleX = x + capsule.width * (76.5 / 104);
+    const circleY = capsule.y + capsule.height / 2;
+    context.shadowColor = "rgba(0,0,0,.2)";
+    context.shadowBlur = Math.max(2, 4 * outputScale);
+    context.shadowOffsetY = Math.max(.5, outputScale);
+    context.beginPath();
+    context.arc(circleX, circleY, circleRadius, 0, Math.PI * 2);
+    const buttonGradient = context.createLinearGradient(0, circleY - circleRadius, 0, circleY + circleRadius);
+    buttonGradient.addColorStop(0, "rgba(255,255,255,.99)");
+    buttonGradient.addColorStop(.55, "rgba(239,239,241,.98)");
+    buttonGradient.addColorStop(1, "rgba(205,205,208,.97)");
+    context.fillStyle = buttonGradient;
+    context.fill();
+    context.shadowColor = "transparent";
+    context.lineWidth = Math.max(1.2, onePhysicalPixel);
+    context.strokeStyle = "rgba(255,255,255,.9)";
+    context.stroke();
+
+    context.textBaseline = "middle";
+    context.textAlign = "center";
+    const labelFontSize = Math.round(capsule.width * (18 / 104));
+    context.font = `700 ${labelFontSize}px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif`;
+    const textY = circleY - capsule.width * (.5 / 104);
+    context.fillStyle = "rgba(248,248,250,.92)";
+    context.fillText("拍", x + capsule.width * (20.5 / 104), textY);
+    context.fillText("摄", x + capsule.width * (40.35 / 104), textY);
+    context.font = `800 ${Math.round(capsule.width * (22 / 104))}px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif`;
+    context.fillStyle = "#252527";
+    context.fillText(word, circleX, textY);
+    context.restore();
+  }
+
+
+
+// Adapted from nbo-cover-copy/cover.js pointer, wheel and rotation interactions.
+const pe=document.createElement('section');pe.id='photoEditor';pe.innerHTML='<h3>照片取景</h3><select id="photoTarget"><option value="before">左侧素颜</option><option value="after">右侧成片</option><option value="single">精修单张</option></select>';
+const specs=[['zoom','大小',100,300,1],['x','左右位置',-500,500,1],['y','上下位置',-500,500,1],['angle','旋转',-180,180,1]];
+for(const [key,label,min,max,step] of specs)pe.innerHTML+='<label class="field">'+label+' <output id="pv-'+key+'"></output><input data-transform="'+key+'" type="range" min="'+min+'" max="'+max+'" step="'+step+'"></label>';
+pe.innerHTML+='<button id="resetPhoto">重置当前照片</button><p class="small">编辑时拖动照片移动，滚轮缩放；双击切换旋转。选中照片后，方向键微调，Shift 加速，＋ / －缩放，0 重置。</p>';
+document.querySelector('#fields').before(pe);
+let selected='before',rotationMode=false,photoDrag=null;
+const photoNodes={before:document.querySelector('#beforePhoto'),after:document.querySelector('#afterPhoto'),single:document.querySelector('#screenImage')};
+const state={};
+for(const side of Object.keys(photoNodes))state[side]=JSON.parse(photoNodes[side].dataset.view||'{"zoom":100,"x":0,"y":0,"angle":0}');
+function syncPhoto(){document.querySelector('#photoTarget').value=selected;for(const [key] of specs){pe.querySelector('[data-transform="'+key+'"]').value=state[selected][key];document.querySelector('#pv-'+key).textContent=Math.round(state[selected][key])+(key==='zoom'?'%':key==='angle'?'°':'')}}
+function constrainPhoto(n,v){
+ const w=Number(n.getAttribute('width')),h=Number(n.getAttribute('height'));
+ const a=v.angle*Math.PI/180,c=Math.cos(a),t=Math.sin(a);
+ // Inverse-rotate the destination rectangle into photo coordinates.
+ const rw=Math.abs(c)*w+Math.abs(t)*h,rh=Math.abs(t)*w+Math.abs(c)*h;
+ const scale=Math.max(v.zoom/100,rw/w,rh/h)+0.00001;
+ const mx=Math.max(0,(w*scale-rw)/2),my=Math.max(0,(h*scale-rh)/2);
+ const lx=Math.max(-mx,Math.min(mx,c*v.x+t*v.y)),ly=Math.max(-my,Math.min(my,-t*v.x+c*v.y));
+ v.x=c*lx-t*ly;v.y=t*lx+c*ly;
+ return scale;
+}
+function applyPhotos(){for(const side of Object.keys(photoNodes)){const n=photoNodes[side],v=state[side],safeScale=constrainPhoto(n,v);const cx=Number(n.getAttribute('x'))+Number(n.getAttribute('width'))/2,cy=Number(n.getAttribute('y'))+Number(n.getAttribute('height'))/2;n.setAttribute('transform','translate('+v.x+' '+v.y+') translate('+cx+' '+cy+') rotate('+v.angle+') scale('+safeScale+') translate('+(-cx)+' '+(-cy)+')');n.dataset.view=JSON.stringify(v)}syncPhoto()}
+function selectPhoto(side){selected=side;syncPhoto()}
+pe.querySelector('select').onchange=e=>selectPhoto(e.target.value);
+pe.querySelectorAll('[data-transform]').forEach(el=>el.oninput=()=>{state[selected][el.dataset.transform]=Number(el.value);applyPhotos()});
+function resetPhoto(){state[selected]={zoom:100,x:0,y:0,angle:0};applyPhotos()}
+document.querySelector('#resetPhoto').onclick=resetPhoto;
+function point(e){return new DOMPoint(e.clientX,e.clientY).matrixTransform(scene.getScreenCTM().inverse())}
+function target(e){const p=point(e);if(p.x<130||p.x>1120||p.y<650||p.y>1400)return null;return scene.classList.contains('compare-mode')?(p.x<624+998*(Number(comparison.dataset.position)-50)/100?'before':'after'):'single'}
+function editing(){return !document.querySelector('#panel').classList.contains('hidden')}
+scene.addEventListener('pointerdown',e=>{if(!editing()||e.target.closest('#compareHandle')||e.button!==0)return;const side=target(e);if(!side)return;selectPhoto(side);scene.focus();photoDrag={id:e.pointerId,p:point(e),v:{...state[side]}};scene.setPointerCapture(e.pointerId);e.preventDefault()});
+scene.addEventListener('pointermove',e=>{if(!photoDrag||photoDrag.id!==e.pointerId)return;const p=point(e),v=state[selected],start=photoDrag.v;if(rotationMode)v.angle=Math.max(-180,Math.min(180,Math.round(start.angle+(p.x-photoDrag.p.x)*.2)));else{v.x=Math.max(-500,Math.min(500,Math.round(start.x+p.x-photoDrag.p.x)));v.y=Math.max(-500,Math.min(500,Math.round(start.y+p.y-photoDrag.p.y)))}applyPhotos()});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])scene.addEventListener(event,()=>photoDrag=null);
+scene.addEventListener('wheel',e=>{if(!editing()||e.target.closest('#compareHandle'))return;const side=target(e);if(!side)return;e.preventDefault();selectPhoto(side);state[side].zoom=Math.max(100,Math.min(300,Math.round(state[side].zoom+Math.max(-2,Math.min(2,-e.deltaY*.02)))));applyPhotos()},{passive:false});
+scene.addEventListener('dblclick',e=>{if(!editing()||e.target.closest('#compareHandle')||!target(e))return;rotationMode=!rotationMode;notice(rotationMode?'旋转模式：左右拖动；双击退出':'移动模式')});
+scene.setAttribute('tabindex','0');scene.style.touchAction='none';
+scene.addEventListener('keydown',e=>{if(!editing()||e.target!==scene)return;const v=state[selected],step=e.shiftKey?10:1;if(e.key==='ArrowLeft')v.x-=step;else if(e.key==='ArrowRight')v.x+=step;else if(e.key==='ArrowUp')v.y-=step;else if(e.key==='ArrowDown')v.y+=step;else if(e.key==='+'||e.key==='=')v.zoom=Math.min(300,v.zoom+2);else if(e.key==='-')v.zoom=Math.max(100,v.zoom-2);else if(e.key==='0')resetPhoto();else return;e.preventDefault();applyPhotos()});
+const originalMode=mode;mode=function(full){originalMode(full);selectPhoto(full?'single':'before');pe.querySelector('option[value="single"]').hidden=!full;pe.querySelector('option[value="before"]').hidden=full;pe.querySelector('option[value="after"]').hidden=full};
+const oldUpdateCompare=updateCompare;updateCompare=function(raw){oldUpdateCompare(raw);applyPhotos()};
+const oldRestore=document.querySelector('#restore').onclick;document.querySelector('#restore').onclick=()=>{oldRestore();for(const side of ['before','after'])state[side]={zoom:100,x:0,y:0,angle:0};applyPhotos()};
+applyPhotos();mode(!scene.classList.contains('compare-mode'));
+
+document.querySelectorAll('input[type=file]').forEach(input=>input.addEventListener('change',e=>{if(e.target.files[0])document.querySelector('.canvas').dataset.fileStem=e.target.files[0].name}));
+async function exportHD(format){
+ const buttons=[...document.querySelectorAll('[data-export]')];buttons.forEach(b=>b.disabled=true);
+ try{
+ await document.fonts.ready;
+ const board=document.querySelector('.canvas'),box=board.getBoundingClientRect(),scale=4500/box.width;
+ const canvas=document.createElement('canvas');canvas.width=4500;canvas.height=6000;
+ const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,4500,6000);
+ const svg=scene.cloneNode(true);svg.setAttribute('xmlns','http://www.w3.org/2000/svg');svg.setAttribute('width','1248');svg.setAttribute('height','1108');
+ svg.removeAttribute('class');svg.removeAttribute('style');
+ if(scene.classList.contains('compare-mode'))svg.querySelector('#fullScreen').remove();else svg.querySelector('#comparison').remove();
+ svg.querySelectorAll('.hidden').forEach(n=>n.remove());
+ for(const img of svg.querySelectorAll('image')){const href=img.getAttribute('href');if(!href||href.startsWith('data:'))continue;const r=await fetch(href);if(!r.ok)throw Error('image');const blob=await r.blob();img.setAttribute('href',await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob)}))}
+ const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
+ const image=new Image();try{await new Promise((res,rej)=>{image.onload=res;image.onerror=rej;image.src=url});const r=scene.getBoundingClientRect();ctx.drawImage(image,(r.x-box.x)*scale,(r.y-box.y)*scale,r.width*scale,r.height*scale)}finally{URL.revokeObjectURL(url)}
+ function rect(el,color,radius=0){const r=el.getBoundingClientRect();ctx.fillStyle=color;ctx.beginPath();ctx.roundRect((r.x-box.x)*scale,(r.y-box.y)*scale,r.width*scale,r.height*scale,radius*scale);ctx.fill()}
+ const foot=board.querySelector('.foot');rect(foot,getComputedStyle(foot).backgroundColor);
+ rect(board.querySelector('.cta'),getComputedStyle(board.querySelector('.cta')).backgroundColor,100);
+ for(const el of board.querySelectorAll('[data-key]')){
+ const cs=getComputedStyle(el),r=el.getBoundingClientRect(),fs=parseFloat(cs.fontSize),lh=parseFloat(cs.lineHeight)||fs*1.2;
+ ctx.fillStyle=cs.color;ctx.font=cs.fontWeight+' '+fs*scale+'px '+cs.fontFamily;ctx.textBaseline='middle';ctx.textAlign=cs.textAlign==='center'?'center':'left';ctx.letterSpacing=(parseFloat(cs.letterSpacing)||0)*scale+'px';
+ const lines=el.innerText.split('\n');const x=(r.x-box.x+(ctx.textAlign==='center'?r.width/2:0)+ (el.classList.contains('cta')&&ctx.textAlign!=='center'?parseFloat(cs.paddingLeft):0))*scale;
+ const y=(r.y-box.y+(r.height-lines.length*lh)/2+lh/2)*scale;
+ lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lh*scale));
+ }
+ let blob;
+ for(const quality of format==='jpeg'?[.98,.91,.84,.77,.7,.63,.56]:[1]){blob=await new Promise(res=>canvas.toBlob(res,'image/'+format,quality));if(!blob)throw Error('encode');if(format!=='jpeg'||blob.size<=19.9*1024*1024)break}
+ const pad=n=>String(n).padStart(2,'0'),d=new Date(),stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
+ const stem=(board.dataset.fileStem||'南铂写真').replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]/g,'_');
+ const a=document.createElement('a'),href=URL.createObjectURL(blob);a.href=href;a.download=stem+'_设计_小红书_3x4_'+stamp+'.'+(format==='jpeg'?'jpg':'png');if(matchMedia('(pointer:coarse)').matches){
+ const dialog=document.createElement('dialog');dialog.style.cssText='border:0;border-radius:16px;padding:18px;width:min(92vw,420px);max-height:90vh;overflow:auto';
+ const title=document.createElement('p');title.textContent='高清图片已生成 · 4500 × 6000';dialog.append(title);
+ const preview=document.createElement('img');preview.src=href;preview.alt='导出图片，长按可存储';preview.style.cssText='display:block;width:100%;max-height:55vh;object-fit:contain';dialog.append(preview);
+ const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;margin-top:14px;flex-wrap:wrap';a.textContent='下载图片';a.style.cssText='padding:10px;color:#0071e3';row.append(a);
+ const file=new File([blob],a.download,{type:blob.type});
+ if(navigator.canShare?.({files:[file]})){const share=document.createElement('button');share.textContent='分享／存储';share.onclick=async()=>{try{await navigator.share({files:[file]})}catch(e){if(e.name!=='AbortError')notice('请点击下载或长按图片保存')}};row.append(share)}
+ const close=document.createElement('button');close.textContent='关闭';close.onclick=()=>dialog.close();row.append(close);dialog.append(row);dialog.addEventListener('close',()=>{URL.revokeObjectURL(href);dialog.remove()});document.body.append(dialog);dialog.showModal();
+ }else{a.click();setTimeout(()=>URL.revokeObjectURL(href),10000)}notice('已导出 4500 × 6000 高清图片');canvas.width=canvas.height=1;
+ }catch(e){notice('导出失败，请重试');console.error(e)}finally{buttons.forEach(b=>b.disabled=false)}
+}
+document.querySelectorAll('[data-export]').forEach(b=>b.onclick=()=>exportHD(b.dataset.export));
+
+
+// Route dropped originals through the same upload and filename handlers.
+for(const input of document.querySelectorAll('input[type=file]')){
+ const zone=input.closest('.upload');if(!zone)continue;
+ zone.title='点击选择，或直接拖入一张照片';
+ for(const type of ['dragenter','dragover'])zone.addEventListener(type,e=>{if(![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();e.dataTransfer.dropEffect='copy';zone.classList.add('drag-over')});
+ zone.addEventListener('dragleave',e=>{if(!zone.contains(e.relatedTarget))zone.classList.remove('drag-over')});
+ zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');const files=e.dataTransfer.files;if(files.length!==1){notice('请每次拖入一张照片');return}const transfer=new DataTransfer();transfer.items.add(files[0]);input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}))});
+}
+for(const type of ['dragover','drop'])window.addEventListener(type,e=>{if([...e.dataTransfer.types].includes('Files'))e.preventDefault()});
+</script></body></html>

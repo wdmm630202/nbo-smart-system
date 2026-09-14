@@ -356,6 +356,15 @@ const projects: Project[] = [
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/industry-content-workbench/",
     linkLabel: "打开行业内容工作台档案",
   },
+  {
+    id: "portrait-fold", index: "23", name: "南铂写真对比画布",
+    eyebrow: "PORTRAIT COMPARE", category: "网页", status: "已上线",
+    summary: "素颜与成片滑动对比，或展示精修单张，手机电脑均可高清导出。",
+    detail: "保留原图上传，支持取景、缩放和对比分界调整，导出 4500 × 6000 PNG 与 JPG。照片在浏览器内处理。",
+    tags: ["写真对比", "原图上传", "高清导出"], tone: "peach", visual: "studio", preview: "/portrait-fold-preview.jpg",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/portrait-fold/",
+    linkLabel: "打开写真画布",
+  },
 ];
 
 const filters = ["全部", "App", "网页", "智能体", "自动化"] as const;

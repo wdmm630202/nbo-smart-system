@@ -40,5 +40,6 @@ test('生成文案拒绝资料未确认的价格和服务承诺',()=>{
  const versions=[{title:'广州写真',body:'提供多套服装选择，专业团队帮您定制造型。',tags:[],cta:''}];
  assert.throws(()=>checkGrounding(versions,{name:'成片展示',facts:'',description:'服装风格',location:'广州'},{}),/未确认/);
  assert.throws(()=>checkGrounding([{title:'写真',body:'299元拍3套'}],{facts:'268元拍2套'},{}),/未确认/);
+  assert.throws(()=>checkGrounding([{title:'写真',body:'268元拍2套，不用担心额外费用。'}],{facts:'268元拍2套'},{}),/未确认/);
  assert.doesNotThrow(()=>checkGrounding([{title:'268元拍2套',body:'男士写真，底片全送。'}],{facts:'268元拍2套，底片全送'},{}));
 });

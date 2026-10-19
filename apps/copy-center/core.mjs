@@ -62,9 +62,10 @@ export function chunkAds(ads,maxBytes=1200000,maxCount=50){const encoder=new Tex
 export function checkGrounding(versions,ad,settings){
   const services=simplified([ad.facts,settings.facts].filter(Boolean).join(' '));
   const source=simplified([ad.name,ad.theme,ad.description,ad.location,services].filter(Boolean).join(' '));
+  const feePromise=/(?:无|没有|不用担心|无需|不用|免除).{0,6}(?:额外费用|额外收费|隐形消费|隐形收费)|不加价|无须加钱|无需加钱|不用加钱/g;
   const rules=[[/免费|赠送|不加价|无隐形消费|不限|无额外收费/g,/免费|赠送|不加价|无隐形消费|不限|无额外收费/,'免费或额外优惠'],[/(?:多套|多种|多款|丰富).{0,4}服装|服装.{0,6}(?:可选|任选|选择|提供)/,/服装/,'服装配置'],[/专业团队|专业摄影团队|团队.{0,6}服务/,/团队/,'团队服务'],[/全程引导|全程指导|摄影师.{0,5}指导/,/引导|指导/,'拍摄引导'],[/化妆|妆造|精修|一对一/g,null,'化妆、精修或专属服务'],[/环境.{0,4}舒适|舒适.{0,4}环境/,/环境.*舒适|舒适.*环境/,'拍摄环境'],[/底片全送|原片全送/,/底片.{0,4}全送|原片.{0,4}全送/,'底片交付'],[/拍完即传|当天交付|现场交付/g,null,'交付时间']];
   const prices=text=>[...text.matchAll(/(?:[¥￥]\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*元)/g)].map(m=>Number(m[1]||m[2]));const allowedPrices=new Set(prices(source));
-  for(const v of versions){const text=[v.title,v.body,v.cta,...(v.tags||[])].filter(Boolean).join(' ');for(const [pattern,support,label]of rules){const found=text.match(pattern);if(found&&!(support?support.test(services):found.every(w=>services.includes(w))))throw new Error('AI 草稿包含未确认的'+label);}
+  for(const v of versions){const text=[v.title,v.body,v.cta,...(v.tags||[])].filter(Boolean).join(' ');if((text.match(feePromise)||[]).some(w=>!services.includes(w)))throw new Error('AI 草稿包含未确认的费用承诺');for(const [pattern,support,label]of rules){const found=text.match(pattern);if(found&&!(support?support.test(services):found.every(w=>services.includes(w))))throw new Error('AI 草稿包含未确认的'+label);}
     if(prices(text).some(n=>!allowedPrices.has(n)))throw new Error('AI 草稿包含未确认的价格');
     for(const m of text.matchAll(/\d+\s*(?:套|张|小时|分钟)/g))if(!source.includes(m[0].replace(/\s/g,'')))throw new Error('AI 草稿包含未确认的数量或时长');
   }return versions;

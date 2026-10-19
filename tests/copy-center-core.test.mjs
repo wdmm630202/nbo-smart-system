@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PLATFORMS, validateAd, buildPrompt, parseGenerated, parseCsv, prepareImport, csvExport} from '../apps/copy-center/core.mjs';
+import {PLATFORMS, validateAd, buildPrompt, parseGenerated, parseCsv, prepareImport, csvExport, chunkAds, checkGrounding} from '../apps/copy-center/core.mjs';
 
 test('八平台固定且全部简体生成，事实和地区作为资料处理',()=>{
   assert.equal(PLATFORMS.length,8);
@@ -32,4 +32,13 @@ test('批量导入逐条报告重复与无效行，百条广告可用',()=>{
 test('CSV 导出保护公式并能重新解析',()=>{
   const csv=csvExport([['编号','名称'],['001','=HYPERLINK("x")'],['002','a\nb']]);
   const rows=parseCsv(csv);assert.equal(rows[1][1][0],"'");assert.equal(rows[2][1],'a\nb');
+});
+test('导入按 UTF-8 字节分批，大备份每批都在接口限制以内',()=>{
+ const ads=Array.from({length:100},(_,i)=>({code:'NB-'+i,name:'广告',body:'真实素材'.repeat(4000)}));const chunks=chunkAds(ads);assert.ok(chunks.length>1);assert.equal(chunks.flat().length,100);for(const chunk of chunks)assert.ok(new TextEncoder().encode(JSON.stringify({ads:chunk,merge:true})).byteLength<1_200_000);
+});
+test('生成文案拒绝资料未确认的价格和服务承诺',()=>{
+ const versions=[{title:'广州写真',body:'提供多套服装选择，专业团队帮您定制造型。',tags:[],cta:''}];
+ assert.throws(()=>checkGrounding(versions,{name:'成片展示',facts:'',description:'服装风格',location:'广州'},{}),/未确认/);
+ assert.throws(()=>checkGrounding([{title:'写真',body:'299元拍3套'}],{facts:'268元拍2套'},{}),/未确认/);
+ assert.doesNotThrow(()=>checkGrounding([{title:'268元拍2套',body:'男士写真，底片全送。'}],{facts:'268元拍2套，底片全送'},{}));
 });

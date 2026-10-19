@@ -41,3 +41,9 @@ test('登录错误次数限流',async()=>{
  const e=setup();for(let i=0;i<10;i++)assert.equal((await request(e,'/api/login','POST',{password:'wrong'})).status,401);
  assert.equal((await request(e,'/api/login','POST',{password:'wrong'})).status,429);
 });
+test('分批恢复失败后可安全重试，已有广告不被覆盖',async()=>{
+ const e=setup(),c=await login(e);const ads=[{name:'第一条',code:'RESTORE-1'},{name:'第二条',code:'RESTORE-2'}];
+ assert.equal((await request(e,'/api/import','POST',{ads,merge:true},c)).status,200);
+ const retried=await(await request(e,'/api/import','POST',{ads:[...ads,{name:'第三条',code:'RESTORE-3'}],merge:true},c)).json();assert.equal(retried.imported,1);assert.equal(retried.skipped.length,2);
+ const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.equal(state.ads.length,3);
+});

@@ -1,4 +1,4 @@
-import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, validateAd, cleanText, buildPrompt, parseGenerated} from '../../apps/copy-center/core.mjs';
+import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding} from '../../apps/copy-center/core.mjs';
 
 const STATIC_ASSETS = {};
 const SESSION_DAYS=30;
@@ -50,13 +50,13 @@ async function app(request,env){
     if(!env.AI)throw new HttpError(503,'AI 服务暂未连接，已保留现有文案');await limit(env,'generate:'+session,60000,5);
     const input=await body(request,10000),row=await getAd(env,input.id);if(row.revision!==input.revision)throw new HttpError(409,'云端版本已更新，请先刷新广告再生成');
     const ad=unpack(row);ad.region=cleanText(input.region||ad.region,80,'目标地区');const config=await configuration(env);const messages=buildPrompt(ad,config.settings,config.rules,input.platforms);
-    let timer;try{const result=await Promise.race([env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:5200,temperature:0.65,response_format:{type:'json_object'}}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),80000);})]);return json({versions:parseGenerated(result,input.platforms),region:ad.region,sourceRevision:row.revision});}
-    catch(e){if(e instanceof HttpError)throw e;const message=/格式|缺少|标题|正文|话题/.test(e.message)?e.message:/timeout/.test(e.message)?'生成时间较长，请稍后重试；现有文案已保留':'AI 服务暂时不可用或额度不足，请稍后重试；现有文案已保留';return json({error:message},502);}finally{clearTimeout(timer);}
+    let timer;try{const generate=async()=>{for(let attempt=0;attempt<2;attempt++){const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:5200,temperature:attempt?0.35:0.6,response_format:{type:'json_object'}});const versions=parseGenerated(result,input.platforms);try{return checkGrounding(versions,ad,config.settings);}catch(e){if(attempt)throw e;messages[0].content+=' 复核要求：'+e.message+'。删除资料没有明确提供的全部服务承诺，正文可以缩短，完整重写所有指定平台。';}}};const versions=await Promise.race([generate(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),80000);})]);return json({versions,region:ad.region,sourceRevision:row.revision});}
+    catch(e){if(e instanceof HttpError)throw e;const message=/格式|缺少|标题|正文|话题|未确认/.test(e.message)?e.message+'；现有文案已保留':/timeout/.test(e.message)?'生成时间较长，请稍后重试；现有文案已保留':'AI 服务暂时不可用或额度不足，请稍后重试；现有文案已保留';return json({error:message},502);}finally{clearTimeout(timer);}
   }
   if(path==='/api/import'&&method==='POST'){
     const input=await body(request,2000000);if(!Array.isArray(input.ads)||!input.ads.length||input.ads.length>500)throw new HttpError(400,'每次请选择 1 至 500 条广告导入');
     const existing=(await env.DB.prepare('SELECT id,code FROM ads').all()).results,knownIds=new Set(existing.map(r=>r.id)),knownCodes=new Set(existing.map(r=>r.code)),seen=new Set(),accepted=[],skipped=[];
-    for(let i=0;i<input.ads.length;i++){const source=input.ads[i];if(source.id&&knownIds.has(source.id)){skipped.push(source.code||source.name||String(i+1));continue;}const ad=validateAd(source);if(ad.code&&(knownCodes.has(ad.code)||seen.has(ad.code)))throw new HttpError(400,`编号 ${ad.code} 已存在或重复，请先调整导入列表`);if(ad.code)seen.add(ad.code);const id=crypto.randomUUID();if(!ad.code)ad.code='NB-'+id.slice(0,8).toUpperCase();accepted.push({id,ad});}
+    for(let i=0;i<input.ads.length;i++){const source=input.ads[i];if(source.id&&knownIds.has(source.id)||input.merge===true&&knownCodes.has(source.code)){skipped.push(source.code||source.name||String(i+1));continue;}const ad=validateAd(source);if(ad.code&&(knownCodes.has(ad.code)||seen.has(ad.code)))throw new HttpError(400,`编号 ${ad.code} 已存在或重复，请先调整导入列表`);if(ad.code)seen.add(ad.code);const id=crypto.randomUUID();if(!ad.code)ad.code='NB-'+id.slice(0,8).toUpperCase();accepted.push({id,ad});}
     const now=new Date().toISOString();if(accepted.length)try{await env.DB.batch(accepted.map(({id,ad})=>env.DB.prepare('INSERT INTO ads (id,code,data,revision,created_at,updated_at) VALUES (?,?,?,1,?,?)').bind(id,ad.code,JSON.stringify(ad),now,now)));}catch(e){if(/UNIQUE/i.test(e.message))throw new HttpError(409,'导入时编号发生变化，请刷新后重试');throw e;}
     return json({imported:accepted.length,skipped});
   }

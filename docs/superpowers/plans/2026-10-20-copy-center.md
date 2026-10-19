@@ -32,9 +32,9 @@
 
 **Interfaces:** `PLATFORMS`, `validateAd(input)`, `buildPrompt(ad, settings, rules, platforms)`, `parseGenerated(result, platforms)`, `parseCsv(text)`, `prepareImport(rows, existing)`, `csvExport(rows)`.
 
-- [ ] 先测试八平台、简体指令、资料边界、AI 校验、CSV 换行与重复记录、CSV 导出公式防护，运行确认失败。
-- [ ] 实现以上纯函数；运行 Node 测试确认通过。
-- [ ] 提交功能和测试。
+- [x] 先测试八平台、简体指令、资料边界、AI 校验、CSV 换行与重复记录、CSV 导出公式防护，运行确认失败。
+- [x] 实现以上纯函数；运行 Node 测试确认通过。
+- [x] 提交功能和测试。
 
 ### Task 2: 云端登录和数据 API
 
@@ -42,10 +42,10 @@
 
 **Interfaces:** `fetch(request, env)`; `/api/login`, `/api/logout`, `/api/state`, `/api/ads`, `/api/ads/:id`, `/api/generate`, `/api/import`, `/api/settings`, `/api/rules`; 所有数据接口登录检查，乐观版本比较。
 
-- [ ] 先测试认证、来源检查、字段验证、冲突、AI 故障保留、导入事务，运行确认失败。
-- [ ] 实现 D1 schema、会话、限流、API；写入限制与版本事务；运行测试通过。
-- [ ] 创建专用 D1，应用迁移，部署独立 Worker，秘密仅配置到 Cloudflare。
-- [ ] 提交 API、迁移和公开配置。
+- [x] 先测试认证、来源检查、字段验证、冲突、AI 故障保留、导入事务，运行确认失败。
+- [x] 实现 D1 schema、会话、限流、API；写入限制与版本事务；运行测试通过。
+- [x] 创建专用 D1，应用迁移，部署独立 Worker，秘密仅配置到 Cloudflare。
+- [x] 提交 API、迁移和公开配置。
 
 ### Task 3: 响应式工作台、总台接入和验证
 
@@ -53,8 +53,8 @@
 
 **Interfaces:** UI 使用 Task 1 的平台定义和 Task 2 的同源 API。来源目录生成 Worker UI 模块；公开固定入口只包含跳转与进入链接。
 
-- [ ] 实现登录、广告库、编辑器、生成、规则、看板、导入预览、备份和设置。
-- [ ] 接入总台；运行既有总台测试和新功能测试；生成 GitHub Pages 静态文件并检查差异。
-- [ ] 验证桌面与窄屏、两个登录会话、真实 AI 请求、JSON 恢复和 CSV 导入；清除测试广告。
-- [ ] 按请求发布 Worker 与 GitHub Pages，核对上线页面和入口。
-- [ ] 完成整分支独立评审，修正重要问题并验证，交付链接与登录方式。
+- [x] 实现登录、广告库、编辑器、生成、规则、看板、导入预览、备份和设置。
+- [x] 接入总台；运行既有总台测试和新功能测试；生成 GitHub Pages 静态文件并检查差异。
+- [x] 验证桌面与窄屏、两个登录会话、真实 AI 请求、JSON 恢复和 CSV 导入；清除测试广告。
+- [x] 按请求发布 Worker 与 GitHub Pages，核对上线页面和入口。
+- [x] 完成整分支独立评审，修正重要问题并验证，交付链接与登录方式。

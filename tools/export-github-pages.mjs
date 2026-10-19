@@ -279,4 +279,7 @@ console.log(`客片 V2 资源版本：${portfolioBuildVersion}`);
 
 await cp(join(root, "apps/portrait-fold"), join(docs, "projects/portrait-fold"), { recursive: true });
 
+await mkdir(join(docs, "projects/copy-center"), { recursive: true });
+await copyFile(join(root, "apps/copy-center/entry.html"), join(docs, "projects/copy-center/index.html"));
+
 await copyFile(join(root, "public/portrait-fold-preview.jpg"), join(docs, "portrait-fold-preview.jpg"));

@@ -41,3 +41,4 @@ yarn-error.log*
 /.local/
 /.worktrees/
 /.superpowers/
+/workers/copy-center/.deploy/

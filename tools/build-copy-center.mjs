@@ -1,0 +1,14 @@
+import {readFile,mkdir,writeFile,copyFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import {join} from 'node:path';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const output=join(root,'workers/copy-center/.deploy');
+const types={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',mjs:'text/javascript; charset=utf-8'};
+const assets={};
+for(const name of ['index.html','styles.css','app.mjs','core.mjs','simplified.mjs'])assets['/'+name]={body:await readFile(join(root,'apps/copy-center',name),'utf8'),type:types[name.split('.').pop()]};
+await mkdir(output,{recursive:true});
+const source=await readFile(join(root,'workers/copy-center/worker.mjs'),'utf8');
+if(!source.includes('const STATIC_ASSETS = {};'))throw new Error('Worker 静态资源占位符缺失');
+await writeFile(join(output,'worker.mjs'),source.replace("'../../apps/copy-center/core.mjs'","'./core.mjs'").replace('const STATIC_ASSETS = {};','const STATIC_ASSETS = '+JSON.stringify(assets)+';'));
+for(const name of ['core.mjs','simplified.mjs'])await copyFile(join(root,'apps/copy-center',name),join(output,name));
+console.log('南铂文案中心已构建：响应式界面、五份静态资源、云端 API。');

@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS ads (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  data TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ad_id TEXT NOT NULL,
+  data TEXT NOT NULL,
+  revision INTEGER NOT NULL,
+  saved_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS history_ad ON history(ad_id, id DESC);
+CREATE TABLE IF NOT EXISTS configuration (
+  id TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  expires_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS request_limits (
+  key TEXT PRIMARY KEY,
+  count INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);

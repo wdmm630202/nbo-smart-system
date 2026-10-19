@@ -238,9 +238,12 @@ test("总台每张卡片直接展示能说明用途的应用界面", async () =>
   const visualKinds = [...published.matchAll(/data-project-ui="([^"]+)"/g)].map((match) => match[1]);
   const miniInterfaces = [...published.matchAll(/data-mini-interface="true"/g)];
 
-  assert.equal(visualKinds.length, 22, "22 张卡片都应有代表性应用界面");
-  assert.equal(new Set(visualKinds).size, 22, "每个项目应使用自己的界面场景");
-  assert.equal(miniInterfaces.length, 21, "除真实 Stash 截图外，其余卡片应使用轻量微缩界面");
+  const source = await read("app/page.tsx");
+  const data = source.match(/const projects: Project\[\] = (\[[\s\S]*?\n\]);\n\nconst filters/);
+  const projects = Function(`"use strict"; return (${data[1]});`)();
+  assert.equal(visualKinds.length, projects.length, "全部项目都应有代表性应用界面");
+  assert.equal(new Set(projects.map(p => p.preview ? `preview:${p.preview}` : `interface:${p.visual}`)).size, projects.length, "每个项目有独立截图或界面场景");
+  assert.equal(miniInterfaces.length, projects.filter(p => !p.preview).length, "无真实预览截图的卡片使用轻量微缩界面");
 
   for (const description of [
     "南铂 Stash 设备与灾备运行界面",
@@ -265,6 +268,7 @@ test("总台每张卡片直接展示能说明用途的应用界面", async () =>
     "音源项目安全扫描界面",
     "自媒体封面统一制作界面",
     "行业视频生产工作台",
+    "八平台简体中文广告文案管理界面",
   ]) {
     assert.match(published, new RegExp(`aria-label="${description}"`), description);
   }

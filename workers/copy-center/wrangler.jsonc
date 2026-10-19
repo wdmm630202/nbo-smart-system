@@ -1,0 +1,25 @@
+{
+  "name": "nanbo-copy-center",
+  "main": ".deploy/worker.mjs",
+  "compatibility_date": "2026-08-14",
+  "workers_dev": true,
+  "vars": {
+    "AI_MODEL": "@cf/qwen/qwen3-30b-a3b-fp8"
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nanbo-copy-center",
+      "database_id": "4f374f42-720f-44fc-8831-d57ad29593bc"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "copy.nanbostudio.com",
+      "custom_domain": true
+    }
+  ]
+}

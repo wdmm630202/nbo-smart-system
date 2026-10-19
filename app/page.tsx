@@ -15,7 +15,7 @@ type Project = {
   detail: string;
   tags: string[];
   tone: string;
-  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music" | "radar" | "xhs" | "industry";
+  visual: "network" | "studio" | "server" | "workflow" | "odds" | "video" | "crm" | "agent" | "expand" | "meter" | "risk" | "reviews" | "portfolio" | "insights" | "recreate" | "sorter" | "erp" | "select" | "music" | "radar" | "xhs" | "industry" | "copy";
   preview?: string;
   featured?: boolean;
   href: string;
@@ -364,6 +364,15 @@ const projects: Project[] = [
     tags: ["写真对比", "原图上传", "高清导出"], tone: "peach", visual: "studio", preview: "/portrait-fold-preview.jpg",
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/portrait-fold/",
     linkLabel: "打开写真画布",
+  },
+  {
+    id: "copy-center", index: "24", name: "南铂文案中心",
+    eyebrow: "NANBO CONTENT STUDIO", category: "网页", status: "云端运行",
+    summary: "一条广告生成八个平台的简体中文文案，手机电脑同步整理、复制和记录发布。",
+    detail: "广告库、八平台文案、目标地区、发布看板与规则统一管理。支持 CSV 批量导入、JSON 完整备份和历史恢复；内部文案通过访问码保护，云端保存，不依赖本机开机。",
+    tags: ["八平台简体中文", "云端同步", "批量导入"], tone: "mint", visual: "copy",
+    href: "https://wdmm630202.github.io/nbo-smart-system/projects/copy-center/",
+    linkLabel: "打开南铂文案中心",
   },
 ];
 

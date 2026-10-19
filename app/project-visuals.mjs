@@ -12,6 +12,10 @@ const chrome = (title, body, options = {}) => `
   </div>`;
 
 const interfaces = {
+  copy: {
+    label: "八平台简体中文广告文案管理界面",
+    markup: chrome("南铂文案中心", `<div class="copy-mini-nav"><b>广告库</b><span>文案工作台</span><span>发布看板</span><span>平台规则</span></div><div class="copy-mini-main"><strong>一条广告，八种表达。</strong><div class="copy-mini-platforms"><span>抖音</span><span>小红书</span><span>快手</span><span>视频号</span><span>TikTok</span><span>Instagram</span><span>Facebook</span><span>YouTube</span></div><div class="copy-mini-paper"><b>广州男士写真 · 成片展示</b><i></i><i></i><i></i><small>统一简体中文　·　云端保存</small></div></div>`, { kind: "copy", status: "手机电脑同步" }),
+  },
   network: {
     label: "南铂 Stash 设备与灾备运行界面",
     markup: "",

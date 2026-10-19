@@ -5,7 +5,7 @@
 - 固定网站：<https://wdmm630202.github.io/nbo-smart-system/>
 - 源代码由 GitHub 长期保存，可在新电脑重新克隆。
 - `docs/` 是无服务器静态版本，不依赖原电脑在线。
-- 22 张项目卡片都是直达链接；不需要展开详情。
+- 所有项目卡片都是直达链接；不需要展开详情。
 - Stash 卡片直接显示真实管理界面预览；点击整张卡片进入受安全登录保护的云端运行中心。
 - 网站内容更新后运行 `pnpm pages:build`，再提交并推送即可同步固定网站。
 
@@ -20,6 +20,8 @@
 7. 项目卡片至少记录名称、类型、用途、状态、固定网址，并在上线前验证电脑和手机都能打开。
 
 当前可直接使用的线上功能：
+
+- 南铂文案中心：<https://wdmm630202.github.io/nbo-smart-system/projects/copy-center/>（云端应用 <https://copy.nanbostudio.com/>；八个平台统一简体中文，手机电脑同步；广告批量导入、文案生成、发布看板、历史和备份；通过访问码保护）
 
 - Stash 长期运行中心：<https://stash-status.nanbostudio.com/>（受 Cloudflare Access 安全登录保护）
 - NBO 灵感封面：<https://wdmm630202.github.io/nbo-cover-copy/>

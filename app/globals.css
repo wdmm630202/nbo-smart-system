@@ -198,3 +198,6 @@ a { text-decoration: none; }
 }
 
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* 南铂文案中心：八平台文案工作台缩略界面 */
+.mini-ui-copy .mini-body{display:grid;grid-template-columns:58px 1fr;background:#f5f6ef}.copy-mini-nav{padding:10px 6px;display:flex;flex-direction:column;gap:10px;background:#194333;color:#aac1a9;font-size:5px}.copy-mini-nav b{padding:5px;color:#edf5e9;background:#315c46;border-radius:4px}.copy-mini-main{padding:11px 10px}.copy-mini-main>strong{font-size:9px;color:#42613d}.copy-mini-platforms{display:flex;flex-wrap:wrap;gap:3px;margin-top:9px}.copy-mini-platforms span{padding:3px 4px;background:#e2eadb;color:#6a805d;font-size:4px;border-radius:3px}.copy-mini-paper{padding:10px;margin-top:9px;border:1px solid #e1e7d8;border-radius:6px;background:white}.copy-mini-paper b{font-size:6px;color:#68805b}.copy-mini-paper i{display:block;height:3px;margin-top:6px;background:#e8eddf;border-radius:2px}.copy-mini-paper i:nth-of-type(2){width:84%}.copy-mini-paper i:nth-of-type(3){width:63%}.copy-mini-paper small{display:block;margin-top:10px;font-size:4px;color:#96a389}

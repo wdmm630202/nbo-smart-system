@@ -10,6 +10,17 @@ export const PLATFORMS = [
   {id:'facebook',name:'Facebook',short:'F',color:'#4e79c6',angle:'面向华人，简体中文交代服务地点、适合人群和真实卖点',titleGuide:32,bodyGuide:400},
   {id:'youtube',name:'YouTube',short:'Y',color:'#cf5454',angle:'简体中文标题可搜索，说明文字明确视频内容、服务地点和咨询方式',titleGuide:40,bodyGuide:500},
 ];
+// Official desktop entries. Instagram and Facebook expose creation after login.
+export const PUBLISH_PORTALS={
+  douyin:{url:'https://creator.douyin.com/creator-micro/content/upload',label:'打开抖音发布页',note:'登录抖音创作者中心后，选择电脑上的视频上传。'},
+  xiaohongshu:{url:'https://creator.xiaohongshu.com/publish/publish',label:'打开小红书发布页',note:'登录小红书创作服务平台后，选择发布视频或图文。'},
+  kuaishou:{url:'https://cp.kuaishou.com/article/publish/video',label:'打开快手发布页',note:'登录快手创作者服务平台后，选择电脑上的视频上传。'},
+  channels:{url:'https://channels.weixin.qq.com/',label:'打开视频号助手',note:'微信扫码登录后，在视频号助手中发表视频。'},
+  tiktok:{url:'https://www.tiktok.com/tiktokstudio/upload',label:'打开TikTok发布页',note:'登录 TikTok Studio 后，选择电脑上的视频上传。'},
+  instagram:{url:'https://www.instagram.com/',label:'打开Instagram网页版',note:'登录后点击“创建”，选择电脑上的照片或视频。'},
+  facebook:{url:'https://www.facebook.com/',label:'打开Facebook网页版',note:'登录后选择发帖或 Reels，上传电脑上的素材。'},
+  youtube:{url:'https://www.youtube.com/upload',label:'打开YouTube上传页',note:'登录 Google 账号后，选择频道并上传视频。'}
+};
 export const REGIONS=['国内','马来西亚','新加坡','台湾','海外华人'];
 export const STATUSES=['草稿','待审核','待发布','已发布'];
 export const DEFAULT_TAG_COUNT=5;

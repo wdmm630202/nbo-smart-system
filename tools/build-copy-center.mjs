@@ -9,6 +9,6 @@ for(const name of ['index.html','styles.css','app.mjs','core.mjs','operations.mj
 await mkdir(output,{recursive:true});
 const source=await readFile(join(root,'workers/copy-center/worker.mjs'),'utf8');
 if(!source.includes('const STATIC_ASSETS = {};'))throw new Error('Worker 静态资源占位符缺失');
-await writeFile(join(output,'worker.mjs'),source.replaceAll("'../../apps/copy-center/core.mjs'","'./core.mjs'").replaceAll("'../../apps/copy-center/operations.mjs'","'./operations.mjs'").replace('const STATIC_ASSETS = {};','const STATIC_ASSETS = '+JSON.stringify(assets)+';'));
+await writeFile(join(output,'worker.mjs'),source.replaceAll("'../../apps/copy-center/core.mjs'","'./core.mjs'").replaceAll("'../../apps/copy-center/operations.mjs'","'./operations.mjs'").replace('const STATIC_ASSETS = {};',()=> 'const STATIC_ASSETS = '+JSON.stringify(assets)+';'));
 for(const name of ['core.mjs','operations.mjs','simplified.mjs'])await copyFile(join(root,'apps/copy-center',name),join(output,name));
 console.log('南铂文案中心已构建：响应式界面、八份静态资源、云端 API。');

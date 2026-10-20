@@ -1,4 +1,4 @@
-import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, DEFAULT_TAG_COUNT, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding} from '../../apps/copy-center/core.mjs';
+import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, DEFAULT_TAG_COUNT, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding, checkPublishReady} from '../../apps/copy-center/core.mjs';
 import {validateOperations, publicationRecord, restorePublication, effectiveAd, factStamp, offerReasons} from '../../apps/copy-center/operations.mjs';
 
 const STATIC_ASSETS = {};
@@ -51,8 +51,25 @@ async function app(request,env){
   if(path==='/api/generate'&&method==='POST'){
     if(!env.AI)throw new HttpError(503,'AI 服务暂未连接，已保留现有文案');await limit(env,'generate:'+session,60000,5);
     const input=await body(request,10000),row=await getAd(env,input.id);if(row.revision!==input.revision)throw new HttpError(409,'云端版本已更新，请先刷新广告再生成');
-    const ad=unpack(row);ad.region=cleanText(input.region||ad.region,80,'目标地区');const config=await configuration(env);const problems=offerReasons(ad,config);if(problems.length)throw new HttpError(400,problems.join('；'));const grounded=effectiveAd(ad,config),messages=buildPrompt(grounded,config.settings,config.rules,input.platforms);
-    let timer;try{const generate=async()=>{for(let attempt=0;attempt<2;attempt++){const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:5200,temperature:attempt?0.35:0.6,response_format:{type:'json_object'}});try{const versions=parseGenerated(result,input.platforms);return checkGrounding(versions,grounded,config.settings).map(v=>({...v,factStamp:factStamp(ad,config)}));}catch(e){if(attempt)throw e;messages[0].content+=' 复核要求：'+e.message+'。每个平台必须有5个相关、非空且互不重复的话题；删除资料没有明确提供的服务承诺，正文可以缩短，完整重写所有指定平台。';}}};const versions=await Promise.race([generate(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),80000);})]);return json({versions,region:ad.region,sourceRevision:row.revision});}
+    const ad=unpack(row);ad.region=cleanText(input.region||ad.region,80,'目标地区');const config=await configuration(env);const problems=offerReasons(ad,config);if(problems.length)throw new HttpError(400,problems.join('；'));const grounded=effectiveAd(ad,config);buildPrompt(grounded,config.settings,config.rules,input.platforms);
+    let timer,stopped=false;
+    const generateOne=async platform=>{
+      const messages=buildPrompt(grounded,config.settings,config.rules,[platform]);
+      for(let attempt=0;attempt<2;attempt++){
+        if(stopped)throw new Error('timeout');
+        const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:1400,temperature:attempt?0.3:0.55,response_format:{type:'json_object'}});
+        try{return checkPublishReady(checkGrounding(parseGenerated(result,[platform]),grounded,config.settings),grounded,config.settings)[0];}
+        catch(e){if(attempt||stopped)throw e;messages[0].content+=' 复核要求：'+e.message+'。保持这个平台的写法，只返回这个平台的完整文案，正文写明实际城市、海外元报价明确人民币，cta单独给出站内咨询引导，恰好5个相关话题，不留占位内容。';}
+      }
+    };
+    try{
+      const generate=async()=>{let cursor=0;const versions=new Array(input.platforms.length);
+        await Promise.all(Array.from({length:Math.min(3,input.platforms.length)},async()=>{while(!stopped){const index=cursor++;if(index>=input.platforms.length)return;try{versions[index]={...await generateOne(input.platforms[index]),factStamp:factStamp(ad,config)};}catch(e){stopped=true;throw e;}}}));
+        return versions;
+      };
+      const versions=await Promise.race([generate(),new Promise((_,reject)=>{timer=setTimeout(()=>{stopped=true;reject(new Error('timeout'));},80000);})]);
+      return json({versions,region:ad.region,sourceRevision:row.revision});
+    }
     catch(e){if(e instanceof HttpError)throw e;const message=/格式|缺少|标题|正文|话题|未确认/.test(e.message)?e.message+'；现有文案已保留':/timeout/.test(e.message)?'生成时间较长，请稍后重试；现有文案已保留':'AI 服务暂时不可用或额度不足，请稍后重试；现有文案已保留';return json({error:message},502);}finally{clearTimeout(timer);}
   }
   if(path==='/api/import'&&method==='POST'){

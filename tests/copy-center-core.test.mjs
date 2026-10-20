@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PLATFORMS, validateAd, buildPrompt, parseGenerated, parseCsv, prepareImport, csvExport, chunkAds, checkGrounding} from '../apps/copy-center/core.mjs';
+import {PLATFORMS, validateAd, buildPrompt, parseGenerated, parseCsv, prepareImport, csvExport, chunkAds, checkGrounding, checkPublishReady, versionText} from '../apps/copy-center/core.mjs';
 
 test('八平台固定且全部简体生成，事实和地区作为资料处理',()=>{
   assert.equal(PLATFORMS.length,8);
@@ -56,4 +56,39 @@ test('自动生成要求八平台各有五个不重复的有效话题',()=>{
 });
 test('默认五个不会限制手动保存更多、更少或清空话题',()=>{
  for(const n of [0,3,7])for(const p of PLATFORMS){const key='国内::'+p.id;const ad=validateAd({name:'手动编辑',versions:{[key]:{title:'作品',body:'手动正文',tags:Array.from({length:n},(_,i)=>'话题'+i)}}});assert.equal(ad.versions[key].tags.length,n);}
+});
+test('整段发布把咨询引导放在正文后、话题前，已含引导的旧稿不重复',()=>{
+ const v={title:'普通男生拍写真，会是什么效果？',body:'广州到店拍摄，人民币268元拍2套，底片全送。',cta:'想了解风格，可以站内私信「268」。',tags:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影']};
+ const text=versionText(v);
+ assert.equal(text,'普通男生拍写真，会是什么效果？\n\n广州到店拍摄，人民币268元拍2套，底片全送。\n\n想了解风格，可以站内私信「268」。\n\n#男士写真 #广州摄影 #男生拍照 #个人写真 #南铂摄影');
+ const already={...v,body:v.body+'\n\n'+v.cta};
+ assert.equal(versionText(already),text);
+});
+test('服务地点含市名或详细地址时，直接发布正文写实际城市即可',()=>{
+ const v={title:'男士写真',body:'广州到店拍摄，人民币268元拍2套。',cta:'可以站内私信了解。'};
+ for(const location of ['广州','广州市','广东省广州市天河区','广州天河区','广州·天河','地址：广州市天河区'])assert.doesNotThrow(()=>checkPublishReady([v],{location,region:'海外华人',facts:'268元拍2套'}));
+ assert.throws(()=>checkPublishReady([{...v,body:'上海到店拍摄。'}],{location:'广州市'}),/地点/);
+});
+test('海外广州报价支持货币符号，不因事实提到受众国家而漏掉币种校验',()=>{
+ const v={title:'男士写真',body:'广州到店拍摄，268元拍2套。',cta:'可以站内私信了解。'};
+ for(const facts of ['268元拍2套','面向新加坡华人，268元拍2套','面向马来西亚华人，¥268拍2套','人民币268元拍2套，参考折合SGD50，最终按人民币收费']){
+  const ad={location:'广州',region:'海外华人',facts};
+  assert.throws(()=>checkPublishReady([v],ad),/人民币/);
+  assert.doesNotThrow(()=>checkPublishReady([{...v,body:v.body.replace('268元','人民币268元')}],ad));
+ }
+ assert.doesNotThrow(()=>checkPublishReady([{...v,body:'广州到店拍摄，新币268元。'}],{location:'广州',region:'新加坡',facts:'新币268元'}));
+ assert.doesNotThrow(()=>checkPublishReady([{...v,body:'广州到店拍摄，268元（新币）。'}],{location:'广州',region:'新加坡',facts:'268元（新币）拍2套'}));
+});
+test('生成示范使用本次事实构成完整段落，不沿用旧广告的金额或关键词',()=>{
+ const make=ad=>JSON.parse(buildPrompt(ad,{brand:'南铂摄影',location:'广州'},undefined,['tiktok'])[1].content).成稿示例;
+ const sample=make({name:'男士写真',facts:'699元拍3套，底片全送。',location:'广州市',region:'新加坡'});
+ assert.match(sample?.body||'',/人民币699元拍3套/);assert.match(sample.body,/广州到店拍摄/);assert.match(sample.cta,/「699」/);assert.doesNotMatch(JSON.stringify(sample),/268/);
+ const empty=make({name:'男士写真',region:'海外华人'});assert.doesNotMatch(JSON.stringify(empty),/268|699|底片全送|人民币/);
+ const noPackage=JSON.parse(buildPrompt({name:'男士写真',region:'海外华人'},{brand:'南铂摄影',location:'广州'},undefined,['facebook'])[1].content).成稿示例;assert.doesNotMatch(noPackage.body,/套餐信息/);
+ const foreign=make({name:'男士写真',region:'新加坡',location:'广州',facts:'268元（新币）拍2套'});assert.match(foreign.body,/268元（新币）/);assert.doesNotMatch(foreign.body,/人民币/);
+});
+test('未提供具体画面时，生成稿不能声称作品使用了光影或构图',()=>{
+ const v={title:'男士写真',body:'这条作品用光影和构图展现了另一种可能。'};
+ assert.throws(()=>checkGrounding([v],{name:'男士写真',description:'未提供具体画面情节。'},{}),/未确认/);
+ assert.doesNotThrow(()=>checkGrounding([v],{name:'男士写真',description:'侧光，简洁构图。'},{}));
 });

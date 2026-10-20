@@ -44,3 +44,10 @@ test('完整备份在读取留底后刷新素材和配置，保留其他设备�
 test('新素材没有正文时，发布留底表单给出可操作的提示',async()=>{
  assert.throws(()=>opsUI.publicationForm({draft:{code:'NB-001',versions:{}},region:'国内',platform:'douyin'},{id:'acc',timeZone:'Asia/Singapore'},'request-id'),/先.*正文|先.*文案/);
 });
+test('复制正文包含站内引导，单独复制标题和话题维持各自字段',async()=>{
+ const h=await harness(),v={platform:'douyin',region:'国内',title:'普通男生拍写真',body:'广州到店拍摄，268元拍2套。',cta:'可以站内私信「268」。',tags:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影']};
+ h.S.draft.versions={'国内::douyin':v};let copied='';h.sandbox.navigator.clipboard.writeText=async text=>copied=text;
+ for(const [part,want]of [['title','普通男生拍写真'],['body','广州到店拍摄，268元拍2套。\n\n可以站内私信「268」。'],['tags','#男士写真 #广州摄影 #男生拍照 #个人写真 #南铂摄影']]){
+  const button={dataset:{copy:part},classList:{add(){},remove(){}}};await h.listeners.click({target:{closest:()=>button}});assert.equal(copied,want);
+ }
+});

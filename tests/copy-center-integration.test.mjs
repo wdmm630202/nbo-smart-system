@@ -13,3 +13,7 @@ test('发布构建包含完整响应式应用与 API，不带开发访问码',as
  assert.equal(worker.includes('test-code-with-enough-length'),false);
  const css=await read('apps/copy-center/styles.css');assert.match(css,/@media\(max-width:650px\)/);
 });
+test('实际发布模块可加载，并逐字返回带特殊字符的应用资源',async()=>{
+ let built;await assert.doesNotReject(async()=>{built=(await import('../workers/copy-center/.deploy/worker.mjs')).default;});
+ for(const name of ['core.mjs','app.mjs']){const response=await built.fetch(new Request('https://copy.nanbostudio.com/'+name),{});assert.equal(response.status,200);assert.equal(await response.text(),await read('apps/copy-center/'+name));}
+});

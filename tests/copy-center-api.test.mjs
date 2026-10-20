@@ -29,7 +29,7 @@ test('AI 故障和生成请求不写入现有文案',async()=>{
  const e=setup(),c=await login(e);const ad=await(await request(e,'/api/ads','POST',{name:'测试',facts:'真实卖点'},c)).json();
  const r=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'新加坡',platforms:['tiktok']},c);assert.equal(r.status,502);
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.deepEqual(state.ads[0].versions,{});
- e.AI.run=async()=>({choices:[{message:{content:JSON.stringify({versions:[{platform:'tiktok',title:'廣州男士寫真',body:'服務華人，記錄真實的自己。',tags:['男士寫真'],cta:'私信諮詢'}]})}}]});
+ e.AI.run=async()=>({choices:[{message:{content:JSON.stringify({versions:[{platform:'tiktok',title:'廣州男士寫真',body:'服務華人，記錄真實的自己。',tags:['男士寫真','廣州寫真','南鉑攝影','男生寫真','個人寫真'],cta:'私信諮詢'}]})}}]});
  const generated=await(await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'台湾',platforms:['tiktok']},c)).json();assert.equal(generated.versions[0].title,'广州男士写真');
 });
 test('批量导入重复编号全批拒绝，退出后会话失效',async()=>{
@@ -46,4 +46,24 @@ test('分批恢复失败后可安全重试，已有广告不被覆盖',async()=>
  assert.equal((await request(e,'/api/import','POST',{ads,merge:true},c)).status,200);
  const retried=await(await request(e,'/api/import','POST',{ads:[...ads,{name:'第三条',code:'RESTORE-3'}],merge:true},c)).json();assert.equal(retried.imported,1);assert.equal(retried.skipped.length,2);
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.equal(state.ads.length,3);
+});
+test('话题不足五个会重试，生成失败也不覆盖已有手动话题',async()=>{
+ const e=setup(),c=await login(e),tags=['广州男士写真','男士写真','南铂摄影','广州写真','男生写真'];
+ const ad=await(await request(e,'/api/ads','POST',{name:'话题验证',versions:{'国内::douyin':{title:'原有标题',body:'手动正文',tags:['手动一','手动二','手动三']}}},c)).json();
+ let attempts=0;e.AI.run=async()=>({versions:[{platform:'douyin',title:'广州写真',body:'真实男士写真作品。',tags:++attempts===1?tags.slice(0,3):tags}]});
+ const r=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['douyin']},c);
+ assert.equal(r.status,200);assert.equal(attempts,2);assert.equal((await r.json()).versions[0].tags.length,5);
+ const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.deepEqual(state.ads[0].versions['国内::douyin'].tags,['手动一','手动二','手动三']);
+ e.AI.run=async()=>({versions:[{platform:'douyin',title:'广州写真',body:'真实男士写真作品。',tags:['一个话题']}]});
+ const failed=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['douyin']},c);assert.equal(failed.status,502);assert.match((await failed.json()).error,/话题/);
+});
+test('手动增加和减少话题均可保存，历史保留原数量',async()=>{
+ const e=setup(),c=await login(e),tags=Array.from({length:7},(_,i)=>'手动话题'+i);
+ const ad=await(await request(e,'/api/ads','POST',{name:'手动话题验证',versions:{'国内::youtube':{title:'作品',body:'真实作品',tags}}},c)).json();
+ assert.equal(ad.versions['国内::youtube'].tags.length,7);
+ ad.versions['国内::youtube'].tags=tags.slice(0,3);
+ assert.equal((await request(e,'/api/ads/'+ad.id,'PUT',ad,c)).status,200);
+ const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.equal(state.ads[0].versions['国内::youtube'].tags.length,3);
+ const history=await(await request(e,'/api/ads/'+ad.id+'/history','GET',undefined,c)).json();assert.equal(history[0].ad.versions['国内::youtube'].tags.length,7);
+ assert.ok(state.rules.every(r=>r.maxTags===5));
 });

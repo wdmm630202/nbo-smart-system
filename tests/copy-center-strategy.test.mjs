@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {assessHeat} from '../apps/copy-center/strategy.mjs';
+import {assessHeat,exportStrategy} from '../apps/copy-center/strategy.mjs';
 
 const current={accountId:'official-a',platform:'douyin',format:'short',traffic:'organic',windowHours:72,metric:'views',value:250};
 const record=(id,value=100,extra={})=>({...current,id,value,...extra});
@@ -25,3 +25,4 @@ test('排除当前发布，按观察时间取最近20条，拒绝未标识来源
  assert.equal(result.sampleSize,20);assert.equal(result.median,15.5);
  assert.equal(assessHeat({...current,accountId:''},history).label,'比较条件待补全');
 });
+test('八平台官号与自媒体的文案示例默认各有五个话题',()=>{const rows=exportStrategy().blueprints;assert.equal(rows.length,16);for(const row of rows)assert.equal(row.tags.length,5,row.id);});

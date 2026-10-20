@@ -423,7 +423,7 @@ export const RESEARCH = {
       "title": "YouTube：使用话题标签",
       "url": "https://support.google.com/youtube/answer/6390658?hl=en",
       "scope": "官方帮助，本轮读取2026-10-20",
-      "finding": "话题应与内容相关；说明中最多三个话题可能显示在标题附近。超过60个会忽略全部话题；南铂建议的3—5个不是平台硬上限。"
+      "finding": "话题应与内容相关；说明中最多三个话题可能显示在标题附近。超过60个会忽略全部话题；南铂默认的5个不是平台硬上限。"
     },
     {
       "id": "yt-analysis",

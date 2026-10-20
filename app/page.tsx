@@ -370,7 +370,7 @@ const projects: Project[] = [
     eyebrow: "NANBO CONTENT STUDIO", category: "网页", status: "云端运行",
     summary: "一条广告生成八个平台的简体中文文案，手机电脑同步整理、复制和记录发布。",
     detail: "广告库、八平台文案、目标地区、发布看板与规则统一管理。支持 CSV 批量导入、JSON 完整备份和历史恢复；内部文案通过访问码保护，云端保存，不依赖本机开机。",
-    tags: ["八平台简体中文", "云端同步", "批量导入"], tone: "mint", visual: "copy",
+    tags: ["八平台简体中文", "云端同步", "批量导入"], tone: "paper", visual: "copy",
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/copy-center/",
     linkLabel: "打开南铂文案中心",
   },

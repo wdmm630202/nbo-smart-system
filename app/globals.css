@@ -199,5 +199,31 @@ a { text-decoration: none; }
 
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
-/* 南铂文案中心：八平台文案工作台缩略界面 */
-.mini-ui-copy .mini-body{display:grid;grid-template-columns:58px 1fr;background:#f5f6ef}.copy-mini-nav{padding:10px 6px;display:flex;flex-direction:column;gap:10px;background:#194333;color:#aac1a9;font-size:5px}.copy-mini-nav b{padding:5px;color:#edf5e9;background:#315c46;border-radius:4px}.copy-mini-main{padding:11px 10px}.copy-mini-main>strong{font-size:9px;color:#42613d}.copy-mini-platforms{display:flex;flex-wrap:wrap;gap:3px;margin-top:9px}.copy-mini-platforms span{padding:3px 4px;background:#e2eadb;color:#6a805d;font-size:4px;border-radius:3px}.copy-mini-paper{padding:10px;margin-top:9px;border:1px solid #e1e7d8;border-radius:6px;background:white}.copy-mini-paper b{font-size:6px;color:#68805b}.copy-mini-paper i{display:block;height:3px;margin-top:6px;background:#e8eddf;border-radius:2px}.copy-mini-paper i:nth-of-type(2){width:84%}.copy-mini-paper i:nth-of-type(3){width:63%}.copy-mini-paper small{display:block;margin-top:10px;font-size:4px;color:#96a389}
+/* Copy center entry: same neutral palette as the live application. */
+.tone-paper{background:#f5f5f7}
+.mini-ui-copy{color:#1d1d1f;background:#f5f5f7}
+.mini-ui-copy .mini-chrome{background:#fff;border-color:#e5e5e7}
+.mini-ui-copy .mini-chrome em{background:#f0f0f2;color:#6e6e73}
+.mini-ui-copy .mini-body{display:grid;grid-template-columns:58px minmax(0,1fr);background:#f5f5f7}
+.copy-mini-nav{padding:10px 5px;display:flex;flex-direction:column;gap:10px;background:#fbfbfd;border-right:1px solid #e5e5e7;color:#6e6e73;font-size:5px}
+.copy-mini-nav>span{padding:0 4px}
+.copy-mini-nav b{padding:5px 4px;color:#1d1d1f;background:#e9e9ee;border-radius:4px;box-shadow:inset 1px 0 #1d1d1f}
+.copy-mini-main{padding:9px 8px;min-width:0}
+.copy-mini-main>strong{font-size:9px;color:#1d1d1f}
+.copy-mini-platforms{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.copy-mini-platforms span{padding:2px 3px;background:#fff;border:1px solid #e5e5e7;color:#6e6e73;font-size:4px;border-radius:3px}
+.copy-mini-platforms [data-mini-platform="douyin"]{background:#1d1d1f;color:#fff;border-color:#1d1d1f}
+.copy-mini-platforms [data-mini-platform="xiaohongshu"]{color:#bd1836;border-color:#f5bdc9}
+.copy-mini-platforms [data-mini-platform="kuaishou"]{color:#b83c0a;border-color:#f6c7a8}
+.copy-mini-platforms [data-mini-platform="channels"]{color:#875200;border-color:#e9d294}
+.copy-mini-platforms [data-mini-platform="tiktok"]{color:#08636a;border-color:#9ed9dd}
+.copy-mini-platforms [data-mini-platform="instagram"]{color:#9e2474;border-color:#e7b7dc}
+.copy-mini-platforms [data-mini-platform="facebook"]{color:#1457b6;border-color:#b8d2f6}
+.copy-mini-platforms [data-mini-platform="youtube"]{color:#bd1212;border-color:#f3bfb6}
+.copy-mini-paper{padding:8px;margin-top:7px;border:1px solid #e5e5e7;border-top:1px solid #1d1d1f;border-radius:6px;background:#fff}
+.copy-mini-paper b{font-size:6px;color:#1d1d1f}
+.copy-mini-paper i{display:block;height:3px;margin-top:5px;background:#ededf0;border-radius:2px}
+.copy-mini-paper i:nth-of-type(2){width:84%}.copy-mini-paper i:nth-of-type(3){width:63%}
+.copy-mini-paper small{display:block;margin-top:5px;font-size:4px;color:#86868b}
+.copy-mini-actions{display:flex;gap:4px;margin-top:7px}
+.copy-mini-actions em{padding:3px 4px;border:1px solid #d2d2d7;border-radius:3px;background:#fff;color:#0066cc;font-size:4px;font-style:normal;white-space:nowrap}

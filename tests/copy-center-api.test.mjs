@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from '../workers/copy-center/worker.mjs';
+import {factStamp} from '../apps/copy-center/operations.mjs';
 const base='https://copy.nanbostudio.com';
 function setup(){
  const sql=new DatabaseSync(':memory:');sql.exec(readFileSync(new URL('../workers/copy-center/schema.sql',import.meta.url),'utf8'));
@@ -66,4 +67,28 @@ test('手动增加和减少话题均可保存，历史保留原数量',async()=>
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.equal(state.ads[0].versions['国内::youtube'].tags.length,3);
  const history=await(await request(e,'/api/ads/'+ad.id+'/history','GET',undefined,c)).json();assert.equal(history[0].ad.versions['国内::youtube'].tags.length,7);
  assert.ok(state.rules.every(r=>r.maxTags===5));
+});
+test('素材编号固定，套餐配置不会被旧设置页面清空，发布留底独立于广告恢复',async()=>{
+ const e=setup(),c=await login(e);
+ let config=await(await request(e,'/api/configuration','PUT',{revision:0,accounts:[{id:'account-a',name:'南铂官号',platform:'douyin',timeZone:'Asia/Singapore',times:'20:00'}],offers:[{id:'offer-a',name:'写真套餐',facts:'268元拍2套，底片全送'}]},c)).json();
+ assert.equal(config.accounts?.length,1);assert.equal(config.offers?.[0].revision,1);
+ const ad=await(await request(e,'/api/ads','POST',{name:'留底测试',code:'NB-001',offerId:'offer-a',assetName:'原始视频.mp4',versions:{'国内::douyin':{title:'实际标题',body:'真实作品',tags:['一','二','三']}}},c)).json();
+ assert.equal(ad.offerId,'offer-a');assert.equal(ad.assetName,'原始视频.mp4');
+ assert.equal((await request(e,'/api/ads/'+ad.id,'PUT',{...ad,code:'NB-002'},c)).status,400);
+ const payload={id:'receipt-a',adId:ad.id,revision:ad.revision,accountId:'account-a',platform:'douyin',region:'国内',localPublishedAt:'2026-01-01T20:00',publishUrl:'https://www.douyin.com/video/example',title:'实际标题',body:'真实作品',tags:['一','二','三']};
+ assert.equal((await request(e,'/api/publications','POST',payload,c)).status,400,'未复核的旧文案不能假装已核对');
+ ad.versions['国内::douyin'].factStamp=factStamp(ad,config);
+ const saved=await(await request(e,'/api/ads/'+ad.id,'PUT',ad,c)).json();payload.revision=saved.revision;
+ const created=await request(e,'/api/publications','POST',payload,c);assert.equal(created.status,201);const receipt=await created.json();
+ assert.equal(receipt.snapshot.tags.length,3);assert.equal(receipt.snapshot.facts,'268元拍2套，底片全送');assert.equal(receipt.publishedAt,'2026-01-01T12:00:00.000Z');
+ assert.equal((await request(e,'/api/publications','POST',payload,c)).status,200,'网络重试不会重复留底');
+ assert.equal((await request(e,'/api/ads/'+ad.id,'PUT',{...saved,name:'更名',versions:{}},c)).status,200);
+ const listed=await(await request(e,'/api/publications?adId='+ad.id,'GET',undefined,c)).json();assert.equal(listed.items.length,1);assert.equal(listed.items[0].adName,'留底测试');assert.equal(listed.items[0].snapshot.title,'实际标题');
+ config=await(await request(e,'/api/configuration','PUT',{revision:config.configurationRevision,settings:{brand:'南铂摄影'}},c)).json();assert.equal(config.accounts.length,1);assert.equal(config.offers.length,1);
+ const changed=await(await request(e,'/api/configuration','PUT',{revision:config.configurationRevision,offers:[{...config.offers[0],facts:'新套餐事实'}]},c)).json();assert.equal(changed.offers[0].revision,2);
+ assert.equal((await request(e,'/api/publications','PUT',receipt,c)).status,404);
+ const second=setup(),c2=await login(second);const ad2=await(await request(second,'/api/ads','POST',{name:'恢复后的素材',code:'NB-001'},c2)).json();assert.notEqual(ad2.id,ad.id);
+ const restore=await request(second,'/api/publications/import','POST',{publications:[receipt]},c2);assert.equal(restore.status,200);
+ const restored=await(await request(second,'/api/publications?adId='+ad2.id,'GET',undefined,c2)).json();assert.equal(restored.items[0].adId,ad2.id);assert.equal(restored.items[0].snapshot.title,'实际标题');
+ assert.equal((await(await request(second,'/api/publications/import','POST',{publications:[receipt]},c2)).json()).skipped,1);
 });

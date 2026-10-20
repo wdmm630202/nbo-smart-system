@@ -28,3 +28,12 @@ CREATE TABLE IF NOT EXISTS request_limits (
   count INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS publications (
+  id TEXT PRIMARY KEY,
+  ad_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  published_at TEXT NOT NULL,
+  data TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS publications_ad ON publications(ad_id);
+CREATE INDEX IF NOT EXISTS publications_account ON publications(account_id);

@@ -1,4 +1,5 @@
 import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, DEFAULT_TAG_COUNT, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding} from '../../apps/copy-center/core.mjs';
+import {validateOperations, publicationRecord, restorePublication, effectiveAd, factStamp, offerReasons} from '../../apps/copy-center/operations.mjs';
 
 const STATIC_ASSETS = {};
 const SESSION_DAYS=30;
@@ -11,7 +12,7 @@ const unpack=r=>({...JSON.parse(r.data),id:r.id,code:r.code,revision:r.revision,
 async function body(request,max=300000){const declared=Number(request.headers.get('Content-Length'));if(declared>max)throw new HttpError(413,'内容过大，请分批导入');const text=await request.text();if(text.length>max)throw new HttpError(413,'内容过大，请分批导入');try{return JSON.parse(text);}catch{throw new HttpError(400,'请求格式不正确');}}
 async function checkSession(request,env){const key=await cookieHash(request);if(!key)throw new HttpError(401,'请先登录文案中心');const s=await env.DB.prepare('SELECT token_hash FROM sessions WHERE token_hash=? AND expires_at>?').bind(key,Date.now()).first();if(!s)throw new HttpError(401,'登录已过期，请重新登录');return key;}
 async function limit(env,key,windowMs,max){const bucket=`${key}:${Math.floor(Date.now()/windowMs)}`;const r=await env.DB.prepare('INSERT INTO request_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(bucket,Date.now()+windowMs*2).first();if(r.count>max)throw new HttpError(429,'操作较频繁，请稍后再试');}
-async function configuration(env){const row=await env.DB.prepare('SELECT data,revision FROM configuration WHERE id=?').bind('main').first();const value=row?JSON.parse(row.data):{};return {settings:{...DEFAULT_SETTINGS,...value.settings},rules:DEFAULT_RULES.map(d=>({...d,...value.rules?.find(r=>r.id===d.id),maxTags:DEFAULT_TAG_COUNT})),configurationRevision:row?.revision||0};}
+async function configuration(env){const row=await env.DB.prepare('SELECT data,revision FROM configuration WHERE id=?').bind('main').first();const value=row?JSON.parse(row.data):{};return {settings:{...DEFAULT_SETTINGS,...value.settings},rules:DEFAULT_RULES.map(d=>({...d,...value.rules?.find(r=>r.id===d.id),maxTags:DEFAULT_TAG_COUNT})),accounts:value.accounts||[],offers:value.offers||[],configurationRevision:row?.revision||0};}
 async function getAd(env,id){const row=await env.DB.prepare('SELECT * FROM ads WHERE id=?').bind(id).first();if(!row)throw new HttpError(404,'这条广告不存在');return row;}
 async function app(request,env){
   const url=new URL(request.url),path=url.pathname,method=request.method;
@@ -27,17 +28,18 @@ async function app(request,env){
   }
   const session=await checkSession(request,env);
   if(path==='/api/logout'&&method==='POST'){await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(session).run();return json({ok:true},200,{'Set-Cookie':'nbo_copy_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'});}
-  if(path==='/api/state'&&method==='GET'){const rows=await env.DB.prepare('SELECT * FROM ads ORDER BY updated_at DESC').all();return json({ads:rows.results.map(unpack),...await configuration(env),generator:{connected:!!env.AI,model:env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8'}});}
+  if(path==='/api/state'&&method==='GET'){const rows=await env.DB.prepare('SELECT * FROM ads ORDER BY updated_at DESC').all(),count=await env.DB.prepare('SELECT COUNT(*) AS n FROM publications').first();return json({ads:rows.results.map(unpack),publicationCount:count.n,...await configuration(env),generator:{connected:!!env.AI,model:env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8'}});}
   if(path==='/api/ads'&&method==='POST'){
     const ad=validateAd(await body(request));const id=crypto.randomUUID(),now=new Date().toISOString();if(!ad.code)ad.code='NB-'+id.slice(0,8).toUpperCase();
     try{await env.DB.prepare('INSERT INTO ads (id,code,data,revision,created_at,updated_at) VALUES (?,?,?,1,?,?)').bind(id,ad.code,JSON.stringify(ad),now,now).run();}catch(e){if(/UNIQUE/i.test(e.message))throw new HttpError(409,'这个广告编号已存在，请换一个编号');throw e;}
     return json({...ad,id,revision:1,createdAt:now,updatedAt:now},201);
   }
   const match=path.match(/^\/api\/ads\/([a-zA-Z0-9-]+)(\/history)?$/);
-  if(match){const id=match[1];await getAd(env,id);
+  if(match){const id=match[1],oldRow=await getAd(env,id);
     if(match[2]&&method==='GET'){const rows=await env.DB.prepare('SELECT data,revision,saved_at FROM history WHERE ad_id=? ORDER BY id DESC LIMIT 20').bind(id).all();return json(rows.results.map(r=>({ad:JSON.parse(r.data),revision:r.revision,savedAt:r.saved_at})));}
     if(!match[2]&&method==='PUT'){
       const input=await body(request),ad=validateAd(input),revision=input.revision;if(!Number.isInteger(revision)||revision<1)throw new HttpError(400,'缺少有效的版本号');const now=new Date().toISOString();
+      if(ad.code!==oldRow.code)throw new HttpError(400,'素材编号创建后固定，不能修改；请新建素材档案');
       let r;try{r=await env.DB.batch([
         env.DB.prepare('INSERT INTO history (ad_id,data,revision,saved_at) SELECT id,data,revision,updated_at FROM ads WHERE id=? AND revision=?').bind(id,revision),
         env.DB.prepare('UPDATE ads SET code=?,data=?,revision=revision+1,updated_at=? WHERE id=? AND revision=?').bind(ad.code||input.code,JSON.stringify(ad),now,id,revision),
@@ -49,8 +51,8 @@ async function app(request,env){
   if(path==='/api/generate'&&method==='POST'){
     if(!env.AI)throw new HttpError(503,'AI 服务暂未连接，已保留现有文案');await limit(env,'generate:'+session,60000,5);
     const input=await body(request,10000),row=await getAd(env,input.id);if(row.revision!==input.revision)throw new HttpError(409,'云端版本已更新，请先刷新广告再生成');
-    const ad=unpack(row);ad.region=cleanText(input.region||ad.region,80,'目标地区');const config=await configuration(env);const messages=buildPrompt(ad,config.settings,config.rules,input.platforms);
-    let timer;try{const generate=async()=>{for(let attempt=0;attempt<2;attempt++){const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:5200,temperature:attempt?0.35:0.6,response_format:{type:'json_object'}});try{const versions=parseGenerated(result,input.platforms);return checkGrounding(versions,ad,config.settings);}catch(e){if(attempt)throw e;messages[0].content+=' 复核要求：'+e.message+'。每个平台必须有5个相关、非空且互不重复的话题；删除资料没有明确提供的服务承诺，正文可以缩短，完整重写所有指定平台。';}}};const versions=await Promise.race([generate(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),80000);})]);return json({versions,region:ad.region,sourceRevision:row.revision});}
+    const ad=unpack(row);ad.region=cleanText(input.region||ad.region,80,'目标地区');const config=await configuration(env);const problems=offerReasons(ad,config);if(problems.length)throw new HttpError(400,problems.join('；'));const grounded=effectiveAd(ad,config),messages=buildPrompt(grounded,config.settings,config.rules,input.platforms);
+    let timer;try{const generate=async()=>{for(let attempt=0;attempt<2;attempt++){const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:5200,temperature:attempt?0.35:0.6,response_format:{type:'json_object'}});try{const versions=parseGenerated(result,input.platforms);return checkGrounding(versions,grounded,config.settings).map(v=>({...v,factStamp:factStamp(ad,config)}));}catch(e){if(attempt)throw e;messages[0].content+=' 复核要求：'+e.message+'。每个平台必须有5个相关、非空且互不重复的话题；删除资料没有明确提供的服务承诺，正文可以缩短，完整重写所有指定平台。';}}};const versions=await Promise.race([generate(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),80000);})]);return json({versions,region:ad.region,sourceRevision:row.revision});}
     catch(e){if(e instanceof HttpError)throw e;const message=/格式|缺少|标题|正文|话题|未确认/.test(e.message)?e.message+'；现有文案已保留':/timeout/.test(e.message)?'生成时间较长，请稍后重试；现有文案已保留':'AI 服务暂时不可用或额度不足，请稍后重试；现有文案已保留';return json({error:message},502);}finally{clearTimeout(timer);}
   }
   if(path==='/api/import'&&method==='POST'){
@@ -61,12 +63,41 @@ async function app(request,env){
     return json({imported:accepted.length,skipped});
   }
   if(path==='/api/configuration'&&method==='PUT'){
-    const input=await body(request,30000),old=await configuration(env);if(input.revision!==old.configurationRevision)throw new HttpError(409,'品牌或规则已在另一台设备更新，请刷新后重试');
+    const input=await body(request,1200000),old=await configuration(env);if(input.revision!==old.configurationRevision)throw new HttpError(409,'品牌、账号或套餐已在另一台设备更新，请刷新后重试');
     const settings={};for(const [key,max]of Object.entries({brand:100,location:200,facts:8000,voice:1000,cta:1000}))settings[key]=cleanText(input.settings?.[key]??old.settings[key],max,key);
     if(!settings.brand)throw new HttpError(400,'请填写品牌名称');
     const rules=DEFAULT_RULES.map(d=>{const v=input.rules?.find(r=>r.id===d.id)||old.rules.find(r=>r.id===d.id);const r={...d};for(const key of ['notes','mediaNote','source','verifiedAt'])r[key]=cleanText(v[key],2000,key);for(const key of ['titleGuide','bodyGuide']){const n=Number(v[key]);if(!Number.isFinite(n)||n<1||n>20000)throw new HttpError(400,'规则字数或话题数量无效');r[key]=Math.round(n);}r.maxTags=DEFAULT_TAG_COUNT;return r;});
-    const value=JSON.stringify({settings,rules});let result;if(old.configurationRevision===0){try{result=await env.DB.prepare('INSERT INTO configuration (id,data,revision) VALUES (?, ?, 1)').bind('main',value).run();}catch(e){if(/UNIQUE/i.test(e.message))throw new HttpError(409,'设置已更新，请刷新');throw e;}}else result=await env.DB.prepare('UPDATE configuration SET data=?,revision=revision+1 WHERE id=? AND revision=?').bind(value,'main',old.configurationRevision).run();
+    const operations=validateOperations(input,old),value=JSON.stringify({settings,rules,...operations});let result;if(old.configurationRevision===0){try{result=await env.DB.prepare('INSERT INTO configuration (id,data,revision) VALUES (?, ?, 1)').bind('main',value).run();}catch(e){if(/UNIQUE/i.test(e.message))throw new HttpError(409,'设置已更新，请刷新');throw e;}}else result=await env.DB.prepare('UPDATE configuration SET data=?,revision=revision+1 WHERE id=? AND revision=?').bind(value,'main',old.configurationRevision).run();
     if(result.meta.changes!==1)throw new HttpError(409,'设置已更新，请刷新');return json(await configuration(env));
+  }
+  if(path==='/api/publications'&&method==='GET'){
+    const adId=url.searchParams.get('adId')||'',cursor=Number(url.searchParams.get('cursor')||Number.MAX_SAFE_INTEGER);
+    if(!Number.isSafeInteger(cursor)||cursor<1)throw new HttpError(400,'分页位置不正确');
+    const rows=await env.DB.prepare('SELECT rowid,data FROM publications WHERE rowid<?'+(adId?' AND ad_id=?':'')+' ORDER BY rowid DESC LIMIT 101').bind(...(adId?[cursor,adId]:[cursor])).all();
+    const selected=rows.results.slice(0,100);return json({items:selected.map(r=>JSON.parse(r.data)),nextCursor:rows.results.length>100?selected.at(-1).rowid:null});
+  }
+  if(path==='/api/publications'&&method==='POST'){
+    const input=await body(request,60000);
+    const existing=await env.DB.prepare('SELECT data FROM publications WHERE id=?').bind(input.id||'').first();
+    if(existing){const previous=JSON.parse(existing.data);if(previous.adId!==input.adId||previous.accountId!==input.accountId)throw new HttpError(409,'留底编号已使用');return json(previous);}
+    const ad=unpack(await getAd(env,input.adId));if(ad.revision!==input.revision)throw new HttpError(409,'广告已在另一台设备修改，请重新打开留底表单');
+    const config=await configuration(env),account=config.accounts.find(a=>a.id===input.accountId),record=publicationRecord(input,ad,account,config);
+    const inserted=await env.DB.prepare('INSERT INTO publications (id,ad_id,account_id,published_at,data) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING').bind(record.id,ad.id,account.id,record.publishedAt,JSON.stringify(record)).run();
+    const stored=JSON.parse((await env.DB.prepare('SELECT data FROM publications WHERE id=?').bind(record.id).first()).data);
+    if(stored.adId!==ad.id||stored.accountId!==account.id)throw new HttpError(409,'留底编号已被其他记录使用');
+    return json(stored,inserted.meta.changes===1?201:200);
+  }
+  if(path==='/api/publications/import'&&method==='POST'){
+    const input=await body(request,2000000);if(!Array.isArray(input.publications)||!input.publications.length||input.publications.length>100)throw new HttpError(400,'每批最多恢复100条留底');
+    const accepted=[],seen=new Set();let skipped=0;
+    for(const source of input.publications){
+      if(seen.has(source.id))throw new HttpError(400,'备份内留底编号重复');seen.add(source.id);
+      const exists=await env.DB.prepare('SELECT data FROM publications WHERE id=?').bind(source.id||'').first();if(exists){const old=JSON.parse(exists.data);if(old.materialCode!==source.materialCode||old.accountId!==source.accountId)throw new HttpError(409,'留底编号已被其他记录使用');skipped++;continue;}
+      const row=await env.DB.prepare('SELECT * FROM ads WHERE code=?').bind(source.materialCode||'').first();if(!row)throw new HttpError(400,'请先恢复留底对应的素材：'+cleanText(source.materialCode,60,'素材编号'));
+      accepted.push(restorePublication(source,unpack(row)));
+    }
+    if(accepted.length)await env.DB.batch(accepted.map(r=>env.DB.prepare('INSERT INTO publications (id,ad_id,account_id,published_at,data) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING').bind(r.id,r.adId,r.accountId,r.publishedAt,JSON.stringify(r))));
+    return json({imported:accepted.length,skipped});
   }
   throw new HttpError(404,'接口不存在');
 }

@@ -24,9 +24,11 @@ export function validateAd(input) {
   const name=cleanText(input.name,160,'广告名称');if(!name)throw new Error('请填写广告名称');
   const ad={name,code:cleanText(input.code,60,'广告编号'),theme:cleanText(input.theme,200,'主题'),facts:cleanText(input.facts,8000,'真实卖点'),description:cleanText(input.description,8000,'素材说明'),location:cleanText(input.location,200,'服务地点'),assetUrl:safeUrl(input.assetUrl,'素材链接'),region:cleanText(input.region||'国内',80,'目标地区'),archived:input.archived===true,versions:{}};
   if(/[\r\n]/.test(ad.code))throw new Error('广告编号不能换行');
+  ad.assetName=cleanText(input.assetName,300,'素材文件名');ad.coverUrl=safeUrl(input.coverUrl,'封面链接');ad.offerId=cleanText(input.offerId,80,'套餐编号');
   const entries=Object.entries(input.versions||{});if(entries.length>80)throw new Error('单条广告的版本数量超过上限');
   for(const [key,v]of entries){const i=key.lastIndexOf('::');const region=key.slice(0,i),platform=key.slice(i+2);if(i<1||region.length>80||!ids.has(platform)||!v||typeof v!=='object')throw new Error('文案平台或地区不正确');
     ad.versions[key]={platform,region,title:simplified(cleanText(v.title,500,'标题')),body:simplified(cleanText(v.body,20000,'正文')),tags:(Array.isArray(v.tags)?v.tags:[]).slice(0,30).map(t=>simplified(cleanText(t,100,'话题').replace(/^#+/,''))),cta:simplified(cleanText(v.cta,2000,'咨询引导')),status:STATUSES.includes(v.status)?v.status:'草稿',publishUrl:safeUrl(v.publishUrl,'发布链接'),publishDate:cleanText(v.publishDate,30,'发布日期'),notes:cleanText(v.notes,2000,'备注'),generatedAt:cleanText(v.generatedAt,60),updatedAt:cleanText(v.updatedAt,60)};
+    ad.versions[key].factStamp=cleanText(v.factStamp,100,'事实核对标记');
   }return ad;
 }
 export function buildPrompt(ad,settings=DEFAULT_SETTINGS,rules=DEFAULT_RULES,platforms=PLATFORMS.map(p=>p.id)) {
@@ -53,7 +55,7 @@ export function parseCsv(text) {
   if(quote)throw new Error('CSV 引号没有闭合');row.push(field);if(row.some(v=>v.trim()))rows.push(row);if(rows.length>501)throw new Error('每次最多导入 500 条广告');return rows;
 }
 export function prepareImport(rows,existing=[]) {
-  if(!rows.length)return {accepted:[],errors:[]};const aliases={编号:'code',广告编号:'code',名称:'name',广告名称:'name',主题:'theme',卖点:'facts',真实卖点:'facts',素材说明:'description',素材链接:'assetUrl',地区:'region',目标地区:'region',服务地点:'location'};
+  if(!rows.length)return {accepted:[],errors:[]};const aliases={编号:'code',广告编号:'code',素材编号:'code',素材文件名:'assetName',封面链接:'coverUrl',套餐编号:'offerId',名称:'name',广告名称:'name',主题:'theme',卖点:'facts',真实卖点:'facts',素材说明:'description',素材链接:'assetUrl',地区:'region',目标地区:'region',服务地点:'location'};
   const headers=rows[0].map(v=>aliases[v.trim()]||v.trim());if(!headers.includes('name'))throw new Error('CSV 需要“名称”或“广告名称”列');
   const used=new Set(existing.map(a=>a.code).filter(Boolean)),accepted=[],errors=[];
   for(let i=1;i<rows.length;i++){try{const input=Object.fromEntries(headers.map((h,n)=>[h,rows[i][n]||'']));const ad=validateAd(input);if(ad.code&&used.has(ad.code))throw new Error(`编号 ${ad.code} 重复`);if(ad.code)used.add(ad.code);accepted.push(ad);}catch(e){errors.push({line:i+1,message:e.message});}}

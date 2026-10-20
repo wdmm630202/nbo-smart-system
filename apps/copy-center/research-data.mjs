@@ -4,8 +4,8 @@ export const RESEARCH = {
   "historicalCapture": "2026-10-19",
   "videoCount": 184,
   "accountCount": 3,
-  "method": "复用10月19日完整采集资料：184条视频、1288个抽帧、公开标题/话题/点赞与逐条观察记录。本轮复核清单并现场打开1条抖音案例；没有重新逐条观看184段视频或制作逐字音频转录。",
-  "limits": "样本来自3个广州男士写真对标账号，属于有目的选样，不代表全平台。历史点赞是单次累计快照，不能控制发布时间、粉丝基数、投流、封面或素材差异，也没有曝光、完播、询盘与到店数据。",
+  "method": "复用10月19日完整采集资料：184条视频、1288个抽帧、公开标题/话题/点赞与逐条观察记录。本轮复核清单并现场打开1条抖音案例；没有重新逐条观看184段视频或制作逐字音频转录。 海外补查又打开3条Instagram中文写真原作品，核对了公开正文、发布日期和赞数；没有取得账号后台或获客数据。",
+  "limits": "184条抖音样本来自3个广州男士写真对标账号，属于有目的选样，不代表全平台。历史点赞是单次累计快照，不能控制发布时间、粉丝基数、投流、封面或素材差异，也没有曝光、完播、询盘与到店数据。",
   "accounts": [
     {
       "name": "一个爱拍照的浩",
@@ -358,23 +358,23 @@ export const RESEARCH = {
     {
       "id": "tiktok",
       "name": "TikTok",
-      "level": "官方搜索工具资料",
+      "level": "官方资料；站内搜索需登录",
       "sampleCount": null,
-      "detail": "相关公开搜索页本轮未能访问；已读取官方Creator Search Insights介绍。其开放地区与账号资格需在实际账号确认。"
+      "detail": "公开搜索工具读取受限后，已用浏览器进入站内搜索，页面明确显示“登录以搜索热门内容”。已读取官方Creator Search Insights介绍；开放地区与账号资格需在实际账号确认。"
     },
     {
       "id": "instagram",
       "name": "Instagram",
-      "level": "官方创作者资料",
-      "sampleCount": null,
-      "detail": "公开话题页读取受限；已核对官方Best Practices说明。没有确认适用于实际账号的当前话题硬上限。"
+      "level": "3条中文历史样本 + 官方资料",
+      "sampleCount": 3,
+      "detail": "公开话题页与3条原作品可读取；已核对正文、日期和公开赞数。作品为2023—2024年，部分带马来西亚地域标签，不能叫作2026年新热点。观看量来自公开汇总页；未取得后台或转化数据。"
     },
     {
       "id": "facebook",
       "name": "Facebook",
-      "level": "官方原创与分发资料",
+      "level": "官方资料；公开搜索不可用",
       "sampleCount": null,
-      "detail": "公开搜索页读取受限；已核对官方原创内容与反垃圾分发说明，尚无可核实的中文男士写真同行样本。"
+      "detail": "公开搜索读取受限，浏览器内的相同站内搜索也返回Not Found。本轮未取得中文男士写真同行样本；已核对官方原创与反垃圾分发说明。"
     },
     {
       "id": "youtube",
@@ -456,6 +456,68 @@ export const RESEARCH = {
       "url": "https://index.e.kuaishou.com/",
       "scope": "官方研究工具入口；未取得本轮趋势数据",
       "finding": "支持关键词、品牌、达人与话题查询；需要实际访问权限后再采集，并记录查询日期与范围。"
+    }
+  ],
+  "crossPlatformCases": [
+    {
+      "platform": "instagram",
+      "account": "kaily_gan / Kaily Visual Studio",
+      "excerpt": "为自己留下岁月的此刻",
+      "url": "https://www.instagram.com/reel/CoOYbPDDxEv/",
+      "publishedAt": "2023-02-03",
+      "capturedAt": "2026-10-20",
+      "likes": 4,
+      "viewsDisplay": "302",
+      "viewsSource": "Instagram“男士写真”公开话题汇总页",
+      "pattern": "年龄与阶段纪念",
+      "observation": "正文围绕30岁、记录当下与联系拍摄，话题包含写真、雪隆区和Selangor等。文字主要为中文，能直接服务中文受众。",
+      "adaptation": "将“真实人生阶段＋为什么想记录＋作品内容”作为长期栏目候选；只有素材确有生日、年龄或阶段背景时才写。南铂服务地点仍写广州。",
+      "tags": [
+        "写真",
+        "雪隆区",
+        "男士写真"
+      ],
+      "limits": "2023年旧作，公开互动较少，属于选题结构参考；不能当作当前热门或获客成功证据。"
+    },
+    {
+      "platform": "instagram",
+      "account": "with_ustudio",
+      "excerpt": "建议所有男生都按这个标准拍",
+      "url": "https://www.instagram.com/reel/C_2v1OFSxED/",
+      "publishedAt": "2024-09-13",
+      "capturedAt": "2026-10-20",
+      "likes": 67,
+      "viewsDisplay": "1万",
+      "viewsSource": "Instagram“男士写真”公开话题汇总页，显示为约数",
+      "pattern": "风格合集与选择",
+      "observation": "正文用多个风格与同款选择建立观看预期，随后提供互动入口。公开话题页显示1万观看；原作品公开赞数为67。",
+      "adaptation": "栏目名可固定，每次放不同的真实作品与风格说明；避免沿用“所有人都适合”“谁都会心动”等泛化承诺。",
+      "tags": [
+        "男士写真",
+        "男生写真",
+        "杂志风写真"
+      ],
+      "limits": "2024年旧作，未取得账号同期基线、投流、保存、询盘或到店数据；观看量不能等同于当前热度或成交。"
+    },
+    {
+      "platform": "instagram",
+      "account": "fiustudio.my",
+      "excerpt": "男士写真｜痞帅气质",
+      "url": "https://www.instagram.com/reel/Cp5GuN6rpY4/",
+      "publishedAt": "2023-03-17",
+      "capturedAt": "2026-10-20",
+      "likes": 27,
+      "viewsDisplay": "1052",
+      "viewsSource": "Instagram“男士写真”公开话题汇总页",
+      "pattern": "具体风格与配套咨询",
+      "observation": "正文从西装、眼神与动作描述切入，再邀请了解配套；混合中文服务词和马来西亚摄影相关英文话题。",
+      "adaptation": "可以借鉴“实际服装或风格＋可见画面特点＋真实服务信息”的顺序；南铂文案统一简体中文，不复制恋爱结果承诺或无关地区词。",
+      "tags": [
+        "男士写真",
+        "人像摄影",
+        "黑白人像"
+      ],
+      "limits": "2023年旧作，属于相关商业表达样本；旧帖存在许多话题不代表当前新帖仍可按同样数量发布。"
     }
   ]
 };

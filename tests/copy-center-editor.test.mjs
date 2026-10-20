@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import * as core from '../apps/copy-center/core.mjs';
+import * as strategy from '../apps/copy-center/strategy.mjs';
 async function harness(){
  const source=await readFile(new URL('../apps/copy-center/app.mjs',import.meta.url),'utf8');
  const controls=[{disabled:false},{disabled:false}],elements=new Map(),listeners={};
  const element=key=>{if(key==='#source-form'||key==='#version-form')return null;if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',className:'',dataset:{},classList:{add(){}},disabled:false});return elements.get(key);};
- const storage=new Map();const sandbox={...core,console,setTimeout,clearTimeout,URL,Blob,TextEncoder,TextDecoder,fetch:()=>new Promise(()=>{}),confirm:()=>true,matchMedia:()=>({matches:true}),sessionStorage:{setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k),getItem:k=>storage.get(k)||null},document:{querySelector:element,querySelectorAll:()=>controls,body:{classList:{toggle(){},remove(){}}},addEventListener:(name,fn)=>listeners[name]=fn},window:{addEventListener:(name,fn)=>listeners[name]=fn,scrollTo(){}},navigator:{clipboard:{writeText:async()=>{}}}};
- vm.createContext(sandbox);const code=source.slice(0,source.lastIndexOf("\napi('/state')")).replace(/^import[^\n]+\n/,'');vm.runInContext(code+'\nglobalThis.app={S,saveDraft,previewImport};',sandbox);
+ const storage=new Map();const sandbox={...core,...strategy,console,setTimeout,clearTimeout,URL,Blob,TextEncoder,TextDecoder,fetch:()=>new Promise(()=>{}),confirm:()=>true,matchMedia:()=>({matches:true}),sessionStorage:{setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k),getItem:k=>storage.get(k)||null},document:{querySelector:element,querySelectorAll:()=>controls,body:{classList:{toggle(){},remove(){}}},addEventListener:(name,fn)=>listeners[name]=fn},window:{addEventListener:(name,fn)=>listeners[name]=fn,scrollTo(){}},navigator:{clipboard:{writeText:async()=>{}}}};
+ vm.createContext(sandbox);const code=source.slice(0,source.lastIndexOf("\napi('/state')")).replace(/^import[^\n]+\n/gm,'');vm.runInContext(code+'\nglobalThis.app={S,saveDraft,previewImport};',sandbox);
  const a={id:'abc',code:'NB-001',name:'广告 A',region:'国内',location:'广州',facts:'',description:'',theme:'',assetUrl:'',versions:{},revision:1,updatedAt:'2026-10-20'};Object.assign(sandbox.app.S,{ads:[a],draft:structuredClone(a),rules:core.DEFAULT_RULES,page:'editor',dirty:true});
  return {sandbox,...sandbox.app,controls,elements,listeners,storage,ad:a};
 }

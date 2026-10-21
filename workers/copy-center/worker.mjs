@@ -70,7 +70,7 @@ async function app(request,env){
       const versions=await Promise.race([generate(),new Promise((_,reject)=>{timer=setTimeout(()=>{stopped=true;reject(new Error('timeout'));},80000);})]);
       return json({versions,region:ad.region,sourceRevision:row.revision});
     }
-    catch(e){if(e instanceof HttpError)throw e;const message=/格式|缺少|标题|正文|话题|未确认/.test(e.message)?e.message+'；现有文案已保留':/timeout/.test(e.message)?'生成时间较长，请稍后重试；现有文案已保留':'AI 服务暂时不可用或额度不足，请稍后重试；现有文案已保留';return json({error:message},502);}finally{clearTimeout(timer);}
+    catch(e){if(e instanceof HttpError)throw e;const message=/格式|缺少|标题|正文|话题|咨询|未确认/.test(e.message)?e.message+'；现有文案已保留':/timeout/.test(e.message)?'生成时间较长，请稍后重试；现有文案已保留':'AI 服务暂时不可用或额度不足，请稍后重试；现有文案已保留';return json({error:message},502);}finally{clearTimeout(timer);}
   }
   if(path==='/api/import'&&method==='POST'){
     const input=await body(request,2000000);if(!Array.isArray(input.ads)||!input.ads.length||input.ads.length>500)throw new HttpError(400,'每次请选择 1 至 500 条广告导入');

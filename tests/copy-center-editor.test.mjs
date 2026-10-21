@@ -51,3 +51,13 @@ test('复制正文包含站内引导，单独复制标题和话题维持各自�
   const button={dataset:{copy:part},classList:{add(){},remove(){}}};await h.listeners.click({target:{closest:()=>button}});assert.equal(copied,want);
  }
 });
+test('YouTube一键复制说明省去独立标题，其他平台复制整段保留开头句',async()=>{
+ const h=await harness();let copied='';h.sandbox.navigator.clipboard.writeText=async text=>copied=text;
+ for(const platform of ['youtube','facebook','tiktok','instagram']){
+  h.S.platform=platform;h.S.region='海外华人';h.S.draft.versions={};
+  h.S.draft.versions['海外华人::'+platform]={platform,title:'广州白衬衫写真｜作品参考',body:'想试试白衬衫写真？\n\n📍南铂摄影｜广州到店拍摄',cta:'欢迎评论留言了解。',tags:['男士写真','广州摄影','白衬衫写真','个人写真','南铂摄影']};
+  await h.listeners.click({target:{closest:()=>({dataset:{action:'copy-all'}})}});
+  const description='想试试白衬衫写真？\n\n📍南铂摄影｜广州到店拍摄\n\n欢迎评论留言了解。\n\n#男士写真 #广州摄影 #白衬衫写真 #个人写真 #南铂摄影';
+  assert.equal(copied,platform==='youtube'?description:'广州白衬衫写真｜作品参考\n\n'+description);
+ }
+});

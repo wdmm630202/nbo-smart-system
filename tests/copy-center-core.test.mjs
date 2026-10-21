@@ -65,19 +65,19 @@ test('整段发布把咨询引导放在正文后、话题前，已含引导的�
  assert.equal(versionText(already),text);
 });
 test('服务地点含市名或详细地址时，直接发布正文写实际城市即可',()=>{
- const v={title:'男士写真',body:'广州到店拍摄，人民币268元拍2套。',cta:'可以站内私信了解。'};
+ const v={title:'男士写真',body:'先看看作品。\n\n广州到店拍摄，人民币268元拍2套。',cta:'可以站内私信了解。'};
  for(const location of ['广州','广州市','广东省广州市天河区','广州天河区','广州·天河','地址：广州市天河区'])assert.doesNotThrow(()=>checkPublishReady([v],{location,region:'海外华人',facts:'268元拍2套'}));
  assert.throws(()=>checkPublishReady([{...v,body:'上海到店拍摄。'}],{location:'广州市'}),/地点/);
 });
 test('海外广州报价支持货币符号，不因事实提到受众国家而漏掉币种校验',()=>{
- const v={title:'男士写真',body:'广州到店拍摄，268元拍2套。',cta:'可以站内私信了解。'};
+ const v={title:'男士写真',body:'先看看作品。\n\n广州到店拍摄，268元拍2套。',cta:'可以站内私信了解。'};
  for(const facts of ['268元拍2套','面向新加坡华人，268元拍2套','面向马来西亚华人，¥268拍2套','人民币268元拍2套，参考折合SGD50，最终按人民币收费']){
   const ad={location:'广州',region:'海外华人',facts};
   assert.throws(()=>checkPublishReady([v],ad),/人民币/);
   assert.doesNotThrow(()=>checkPublishReady([{...v,body:v.body.replace('268元','人民币268元')}],ad));
  }
- assert.doesNotThrow(()=>checkPublishReady([{...v,body:'广州到店拍摄，新币268元。'}],{location:'广州',region:'新加坡',facts:'新币268元'}));
- assert.doesNotThrow(()=>checkPublishReady([{...v,body:'广州到店拍摄，268元（新币）。'}],{location:'广州',region:'新加坡',facts:'268元（新币）拍2套'}));
+ assert.doesNotThrow(()=>checkPublishReady([{...v,body:'先看看作品。\n\n广州到店拍摄，新币268元。'}],{location:'广州',region:'新加坡',facts:'新币268元'}));
+ assert.doesNotThrow(()=>checkPublishReady([{...v,body:'先看看作品。\n\n广州到店拍摄，268元（新币）。'}],{location:'广州',region:'新加坡',facts:'268元（新币）拍2套'}));
 });
 test('生成示范使用本次事实构成完整段落，不沿用旧广告的金额或关键词',()=>{
  const make=ad=>JSON.parse(buildPrompt(ad,{brand:'南铂摄影',location:'广州'},undefined,['tiktok'])[1].content).成稿示例;
@@ -91,4 +91,41 @@ test('未提供具体画面时，生成稿不能声称作品使用了光影或�
  const v={title:'男士写真',body:'这条作品用光影和构图展现了另一种可能。'};
  assert.throws(()=>checkGrounding([v],{name:'男士写真',description:'未提供具体画面情节。'},{}),/未确认/);
  assert.doesNotThrow(()=>checkGrounding([v],{name:'男士写真',description:'侧光，简洁构图。'},{}));
+});
+test('批量复用架构时，示范优先保留本条广告主题并给足五个话题',()=>{
+ const sample=JSON.parse(buildPrompt({name:'干净白衬衫写真',theme:'作品展示',facts:'698元拍3套，底片全送',location:'广州',region:'海外华人'},{brand:'南铂摄影'},undefined,['facebook'])[1].content).成稿示例;
+ assert.match(sample.title,/白衬衫/);assert.match(sample.body,/白衬衫/);
+ assert.equal(sample.tags?.length,5);assert.equal(new Set(sample.tags).size,5);
+ assert.ok(sample.tags.every(t=>!/[#\s]/u.test(t)));assert.match(sample.cta,/Messenger/);
+ assert.match(sample.body,/人民币698元拍3套/);assert.doesNotMatch(sample.body,/268/);
+});
+test('YouTube生成只使用评论留言引导，Facebook示范明确Messenger',()=>{
+ const ad={name:'男士写真',facts:'698元拍3套',location:'广州',region:'海外华人'};
+ const youtube=JSON.parse(buildPrompt(ad,{brand:'南铂摄影'},undefined,['youtube'])[1].content).成稿示例;
+ assert.match(youtube.cta,/评论.*「698」/);assert.doesNotMatch(youtube.cta,/私信|Messenger/);
+ assert.throws(()=>checkPublishReady([{...youtube,platform:'youtube',cta:'欢迎站内私信「698」。'}],ad),/YouTube.*评论/);
+ assert.doesNotThrow(()=>checkPublishReady([{...youtube,platform:'youtube'}],ad));
+});
+test('生成正文必须空行分段，手动保存仍可采用自己的排版',()=>{
+ const v={platform:'facebook',title:'白衬衫写真',body:'先看看这条作品。广州到店拍摄。',cta:'欢迎通过 Messenger 私信了解。'};
+ assert.throws(()=>checkPublishReady([v],{location:'广州',region:'国内'}),/正文.*分段/);
+ assert.doesNotThrow(()=>checkPublishReady([{...v,body:'先看看这条作品。\n\n📍南铂摄影｜广州到店拍摄'}],{location:'广州',region:'国内'}));
+ assert.equal(validateAd({name:'手动排版',versions:{'国内::facebook':v}}).versions['国内::facebook'].body,v.body);
+});
+test('其余平台不能沿用Facebook的Messenger或其他平台咨询渠道',()=>{
+ const ad={location:'广州',region:'国内'},v={title:'男士写真',body:'先看看作品。\n\n广州到店拍摄。',cta:'欢迎通过 Messenger 私信咨询。'};
+ for(const platform of ['douyin','xiaohongshu','kuaishou','channels','tiktok','instagram']){
+  assert.throws(()=>checkPublishReady([{...v,platform}],ad),/咨询.*其他平台/);
+  assert.doesNotThrow(()=>checkPublishReady([{...v,platform,cta:'欢迎站内私信咨询。'}],ad));
+ }
+ assert.throws(()=>checkPublishReady([{...v,platform:'tiktok',cta:'欢迎到小红书私信咨询。'}],ad),/咨询.*其他平台/);
+});
+test('品牌通用私信设置在八平台都不会沿用旧价格，普通语气偏好仍可使用',()=>{
+ const ad={name:'白衬衫写真',facts:'698元拍3套',location:'广州',region:'海外华人'},settings={brand:'南铂摄影',cta:'欢迎站内私信「268」。'};
+ for(const {id:platform}of PLATFORMS){const channel=platform==='facebook'?/Messenger/:platform==='youtube'?/评论/:/私信/;
+  const data=JSON.parse(buildPrompt(ad,settings,undefined,[platform])[1].content);
+  assert.match(data.品牌资料.cta,channel);assert.match(data.品牌资料.cta,/「698」/);assert.doesNotMatch(data.品牌资料.cta,/268/);
+ }
+ const preferred='想了解更多，可以站内私信聊聊。';assert.equal(JSON.parse(buildPrompt(ad,{...settings,cta:preferred},undefined,['tiktok'])[1].content).品牌资料.cta,preferred);
+ assert.throws(()=>checkGrounding([{title:'白衬衫写真',body:'广州到店拍摄，698元拍3套。',cta:'欢迎私信「268」。'}],ad,settings),/未确认.*咨询.*关键词/);
 });

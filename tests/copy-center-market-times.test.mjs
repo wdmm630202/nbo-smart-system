@@ -7,7 +7,7 @@ test('默认直接列出马来西亚新加坡台湾的同一天参考时段',()=
  const result=ops.publishMarketSuggestions(undefined,'2026-11-04');
  assert.deepEqual(result.markets.map(m=>m.region),['马来西亚','新加坡','台湾']);
  for(const market of result.markets){
-  assert.deepEqual(market.rows.map(r=>r.local),['2026-11-04T12:30','2026-11-04T20:00']);
+  assert.deepEqual(market.rows.map(r=>r.local),['2026-11-04T20:30']);
   assert.deepEqual(market.rows.map(r=>r.beijing),market.rows.map(r=>r.local));
  }
  assert.equal(result.basis,'测试建议');
@@ -23,7 +23,7 @@ test('自定义账号时段按同一发布时间换算，保留跨日与夏令�
 test('海外华人和未选账号时也直接显示三个主要地区，其他时区默认折叠',()=>{
  const html=renderTiming({platform:'tiktok',region:'海外华人',accounts:[],scheduleDate:'2026-11-04',editorAccounts:{}});
  assert.match(html,/马来西亚/);assert.match(html,/新加坡/);assert.match(html,/台湾/);
- assert.match(html,/12:30/);assert.match(html,/20:00/);
+ assert.match(html,/20:30/);assert.doesNotMatch(html,/12:30|20:00/);
  assert.match(html,/class="market-times"/);
  assert.match(html,/<details class="timing-other-zones"><summary>其他地区与时区换算/);
  assert.doesNotMatch(html,/<details class="timing-other-zones" open/);

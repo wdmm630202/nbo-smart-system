@@ -5,6 +5,7 @@ export const TIME_ZONES = [
   ['America/New_York','纽约 / 美东'],['America/Los_Angeles','洛杉矶 / 美西'],['America/Vancouver','温哥华'],
   ['America/Toronto','多伦多'],['Europe/London','伦敦'],['Australia/Sydney','悉尼'],['Asia/Tokyo','东京'],['Asia/Bangkok','曼谷'],['UTC','UTC']
 ];
+export const defaultPublishTimes = (platform='tiktok') => ['tiktok','instagram','facebook','youtube'].includes(platform)?['20:30']:['12:30','20:00'];
 export const regionZone = region => ({国内:'Asia/Shanghai',马来西亚:'Asia/Kuala_Lumpur',新加坡:'Asia/Singapore',台湾:'Asia/Taipei'}[region]||'');
 export function validZone(zone){try{if(!zone||typeof zone!=='string')throw 0;new Intl.DateTimeFormat('en',{timeZone:zone}).format();return zone;}catch{throw new Error('请选择有效的 IANA 时区，例如 Asia/Singapore');}}
 export function localTime(instant,zone){
@@ -28,7 +29,7 @@ export function validateAccount(input){
   const name=cleanText(input.name,100,'账号名称');if(!name)throw new Error('请填写账号名称');
   if(!PLATFORMS.some(p=>p.id===input.platform))throw new Error('账号平台不正确');
   const region=REGIONS.includes(input.region)?input.region:'国内',timeZone=validZone(input.timeZone||regionZone(region));
-  const times=(Array.isArray(input.times)?input.times:String(input.times||'12:30 20:00').split(/[\s,，]+/)).filter(Boolean);
+  const times=(Array.isArray(input.times)?input.times:String(input.times||defaultPublishTimes(input.platform).join(' ')).split(/[\s,，]+/)).filter(Boolean);
   if(!times.length||times.length>5||times.some(t=>!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)))throw new Error('发布时间需要 HH:mm 格式，最多5个');
   const basis=input.basis==='账号后台'?'账号后台':'测试建议',evidence=cleanText(input.evidence,1000,'时段依据');
   if(basis==='账号后台'&&!evidence)throw new Error('请记录账号后台活跃时间的依据或统计日期');
@@ -69,8 +70,8 @@ export function reviewReasons(ad,v,config,today=todayBeijing()){
   const reasons=offerReasons(ad,config,today);if(v?.body&&v.factStamp!==factStamp(ad,config))reasons.push(v.factStamp?'套餐或服务事实已变化，请复核文案':'这份文案尚未核对当前套餐与服务事实');return reasons;
 }
 export function publishSuggestions(account,date){
-  const timeZone=validZone(account.timeZone),times=account.times?.length?account.times:['12:30','20:00'];
-  return {basis:account.basis==='账号后台'?'账号后台':'测试建议',evidence:account.evidence||'午间与晚间两个测试时段，需结合本账号实际数据调整。',timeZone,rows:times.map(time=>{try{const instant=localToInstant(date+'T'+time,timeZone);return {local:date+'T'+time,instant,beijing:localTime(instant,'Asia/Shanghai')};}catch(e){return {local:date+'T'+time,error:e.message};}})};
+  const timeZone=validZone(account.timeZone),times=account.times?.length?account.times:defaultPublishTimes(account.platform);
+  return {basis:account.basis==='账号后台'?'账号后台':'测试建议',evidence:account.evidence||(times.length===1&&times[0]==='20:30'?'默认安排在20:30，需结合本账号实际数据调整。':'参考时段需结合本账号实际数据调整。'),timeZone,rows:times.map(time=>{try{const instant=localToInstant(date+'T'+time,timeZone);return {local:date+'T'+time,instant,beijing:localTime(instant,'Asia/Shanghai')};}catch(e){return {local:date+'T'+time,error:e.message};}})};
 }
 export const PRIMARY_MARKETS=[
   {region:'马来西亚',timeZone:'Asia/Kuala_Lumpur'},

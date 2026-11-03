@@ -31,7 +31,7 @@ test('AI 故障和生成请求不写入现有文案',async()=>{
  const e=setup(),c=await login(e);const ad=await(await request(e,'/api/ads','POST',{name:'测试',facts:'真实卖点'},c)).json();
  const r=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'新加坡',platforms:['tiktok']},c);assert.equal(r.status,502);
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.deepEqual(state.ads[0].versions,{});
- e.AI.run=async()=>({choices:[{message:{content:JSON.stringify({versions:[{platform:'tiktok',title:'廣州男士寫真',body:'記錄真實的自己。',tags:['男士寫真','廣州寫真','南鉑攝影','男生寫真','個人寫真'],cta:''}]})}}]});
+ e.AI.run=async()=>({choices:[{message:{content:JSON.stringify({versions:[{platform:'tiktok',title:'廣州男士寫真',body:'記錄真實的自己。',tags:['男士寫真','廣州寫真','馬來西亞','新加坡','臺灣'],cta:''}]})}}]});
  const generated=await(await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'台湾',platforms:['tiktok']},c)).json();assert.equal(generated.versions[0].title,'广州男士写真');
 });
 test('批量导入重复编号全批拒绝，退出后会话失效',async()=>{
@@ -82,15 +82,41 @@ test('一句话生成自动重试长文、分段、CTA和占位内容，保持�
 });
 test('八平台分别生成，各平台的有效结果按请求顺序完整返回',async()=>{
  const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'男士写真',location:'广州'},c)).json();
- e.AI.run=async(_model,input)=>{const p=JSON.parse(input.messages[1].content).平台[0];return {versions:[{platform:p.id,title:p.name+'男士写真作品参考',body:p.name+'男士写真作品参考',cta:'',tags:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影'].slice(0,p.id==='kuaishou'?4:5)}]};};
+ e.AI.run=async(_model,input)=>{const p=JSON.parse(input.messages[1].content).平台[0];return {versions:[{platform:p.id,title:p.name+'男士写真作品参考',body:p.name+'男士写真作品参考',cta:'',tags:(['tiktok','instagram','facebook','youtube'].includes(p.id)?['广州男士写真','男士写真','马来西亚','新加坡','台湾']:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影']).slice(0,p.id==='kuaishou'?4:5)}]};};
  const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:PLATFORMS.map(p=>p.id)},c);
  assert.equal(response.status,200);const data=await response.json();assert.deepEqual(data.versions.map(v=>v.platform),['douyin','xiaohongshu','kuaishou','channels','tiktok','instagram','facebook','youtube']);assert.equal(new Set(data.versions.map(v=>v.title)).size,8);
 });
 test('某平台失败返回后，仍在途的平台不会继续启动重试',async()=>{
- const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'男士写真'},c)).json();
+ const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'男士写真',versions:{'国内::douyin':{title:'已有底稿',body:'真实作品底稿'}}},c)).json();
  let release,slowCalls=0;e.AI.run=async(_model,input)=>{const platform=JSON.parse(input.messages[1].content).平台[0].id;const invalid={versions:[{platform,title:'男士写真',body:'广州到店拍摄',cta:'可以站内私信了解',tags:[]}]};if(platform==='douyin')return invalid;slowCalls++;await new Promise(r=>release=r);return invalid;};
  const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['douyin','tiktok']},c);assert.equal(response.status,502);
  release();await new Promise(setImmediate);assert.equal(slowCalls,1);
+});
+
+test('缺国内底稿时先生成国内稿，海外用新稿加工，返回仍按请求顺序且不改库',async()=>{
+ const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'旧素材名称',location:'广州'},c)).json();
+ const calls=[];
+ e.AI.run=async(_model,input)=>{
+  const data=JSON.parse(input.messages[1].content),platform=data.平台[0].id;calls.push(platform);
+  if(platform==='tiktok')assert.equal(data.国内文案底稿.body,'客户和摄影师选的，你更喜欢哪组？');
+  return {versions:[{platform,title:platform==='douyin'?'国内标题':'客户和摄影师谁更会选',body:platform==='douyin'?'客户和摄影师选的，你更喜欢哪组？':'来广州拍写真，你会选哪一组？',tags:['男士写真','广州写真','马来西亚','新加坡','台湾'],cta:''}]};
+ };
+ const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['tiktok','douyin']},c);
+ assert.equal(response.status,200);assert.deepEqual(calls,['douyin','tiktok']);
+ assert.deepEqual((await response.json()).versions.map(v=>v.platform),['tiktok','douyin']);
+ assert.deepEqual((await(await request(e,'/api/state','GET',undefined,c)).json()).ads[0].versions,{});
+});
+
+test('单独海外生成引用已保存国内定稿，重试继续保留底稿和海外规则',async()=>{
+ const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'旧素材名称',location:'广州',versions:{'国内::douyin':{title:'定稿标题',body:'客户和摄影师，你更喜欢谁选的？'}}},c)).json();
+ let attempts=0;e.AI.run=async(_model,input)=>{
+  const data=JSON.parse(input.messages[1].content);assert.equal(data.国内文案底稿.body,'客户和摄影师，你更喜欢谁选的？');
+  assert.match(input.messages[0].content,/海外/);
+  return {versions:[{platform:'tiktok',title:'客户和摄影师谁更会选',body:'来广州拍写真，你会选哪组？',cta:'',tags:++attempts===1?[]:['广州男士写真','男士写真','马来西亚','新加坡','台湾']}]};
+ };
+ const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['tiktok']},c);
+ assert.equal(response.status,200);assert.equal(attempts,2);
+ assert.deepEqual((await(await request(e,'/api/state','GET',undefined,c)).json()).ads[0].versions,ad.versions);
 });
 test('素材编号固定，套餐配置不会被旧设置页面清空，发布留底独立于广告恢复',async()=>{
  const e=setup(),c=await login(e);

@@ -1,4 +1,4 @@
-import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, defaultTagCount, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding, checkPublishReady} from '../../apps/copy-center/core.mjs';
+import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, DOMESTIC_PLATFORMS, isOverseasPlatform, domesticReference, defaultTagCount, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding, checkPublishReady} from '../../apps/copy-center/core.mjs';
 import {validateOperations, publicationRecord, restorePublication, effectiveAd, factStamp, offerReasons} from '../../apps/copy-center/operations.mjs';
 
 const STATIC_ASSETS = {};
@@ -52,20 +52,24 @@ async function app(request,env){
     if(!env.AI)throw new HttpError(503,'AI 服务暂未连接，已保留现有文案');await limit(env,'generate:'+session,60000,5);
     const input=await body(request,10000),row=await getAd(env,input.id);if(row.revision!==input.revision)throw new HttpError(409,'云端版本已更新，请先刷新广告再生成');
     const ad=unpack(row);ad.region=cleanText(input.region||ad.region,80,'目标地区');const config=await configuration(env);const problems=offerReasons(ad,config);if(problems.length)throw new HttpError(400,problems.join('；'));const grounded=effectiveAd(ad,config);buildPrompt(grounded,config.settings,config.rules,input.platforms);
-    let timer,stopped=false;
+    let timer,stopped=false,reference=domesticReference(grounded);
     const generateOne=async platform=>{
-      const messages=buildPrompt(grounded,config.settings,config.rules,[platform]);
+      const messages=buildPrompt(grounded,config.settings,config.rules,[platform],reference);
       for(let attempt=0;attempt<2;attempt++){
         if(stopped)throw new Error('timeout');
         const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:1400,temperature:attempt?0.3:0.55,response_format:{type:'json_object'}});
-        try{return checkPublishReady(checkGrounding(parseGenerated(result,[platform]),grounded,config.settings),grounded,config.settings)[0];}
-        catch(e){if(attempt||stopped)throw e;messages[0].content+=' 复核要求：'+e.message+'。只返回这个平台的简洁文案。视频号标题单独写6到16字短标题，其他平台标题和正文用同一句话；正文40字以内、单行一句话，cta为空字符串，恰好'+defaultTagCount(platform)+'个写真业务相关话题，不自动加套餐、到店或咨询段落，不留占位内容。';}
+        try{return checkPublishReady(checkGrounding(parseGenerated(result,[platform]),grounded,config.settings,isOverseasPlatform(platform)?reference:null),grounded,config.settings)[0];}
+        catch(e){if(attempt||stopped)throw e;messages[0].content+=' 复核要求：'+e.message+'。只返回这个平台的简洁文案。视频号标题单独写6到16字短标题；'+(isOverseasPlatform(platform)?'海外标题保持视频看点，正文依据国内底稿带出到真实服务城市拍摄的邀请，话题为两个真实业务话题加马来西亚、新加坡、台湾；':'国内其他平台标题和正文用同一句话；')+'正文40字以内、单行一句话，cta为空字符串，恰好'+defaultTagCount(platform)+'个写真业务相关话题，不自动加套餐或咨询段落，不留占位内容。';}
       }
     };
     try{
-      const generate=async()=>{let cursor=0;const versions=new Array(input.platforms.length);
-        await Promise.all(Array.from({length:Math.min(3,input.platforms.length)},async()=>{while(!stopped){const index=cursor++;if(index>=input.platforms.length)return;try{versions[index]={...await generateOne(input.platforms[index]),factStamp:factStamp(ad,config)};}catch(e){stopped=true;throw e;}}}));
-        return versions;
+      const generate=async()=>{let cursor=0;const versions=new Map();
+        const seed=!reference&&input.platforms.some(isOverseasPlatform)&&DOMESTIC_PLATFORMS.find(p=>input.platforms.includes(p));
+        const generateVersion=async platform=>({...await generateOne(platform),factStamp:factStamp(ad,config)});
+        if(seed){const v=await generateVersion(seed);if(stopped)throw new Error('timeout');versions.set(seed,v);reference={platform:seed,title:v.title,body:v.body};}
+        const pending=input.platforms.filter(p=>p!==seed);
+        await Promise.all(Array.from({length:Math.min(3,pending.length)},async()=>{while(!stopped){const index=cursor++;if(index>=pending.length)return;try{versions.set(pending[index],await generateVersion(pending[index]));}catch(e){stopped=true;throw e;}}}));
+        return input.platforms.map(p=>versions.get(p));
       };
       const versions=await Promise.race([generate(),new Promise((_,reject)=>{timer=setTimeout(()=>{stopped=true;reject(new Error('timeout'));},80000);})]);
       return json({versions,region:ad.region,sourceRevision:row.revision});

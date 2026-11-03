@@ -95,3 +95,20 @@ test('视频号提供独立短标题复制，视频描述只复制正文与五�
  assert.equal(copied,'客户和摄影师选的照片，你更喜欢哪一组？\n\n'+tags.map(t=>'#'+t).join(' '));
  h.S.platform='douyin';assert.doesNotMatch(h.editor(),/复制短标题|复制视频描述/);
 });
+
+test('按国内稿一次更新海外四平台，国内定稿和旧发布记录保持原样',async()=>{
+ const h=await harness();const original={platform:'douyin',region:'国内',title:'国内标题',body:'国内定稿正文',tags:['手动话题'],status:'已发布',publishUrl:'https://example.com/video'};
+ h.S.draft.versions={'国内::douyin':original,'国内::tiktok':{platform:'tiktok',title:'旧海外标题',body:'旧海外正文',tags:[]}};
+ assert.match(h.editor(),/按国内稿更新海外/);
+ const requests=[];h.sandbox.fetch=async(path,options)=>{
+  const data=JSON.parse(options.body);requests.push({path,data});
+  return {ok:true,status:200,json:async()=>path==='/api/generate'?{versions:data.platforms.map(platform=>({platform,title:'新内容标题',body:'来广州拍写真，喜欢这种风格吗？',tags:['广州男士写真','男士写真','马来西亚','新加坡','台湾']}))}:{...data,revision:(data.revision||0)+1}};
+ };
+ await h.listeners.click({target:{closest:()=>({dataset:{action:'generate-overseas'}})}});
+ const call=requests.find(r=>r.path==='/api/generate');
+ assert.deepEqual(JSON.parse(JSON.stringify(call?.data.platforms)),['tiktok','instagram','facebook','youtube']);
+ assert.equal(h.S.draft.versions['国内::douyin'].body,'国内定稿正文');
+ assert.equal(h.S.draft.versions['国内::douyin'].publishUrl,'https://example.com/video');
+ assert.equal(h.S.draft.versions['国内::tiktok'].title,'新内容标题');
+ assert.equal(Object.values(h.S.draft.versions).length,5);
+});

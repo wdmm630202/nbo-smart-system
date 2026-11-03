@@ -13,7 +13,7 @@ test('八平台固定且全部简体生成，事实和地区作为资料处理',
   assert.throws(()=>validateAd({name:'x',assetUrl:'javascript:alert(1)'}),/链接/);
 });
 test('生成结果必须覆盖请求平台，保留结构边界',()=>{
-  const rows=PLATFORMS.map(p=>({platform:p.id,title:'在广州记录自己',body:'南铂摄影男士写真。',tags:['广州写真','男士写真','南铂摄影','男生写真','个人写真'],cta:'私信了解风格'}));
+  const rows=PLATFORMS.map(p=>({platform:p.id,title:'在广州记录自己',body:'南铂摄影男士写真。',tags:['广州写真','男士写真','南铂摄影','男生写真','个人写真'].slice(0,p.id==='kuaishou'?4:5),cta:'私信了解风格'}));
   assert.equal(parseGenerated({response:JSON.stringify({versions:rows})},PLATFORMS.map(p=>p.id)).length,8);
   assert.throws(()=>parseGenerated({response:'not json'},['douyin']),/格式/);
   assert.throws(()=>parseGenerated({response:'{"versions":[]}'},['douyin']),/缺少/);
@@ -43,12 +43,13 @@ test('生成文案拒绝资料未确认的价格和服务承诺',()=>{
   assert.throws(()=>checkGrounding([{title:'写真',body:'268元拍2套，不用担心额外费用。'}],{facts:'268元拍2套'},{}),/未确认/);
  assert.doesNotThrow(()=>checkGrounding([{title:'268元拍2套',body:'男士写真，底片全送。'}],{facts:'268元拍2套，底片全送'},{}));
 });
-test('自动生成要求八平台各有五个不重复的有效话题',()=>{
- const tags=['广州男士写真','男士写真','南铂摄影','广州写真','男生写真'];
+test('自动生成按平台要求四个或五个不重复的有效话题',()=>{
+ const all=['广州男士写真','男士写真','南铂摄影','广州写真','男生写真'];
  for(const p of PLATFORMS){
+  const count=p.id==='kuaishou'?4:5,tags=all.slice(0,count);
   const row={platform:p.id,title:'广州男士写真',body:'真实作品与拍摄风格。',tags};
-  assert.equal(parseGenerated({versions:[row]},[p.id])[0].tags.length,5);
-  for(const invalid of [tags.slice(0,3),[...tags,'个人写真'],[...tags.slice(0,4),tags[0]],[...tags.slice(0,4),'# ']])assert.throws(()=>parseGenerated({versions:[{...row,tags:invalid}]},[p.id]),/5.*话题|话题.*5/);
+  assert.equal(parseGenerated({versions:[row]},[p.id])[0].tags.length,count);
+  for(const invalid of [tags.slice(0,count-1),[...tags,'个人写真'],[...tags.slice(0,-1),tags[0]],[...tags.slice(0,-1),'# ']])assert.throws(()=>parseGenerated({versions:[{...row,tags:invalid}]},[p.id]),new RegExp(count+'.*话题|话题.*'+count));
  }
  const prompt=buildPrompt({name:'作品'},undefined,[{id:'douyin',maxTags:3}],['douyin']);
  assert.match(prompt[0].content,/5.*话题|话题.*5/);

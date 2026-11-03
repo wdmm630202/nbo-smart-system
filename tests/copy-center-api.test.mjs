@@ -67,7 +67,7 @@ test('手动增加和减少话题均可保存，历史保留原数量',async()=>
  assert.equal((await request(e,'/api/ads/'+ad.id,'PUT',ad,c)).status,200);
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.equal(state.ads[0].versions['国内::youtube'].tags.length,3);
  const history=await(await request(e,'/api/ads/'+ad.id+'/history','GET',undefined,c)).json();assert.equal(history[0].ad.versions['国内::youtube'].tags.length,7);
- assert.ok(state.rules.every(r=>r.maxTags===5));
+ assert.ok(state.rules.every(r=>r.maxTags===(r.id==='kuaishou'?4:5)));
 });
 test('一句话生成自动重试长文、分段、CTA和占位内容，保持已有定稿不变',async()=>{
  const e=setup(),c=await login(e),tags=['男士写真','广州男士写真','广州男士拍摄','男生写真','广州写真'];
@@ -82,7 +82,7 @@ test('一句话生成自动重试长文、分段、CTA和占位内容，保持�
 });
 test('八平台分别生成，各平台的有效结果按请求顺序完整返回',async()=>{
  const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'男士写真',location:'广州'},c)).json();
- e.AI.run=async(_model,input)=>{const p=JSON.parse(input.messages[1].content).平台[0];return {versions:[{platform:p.id,title:p.name+'男士写真作品参考',body:p.name+'男士写真作品参考',cta:'',tags:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影']}]};};
+ e.AI.run=async(_model,input)=>{const p=JSON.parse(input.messages[1].content).平台[0];return {versions:[{platform:p.id,title:p.name+'男士写真作品参考',body:p.name+'男士写真作品参考',cta:'',tags:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影'].slice(0,p.id==='kuaishou'?4:5)}]};};
  const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:PLATFORMS.map(p=>p.id)},c);
  assert.equal(response.status,200);const data=await response.json();assert.deepEqual(data.versions.map(v=>v.platform),['douyin','xiaohongshu','kuaishou','channels','tiktok','instagram','facebook','youtube']);assert.equal(new Set(data.versions.map(v=>v.title)).size,8);
 });
@@ -115,4 +115,20 @@ test('素材编号固定，套餐配置不会被旧设置页面清空，发布�
  const restore=await request(second,'/api/publications/import','POST',{publications:[receipt]},c2);assert.equal(restore.status,200);
  const restored=await(await request(second,'/api/publications?adId='+ad2.id,'GET',undefined,c2)).json();assert.equal(restored.items[0].adId,ad2.id);assert.equal(restored.items[0].snapshot.title,'实际标题');
  assert.equal((await(await request(second,'/api/publications/import','POST',{publications:[receipt]},c2)).json()).skipped,1);
+});
+
+test('快手四话题重试要求与云端默认规则一致，小红书保持五个',async()=>{
+ const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'客户与摄影师选片'},c)).json();
+ const tags=['男士写真','广州男士写真','广州男士拍摄','男生写真','广州写真'];let calls=0;
+ e.AI.run=async(_model,input)=>{
+  if(++calls===2){assert.match(input.messages[0].content,/恰好4个写真业务相关话题/);assert.doesNotMatch(input.messages[0].content,/\$\{defaultTagCount/);}
+  return {versions:[{platform:'kuaishou',title:'你喜欢哪组？',body:'你喜欢哪组？',cta:'',tags:tags.slice(0,calls===1?5:4)}]};
+ };
+ const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['kuaishou']},c);
+ assert.equal(response.status,200);assert.equal(calls,2);assert.equal((await response.json()).versions[0].tags.length,4);
+ const configured=await request(e,'/api/configuration','PUT',{revision:0,rules:[{id:'kuaishou',titleGuide:24,bodyGuide:40,maxTags:5},{id:'xiaohongshu',titleGuide:20,bodyGuide:40,maxTags:10}]},c);
+ assert.equal(configured.status,200);
+ const state=await(await request(e,'/api/state','GET',undefined,c)).json();
+ assert.equal(state.rules.find(p=>p.id==='kuaishou').maxTags,4);
+ assert.equal(state.rules.find(p=>p.id==='xiaohongshu').maxTags,5);
 });

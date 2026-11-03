@@ -6,14 +6,14 @@ import {buildPrompt,checkPublishReady,versionText,validateAd,PLATFORMS} from '..
 const ad={name:'客户选片和摄影师选片',location:'广州',region:'国内',facts:'698元拍3套'};
 const sentence='客户和摄影师选的照片，你更喜欢哪一组？';
 const tags=['男士写真','广州男士写真','广州男士拍摄','男生写真','广州写真'];
-test('八平台默认一句话和五个写真话题，不附加套餐或营销引导',()=>{
+test('八平台默认一句话和对应数量的写真话题，不附加套餐或营销引导',()=>{
  for(const p of PLATFORMS){
   const prompt=buildPrompt(ad,{brand:'南铂摄影',location:'广州',cta:'私信「268」咨询'},undefined,[p.id]);
   assert.match(prompt[0].content,/一句话/);
   assert.doesNotMatch(prompt[0].content,/固定架构为开头看点|两段之间必须空一行/);
   const data=JSON.parse(prompt[1].content),sample=data.成稿示例;
   assert.equal(sample.title,sample.body);assert.ok(sample.body.length<=40);
-  assert.equal(sample.cta,'');assert.deepEqual(sample.tags,tags);
+  assert.equal(sample.cta,'');assert.deepEqual(sample.tags,tags.slice(0,p.id==='kuaishou'?4:5));
   assert.doesNotMatch(JSON.stringify(sample),/698|268|到店|私信|Messenger/);
  }
 });

@@ -25,4 +25,4 @@ test('排除当前发布，按观察时间取最近20条，拒绝未标识来源
  assert.equal(result.sampleSize,20);assert.equal(result.median,15.5);
  assert.equal(assessHeat({...current,accountId:''},history).label,'比较条件待补全');
 });
-test('八平台官号与自媒体的文案示例默认各有五个话题',()=>{const rows=exportStrategy().blueprints;assert.equal(rows.length,16);for(const row of rows)assert.equal(row.tags.length,5,row.id);});
+test('八平台示例话题数为快手四个，其他五个',()=>{const rows=exportStrategy().blueprints;assert.equal(rows.length,16);for(const row of rows)assert.equal(row.tags.length,row.platform==='kuaishou'?4:5,row.id);});

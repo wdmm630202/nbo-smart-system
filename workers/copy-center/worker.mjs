@@ -1,4 +1,4 @@
-import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, DEFAULT_TAG_COUNT, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding, checkPublishReady} from '../../apps/copy-center/core.mjs';
+import {PLATFORMS, DEFAULT_SETTINGS, DEFAULT_RULES, defaultTagCount, validateAd, cleanText, buildPrompt, parseGenerated, checkGrounding, checkPublishReady} from '../../apps/copy-center/core.mjs';
 import {validateOperations, publicationRecord, restorePublication, effectiveAd, factStamp, offerReasons} from '../../apps/copy-center/operations.mjs';
 
 const STATIC_ASSETS = {};
@@ -12,7 +12,7 @@ const unpack=r=>({...JSON.parse(r.data),id:r.id,code:r.code,revision:r.revision,
 async function body(request,max=300000){const declared=Number(request.headers.get('Content-Length'));if(declared>max)throw new HttpError(413,'内容过大，请分批导入');const text=await request.text();if(text.length>max)throw new HttpError(413,'内容过大，请分批导入');try{return JSON.parse(text);}catch{throw new HttpError(400,'请求格式不正确');}}
 async function checkSession(request,env){const key=await cookieHash(request);if(!key)throw new HttpError(401,'请先登录文案中心');const s=await env.DB.prepare('SELECT token_hash FROM sessions WHERE token_hash=? AND expires_at>?').bind(key,Date.now()).first();if(!s)throw new HttpError(401,'登录已过期，请重新登录');return key;}
 async function limit(env,key,windowMs,max){const bucket=`${key}:${Math.floor(Date.now()/windowMs)}`;const r=await env.DB.prepare('INSERT INTO request_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(bucket,Date.now()+windowMs*2).first();if(r.count>max)throw new HttpError(429,'操作较频繁，请稍后再试');}
-async function configuration(env){const row=await env.DB.prepare('SELECT data,revision FROM configuration WHERE id=?').bind('main').first();const value=row?JSON.parse(row.data):{};return {settings:{...DEFAULT_SETTINGS,...value.settings},rules:DEFAULT_RULES.map(d=>({...d,...value.rules?.find(r=>r.id===d.id),maxTags:DEFAULT_TAG_COUNT})),accounts:value.accounts||[],offers:value.offers||[],configurationRevision:row?.revision||0};}
+async function configuration(env){const row=await env.DB.prepare('SELECT data,revision FROM configuration WHERE id=?').bind('main').first();const value=row?JSON.parse(row.data):{};return {settings:{...DEFAULT_SETTINGS,...value.settings},rules:DEFAULT_RULES.map(d=>({...d,...value.rules?.find(r=>r.id===d.id),maxTags:defaultTagCount(d.id)})),accounts:value.accounts||[],offers:value.offers||[],configurationRevision:row?.revision||0};}
 async function getAd(env,id){const row=await env.DB.prepare('SELECT * FROM ads WHERE id=?').bind(id).first();if(!row)throw new HttpError(404,'这条广告不存在');return row;}
 async function app(request,env){
   const url=new URL(request.url),path=url.pathname,method=request.method;
@@ -59,7 +59,7 @@ async function app(request,env){
         if(stopped)throw new Error('timeout');
         const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:1400,temperature:attempt?0.3:0.55,response_format:{type:'json_object'}});
         try{return checkPublishReady(checkGrounding(parseGenerated(result,[platform]),grounded,config.settings),grounded,config.settings)[0];}
-        catch(e){if(attempt||stopped)throw e;messages[0].content+=' 复核要求：'+e.message+'。只返回这个平台的简洁文案。标题和正文用同一句话，各40字以内，正文单行一句话，cta为空字符串，恰好5个写真业务相关话题，不自动加套餐、到店或咨询段落，不留占位内容。';}
+        catch(e){if(attempt||stopped)throw e;messages[0].content+=' 复核要求：'+e.message+'。只返回这个平台的简洁文案。标题和正文用同一句话，各40字以内，正文单行一句话，cta为空字符串，恰好'+defaultTagCount(platform)+'个写真业务相关话题，不自动加套餐、到店或咨询段落，不留占位内容。';}
       }
     };
     try{
@@ -83,7 +83,7 @@ async function app(request,env){
     const input=await body(request,1200000),old=await configuration(env);if(input.revision!==old.configurationRevision)throw new HttpError(409,'品牌、账号或套餐已在另一台设备更新，请刷新后重试');
     const settings={};for(const [key,max]of Object.entries({brand:100,location:200,facts:8000,voice:1000,cta:1000}))settings[key]=cleanText(input.settings?.[key]??old.settings[key],max,key);
     if(!settings.brand)throw new HttpError(400,'请填写品牌名称');
-    const rules=DEFAULT_RULES.map(d=>{const v=input.rules?.find(r=>r.id===d.id)||old.rules.find(r=>r.id===d.id);const r={...d};for(const key of ['notes','mediaNote','source','verifiedAt'])r[key]=cleanText(v[key],2000,key);for(const key of ['titleGuide','bodyGuide']){const n=Number(v[key]);if(!Number.isFinite(n)||n<1||n>20000)throw new HttpError(400,'规则字数或话题数量无效');r[key]=Math.round(n);}r.maxTags=DEFAULT_TAG_COUNT;return r;});
+    const rules=DEFAULT_RULES.map(d=>{const v=input.rules?.find(r=>r.id===d.id)||old.rules.find(r=>r.id===d.id);const r={...d};for(const key of ['notes','mediaNote','source','verifiedAt'])r[key]=cleanText(v[key],2000,key);for(const key of ['titleGuide','bodyGuide']){const n=Number(v[key]);if(!Number.isFinite(n)||n<1||n>20000)throw new HttpError(400,'规则字数或话题数量无效');r[key]=Math.round(n);}r.maxTags=defaultTagCount(d.id);return r;});
     const operations=validateOperations(input,old),value=JSON.stringify({settings,rules,...operations});let result;if(old.configurationRevision===0){try{result=await env.DB.prepare('INSERT INTO configuration (id,data,revision) VALUES (?, ?, 1)').bind('main',value).run();}catch(e){if(/UNIQUE/i.test(e.message))throw new HttpError(409,'设置已更新，请刷新');throw e;}}else result=await env.DB.prepare('UPDATE configuration SET data=?,revision=revision+1 WHERE id=? AND revision=?').bind(value,'main',old.configurationRevision).run();
     if(result.meta.changes!==1)throw new HttpError(409,'设置已更新，请刷新');return json(await configuration(env));
   }

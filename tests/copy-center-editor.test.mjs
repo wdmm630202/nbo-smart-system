@@ -69,7 +69,7 @@ test('新建广告默认只有一句话主输入，其余资料收进关闭的�
  assert.doesNotMatch(main,/name="facts"|name="description"|name="theme"/);
  assert.ok(optional);assert.doesNotMatch(html,/<details[^>]*\bopen\b/);
  for(const key of ['facts','theme','description','location','assetUrl','code','region'])assert.match(optional,new RegExp('name="'+key+'"'));
- assert.match(main,/5个男士写真相关话题/);
+ assert.match(main,/快手4个话题，小红书等平台5个/);
 });
 test('编辑器展示一句话格式，旧资料和CTA保留为可选项',async()=>{
  const h=await harness();const html=h.editor();
@@ -77,4 +77,10 @@ test('编辑器展示一句话格式，旧资料和CTA保留为可选项',async(
  assert.doesNotMatch(html,/看点开头 → 作品介绍|到店与套餐 → 平台咨询/);
  assert.match(html,/<details class="optional-fields"><summary>发布记录与选填信息/);
  assert.match(html,/name="cta"/);
+});
+
+test('切换平台时快手提示四个话题，小红书提示五个',async()=>{
+ const h=await harness();
+ h.S.platform='kuaishou';let html=h.editor();assert.match(html,/一句话 · 四个写真话题/);assert.match(html,/默认 4 个男士写真/);
+ h.S.platform='xiaohongshu';html=h.editor();assert.match(html,/一句话 · 五个写真话题/);assert.match(html,/默认 5 个男士写真/);
 });

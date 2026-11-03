@@ -72,6 +72,15 @@ export function publishSuggestions(account,date){
   const timeZone=validZone(account.timeZone),times=account.times?.length?account.times:['12:30','20:00'];
   return {basis:account.basis==='账号后台'?'账号后台':'测试建议',evidence:account.evidence||'午间与晚间两个测试时段，需结合本账号实际数据调整。',timeZone,rows:times.map(time=>{try{const instant=localToInstant(date+'T'+time,timeZone);return {local:date+'T'+time,instant,beijing:localTime(instant,'Asia/Shanghai')};}catch(e){return {local:date+'T'+time,error:e.message};}})};
 }
+export const PRIMARY_MARKETS=[
+  {region:'马来西亚',timeZone:'Asia/Kuala_Lumpur'},
+  {region:'新加坡',timeZone:'Asia/Singapore'},
+  {region:'台湾',timeZone:'Asia/Taipei'}
+];
+export function publishMarketSuggestions(account,date){
+  const reference=publishSuggestions(account||{timeZone:'Asia/Kuala_Lumpur'},date);
+  return {...reference,markets:PRIMARY_MARKETS.map(market=>({...market,rows:reference.rows.map(row=>row.error?{error:row.error}:{...row,local:localTime(row.instant,market.timeZone)})}))};
+}
 export function publicationRecord(input,ad,account,config,now=new Date().toISOString()){
   if(!account||account.archived)throw new Error('请选择有效的发布账号');
   if(input.platform!==account.platform)throw new Error('发布账号与文案平台不一致');

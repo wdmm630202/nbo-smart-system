@@ -9,9 +9,9 @@ import * as opsUI from '../apps/copy-center/operations-ui.mjs';
 async function harness(){
  const source=await readFile(new URL('../apps/copy-center/app.mjs',import.meta.url),'utf8');
  const controls=[{disabled:false},{disabled:false}],elements=new Map(),listeners={};
- const element=key=>{if(key==='#source-form'||key==='#version-form')return null;if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',className:'',dataset:{},classList:{add(){}},disabled:false});return elements.get(key);};
+ const element=key=>{if(key==='#source-form'||key==='#version-form')return null;if(!elements.has(key))elements.set(key,{innerHTML:'',textContent:'',className:'',dataset:{},classList:{add(){}},disabled:false,querySelector:()=>null,showModal(){this.open=true;},close(){this.open=false;}});return elements.get(key);};
  const storage=new Map();const sandbox={...core,...strategy,ops,opsUI,console,setTimeout,clearTimeout,URL,Blob,TextEncoder,TextDecoder,fetch:()=>new Promise(()=>{}),confirm:()=>true,matchMedia:()=>({matches:true}),sessionStorage:{setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k),getItem:k=>storage.get(k)||null},document:{querySelector:element,querySelectorAll:()=>controls,body:{classList:{toggle(){},remove(){}}},addEventListener:(name,fn)=>listeners[name]=fn},window:{addEventListener:(name,fn)=>listeners[name]=fn,scrollTo(){}},navigator:{clipboard:{writeText:async()=>{}}}};
- vm.createContext(sandbox);const code=source.slice(0,source.lastIndexOf("\napi('/state')")).replace(/^import[^\n]+\n/gm,'');vm.runInContext(code+'\nglobalThis.app={S,saveDraft,previewImport,backup};',sandbox);
+ vm.createContext(sandbox);const code=source.slice(0,source.lastIndexOf("\napi('/state')")).replace(/^import[^\n]+\n/gm,'');vm.runInContext(code+'\nglobalThis.app={S,saveDraft,previewImport,backup,newAd,editor};',sandbox);
  const a={id:'abc',code:'NB-001',name:'广告 A',region:'国内',location:'广州',facts:'',description:'',theme:'',assetUrl:'',versions:{},revision:1,updatedAt:'2026-10-20'};Object.assign(sandbox.app.S,{ads:[a],draft:structuredClone(a),rules:core.DEFAULT_RULES,page:'editor',dirty:true});
  return {sandbox,...sandbox.app,controls,elements,listeners,storage,ad:a};
 }
@@ -60,4 +60,21 @@ test('YouTube一键复制说明省去独立标题，其他平台复制整段保�
   const description='想试试白衬衫写真？\n\n📍南铂摄影｜广州到店拍摄\n\n欢迎评论留言了解。\n\n#男士写真 #广州摄影 #白衬衫写真 #个人写真 #南铂摄影';
   assert.equal(copied,platform==='youtube'?description:'广州白衬衫写真｜作品参考\n\n'+description);
  }
+});
+
+test('新建广告默认只有一句话主输入，其余资料收进关闭的选填区域',async()=>{
+ const h=await harness();h.newAd();const html=h.elements.get('#modal').innerHTML;
+ const [main,optional]=html.split('<details class="optional-fields">');
+ assert.match(main,/一句话介绍这条视频/);assert.match(main,/name="name"/);
+ assert.doesNotMatch(main,/name="facts"|name="description"|name="theme"/);
+ assert.ok(optional);assert.doesNotMatch(html,/<details[^>]*\bopen\b/);
+ for(const key of ['facts','theme','description','location','assetUrl','code','region'])assert.match(optional,new RegExp('name="'+key+'"'));
+ assert.match(main,/5个男士写真相关话题/);
+});
+test('编辑器展示一句话格式，旧资料和CTA保留为可选项',async()=>{
+ const h=await harness();const html=h.editor();
+ assert.match(html,/正文（一句话）/);assert.match(html,/一句话 · 五个写真话题/);
+ assert.doesNotMatch(html,/看点开头 → 作品介绍|到店与套餐 → 平台咨询/);
+ assert.match(html,/<details class="optional-fields"><summary>发布记录与选填信息/);
+ assert.match(html,/name="cta"/);
 });

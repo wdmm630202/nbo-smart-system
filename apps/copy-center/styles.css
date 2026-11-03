@@ -79,3 +79,9 @@
 @media(max-width:650px){.nav{overflow-x:auto;justify-content:flex-start}.nav button{flex:1 0 54px;white-space:nowrap;font-size:9px}.ops-title{flex-wrap:wrap;gap:12px}.time-slots{grid-template-columns:1fr}.review-banner{align-items:flex-start;flex-direction:column}.timing-panel .actions{flex-wrap:wrap}.timing-panel .btn{min-height:44px}.receipt-row{gap:10px}.receipt-row .btn{min-height:42px}.ops-grid{gap:16px}.ops-item{padding:16px 0}}
 
 .publish-portal{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#fff;border:1px solid #e5e5e7;border-radius:14px;padding:16px 18px;margin-bottom:16px}.publish-portal>div{min-width:0}.publish-portal b{font-size:13px;color:var(--platform-ink,#1d1d1f)}.publish-portal p{font-size:11px;line-height:1.8;color:#6e6e73;margin:6px 0 0}.publish-portal-link{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;gap:6px;text-decoration:none;color:#0071e3;border-color:#c9dff7;background:#f5f9ff;min-height:42px;white-space:nowrap}.publish-portal-link:hover{background:#eaf3ff;border-color:#0071e3}.publish-portal-link:focus-visible{outline:3px solid #0071e366;outline-offset:3px}@media(max-width:650px){.publish-portal{align-items:stretch;flex-direction:column;gap:12px;padding:16px}.publish-portal-link{min-height:44px;width:100%;font-size:13px}}
+
+/* 简洁表单：一句话为主，其他资料按需展开。 */
+.optional-fields{border-top:1px solid #e5e5e7;margin-top:18px;padding-top:15px}
+.optional-fields>summary{cursor:pointer;font-size:13px;color:#6e6e73;padding:5px 0}
+.optional-content{padding-top:18px}
+.compose-fields .body-copy{min-height:88px}

@@ -31,7 +31,7 @@ test('AI 故障和生成请求不写入现有文案',async()=>{
  const e=setup(),c=await login(e);const ad=await(await request(e,'/api/ads','POST',{name:'测试',facts:'真实卖点'},c)).json();
  const r=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'新加坡',platforms:['tiktok']},c);assert.equal(r.status,502);
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.deepEqual(state.ads[0].versions,{});
- e.AI.run=async()=>({choices:[{message:{content:JSON.stringify({versions:[{platform:'tiktok',title:'廣州男士寫真',body:'記錄真實的自己。\n\n廣州到店拍攝，服務華人。',tags:['男士寫真','廣州寫真','南鉑攝影','男生寫真','個人寫真'],cta:'私信諮詢'}]})}}]});
+ e.AI.run=async()=>({choices:[{message:{content:JSON.stringify({versions:[{platform:'tiktok',title:'廣州男士寫真',body:'記錄真實的自己。',tags:['男士寫真','廣州寫真','南鉑攝影','男生寫真','個人寫真'],cta:''}]})}}]});
  const generated=await(await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'台湾',platforms:['tiktok']},c)).json();assert.equal(generated.versions[0].title,'广州男士写真');
 });
 test('批量导入重复编号全批拒绝，退出后会话失效',async()=>{
@@ -52,7 +52,7 @@ test('分批恢复失败后可安全重试，已有广告不被覆盖',async()=>
 test('话题不足五个会重试，生成失败也不覆盖已有手动话题',async()=>{
  const e=setup(),c=await login(e),tags=['广州男士写真','男士写真','南铂摄影','广州写真','男生写真'];
  const ad=await(await request(e,'/api/ads','POST',{name:'话题验证',versions:{'国内::douyin':{title:'原有标题',body:'手动正文',tags:['手动一','手动二','手动三']}}},c)).json();
- let attempts=0;e.AI.run=async()=>({versions:[{platform:'douyin',title:'广州写真',body:'真实男士写真作品。\n\n广州到店拍摄。',cta:'可以站内私信了解。',tags:++attempts===1?tags.slice(0,3):tags}]});
+ let attempts=0;e.AI.run=async()=>({versions:[{platform:'douyin',title:'广州写真',body:'真实男士写真作品。',cta:'',tags:++attempts===1?tags.slice(0,3):tags}]});
  const r=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['douyin']},c);
  assert.equal(r.status,200);assert.equal(attempts,2);assert.equal((await r.json()).versions[0].tags.length,5);
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.deepEqual(state.ads[0].versions['国内::douyin'].tags,['手动一','手动二','手动三']);
@@ -69,20 +69,20 @@ test('手动增加和减少话题均可保存，历史保留原数量',async()=>
  const history=await(await request(e,'/api/ads/'+ad.id+'/history','GET',undefined,c)).json();assert.equal(history[0].ad.versions['国内::youtube'].tags.length,7);
  assert.ok(state.rules.every(r=>r.maxTags===5));
 });
-test('直接发布稿自动重试缺失的地点、币种和站内引导，保持已发布定稿不变',async()=>{
- const e=setup(),c=await login(e),tags=['男士写真','广州摄影','男生拍照','个人写真','南铂摄影'];
- const ad=await(await request(e,'/api/ads','POST',{name:'成片展示',region:'海外华人',location:'广州',facts:'268元拍2套，底片全送',versions:{'海外华人::tiktok':{title:'已经发布的标题',body:'已经发布的原文',tags:['原有话题'],status:'已发布'}}},c)).json();
- const good={platform:'tiktok',title:'想拍一组属于自己的写真？',body:'先看看这条作品，找找你喜欢的感觉。\n\n南铂摄影｜广州到店拍摄\n人民币268元拍2套，底片全送。',tags,cta:'想了解风格和可预约时间，可以站内私信「268」。'};
- for(const invalid of [{...good,cta:''},{...good,body:'先看看这条作品，找找你喜欢的感觉。人民币268元拍2套，底片全送。'},{...good,body:good.body.replace('人民币','')},{...good,body:good.body+'\n【待填写作品信息】'},{...good,body:good.body.replaceAll('\n',' ')}]){
+test('一句话生成自动重试长文、分段、CTA和占位内容，保持已有定稿不变',async()=>{
+ const e=setup(),c=await login(e),tags=['男士写真','广州男士写真','广州男士拍摄','男生写真','广州写真'];
+ const ad=await(await request(e,'/api/ads','POST',{name:'客户与摄影师选片',location:'广州',versions:{'国内::douyin':{title:'原来标题',body:'原来长文。\n\n旧稿不会被替换。',cta:'原来咨询。'}}},c)).json();
+ const good={platform:'douyin',title:'你更喜欢谁选的照片？',body:'你更喜欢谁选的照片？',tags,cta:''};
+ for(const invalid of [{...good,cta:'私信咨询。'},{...good,body:'第一行\n第二行'},{...good,body:'这是第一句。你喜欢吗？'},{...good,body:'字'.repeat(41)},{...good,body:'【待填写作品信息】'}]){
   let attempts=0;e.AI.run=async()=>({versions:[++attempts===1?invalid:good]});
-  const result=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'海外华人',platforms:['tiktok']},c);
-  assert.equal(result.status,200);assert.equal(attempts,2);assert.equal((await result.json()).versions[0].cta,good.cta);
+  const result=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,region:'国内',platforms:['douyin']},c);
+  assert.equal(result.status,200);assert.equal(attempts,2);assert.equal((await result.json()).versions[0].body,good.body);
  }
  const state=await(await request(e,'/api/state','GET',undefined,c)).json();assert.deepEqual(state.ads[0].versions,ad.versions);
 });
 test('八平台分别生成，各平台的有效结果按请求顺序完整返回',async()=>{
  const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'男士写真',location:'广州'},c)).json();
- e.AI.run=async(_model,input)=>{const p=JSON.parse(input.messages[1].content).平台[0];return {versions:[{platform:p.id,title:p.name+'男士写真作品参考',body:'先看看这条作品，找找你喜欢的感觉。\n\n广州到店拍摄。',cta:p.id==='youtube'?'想了解风格，欢迎在评论区留言。':p.id==='facebook'?'想了解风格，可以通过 Messenger 私信。':'想了解风格，可以站内私信。',tags:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影']}]};};
+ e.AI.run=async(_model,input)=>{const p=JSON.parse(input.messages[1].content).平台[0];return {versions:[{platform:p.id,title:p.name+'男士写真作品参考',body:p.name+'男士写真作品参考',cta:'',tags:['男士写真','广州摄影','男生拍照','个人写真','南铂摄影']}]};};
  const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:PLATFORMS.map(p=>p.id)},c);
  assert.equal(response.status,200);const data=await response.json();assert.deepEqual(data.versions.map(v=>v.platform),['douyin','xiaohongshu','kuaishou','channels','tiktok','instagram','facebook','youtube']);assert.equal(new Set(data.versions.map(v=>v.title)).size,8);
 });

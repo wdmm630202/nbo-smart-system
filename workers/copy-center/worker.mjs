@@ -59,7 +59,7 @@ async function app(request,env){
         if(stopped)throw new Error('timeout');
         const result=await env.AI.run(env.AI_MODEL||'@cf/qwen/qwen3-30b-a3b-fp8',{messages,max_tokens:1400,temperature:attempt?0.3:0.55,response_format:{type:'json_object'}});
         try{return checkPublishReady(checkGrounding(parseGenerated(result,[platform]),grounded,config.settings),grounded,config.settings)[0];}
-        catch(e){if(attempt||stopped)throw e;messages[0].content+=' 复核要求：'+e.message+'。保持这个平台的写法，只返回这个平台的完整文案，正文写明实际城市、海外元报价明确人民币，cta单独给出站内咨询引导，恰好5个相关话题，不留占位内容。';}
+        catch(e){if(attempt||stopped)throw e;messages[0].content+=' 复核要求：'+e.message+'。只返回这个平台的简洁文案。标题和正文用同一句话，各40字以内，正文单行一句话，cta为空字符串，恰好5个写真业务相关话题，不自动加套餐、到店或咨询段落，不留占位内容。';}
       }
     };
     try{

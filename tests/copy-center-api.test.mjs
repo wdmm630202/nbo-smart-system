@@ -132,3 +132,14 @@ test('快手四话题重试要求与云端默认规则一致，小红书保持�
  assert.equal(state.rules.find(p=>p.id==='kuaishou').maxTags,4);
  assert.equal(state.rules.find(p=>p.id==='xiaohongshu').maxTags,5);
 });
+
+test('视频号长标题会按短标题要求重试，正文与五话题完整保留',async()=>{
+ const e=setup(),c=await login(e),ad=await(await request(e,'/api/ads','POST',{name:'客户和摄影师选片'},c)).json();
+ const good={platform:'channels',title:'客户和摄影师谁更会选',body:'客户和摄影师选的照片，你更喜欢哪一组？',cta:'',tags:['男士写真','广州男士写真','广州男士拍摄','男生写真','广州写真']};let calls=0;
+ e.AI.run=async(_model,input)=>{if(++calls===2)assert.match(input.messages[0].content,/视频号标题单独写6到16字短标题/);return {versions:[calls===1?{...good,title:good.body}:good]};};
+ const response=await request(e,'/api/generate','POST',{id:ad.id,revision:ad.revision,platforms:['channels']},c);
+ assert.equal(response.status,200);assert.equal(calls,2);const generated=(await response.json()).versions[0];
+ assert.equal(generated.title,good.title);assert.equal(generated.body,good.body);assert.equal(generated.tags.length,5);
+ ad.versions['国内::channels']=generated;
+ const saved=await request(e,'/api/ads/'+ad.id,'PUT',ad,c);assert.equal(saved.status,200);assert.equal((await saved.json()).versions['国内::channels'].title,good.title);
+});

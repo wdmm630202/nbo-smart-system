@@ -12,7 +12,7 @@ test('八平台默认一句话和对应数量的写真话题，不附加套餐�
   assert.match(prompt[0].content,/一句话/);
   assert.doesNotMatch(prompt[0].content,/固定架构为开头看点|两段之间必须空一行/);
   const data=JSON.parse(prompt[1].content),sample=data.成稿示例;
-  assert.equal(sample.title,sample.body);assert.ok(sample.body.length<=40);
+  if(p.id==='channels'){assert.ok(sample.title.length>=6&&sample.title.length<=16);assert.notEqual(sample.title,sample.body);}else assert.equal(sample.title,sample.body);assert.ok(sample.body.length<=40);
   assert.equal(sample.cta,'');assert.deepEqual(sample.tags,tags.slice(0,p.id==='kuaishou'?4:5));
   assert.doesNotMatch(JSON.stringify(sample),/698|268|到店|私信|Messenger/);
  }

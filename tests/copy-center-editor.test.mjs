@@ -84,3 +84,14 @@ test('切换平台时快手提示四个话题，小红书提示五个',async()=>
  h.S.platform='kuaishou';let html=h.editor();assert.match(html,/一句话 · 四个写真话题/);assert.match(html,/默认 4 个男士写真/);
  h.S.platform='xiaohongshu';html=h.editor();assert.match(html,/一句话 · 五个写真话题/);assert.match(html,/默认 5 个男士写真/);
 });
+
+test('视频号提供独立短标题复制，视频描述只复制正文与五话题',async()=>{
+ const h=await harness();h.S.platform='channels';const tags=['男士写真','广州男士写真','广州男士拍摄','男生写真','广州写真'];
+ h.S.draft.versions={'国内::channels':{platform:'channels',title:'客户和摄影师谁更会选',body:'客户和摄影师选的照片，你更喜欢哪一组？',tags,cta:''}};
+ const html=h.editor();assert.match(html,/短标题/);assert.match(html,/复制短标题/);assert.match(html,/6–16字/);assert.match(html,/maxlength="16"/);assert.match(html,/复制视频描述/);
+ let copied='';h.sandbox.navigator.clipboard.writeText=async text=>copied=text;
+ const titleButton={dataset:{copy:'title'},classList:{add(){},remove(){}}};await h.listeners.click({target:{closest:()=>titleButton}});assert.equal(copied,'客户和摄影师谁更会选');
+ await h.listeners.click({target:{closest:()=>({dataset:{action:'copy-all'}})}});
+ assert.equal(copied,'客户和摄影师选的照片，你更喜欢哪一组？\n\n'+tags.map(t=>'#'+t).join(' '));
+ h.S.platform='douyin';assert.doesNotMatch(h.editor(),/复制短标题|复制视频描述/);
+});

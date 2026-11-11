@@ -378,7 +378,7 @@ const projects: Project[] = [
     id: "portrait-makeover", index: "25", name: "南铂素人改造对比图",
     eyebrow: "BEFORE & AFTER STUDIO", category: "网页", status: "已上线",
     summary: "素颜、精修各上传一张，沿用固定设计，拖动分界即可制作改造对比图。",
-    detail: "保留原 PSD 的文字、标识、渐变和 3:4 比例，支持两张照片独立取景与缩放、左右分界调整，导出 3000 × 4000 PNG 或 JPG。照片仅在当前浏览器处理。",
+    detail: "保留原 PSD 的文字、标识、渐变和 3:4 比例，支持两张照片独立取景与缩放、左右分界调整，导出 6000 × 8000 PNG 或 JPG。照片仅在当前浏览器处理。",
     tags: ["固定设计", "自由分界", "高清导出"], tone: "peach", visual: "studio", preview: "/portrait-makeover-preview.jpg",
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/portrait-makeover/",
     linkLabel: "打开素人改造对比图",

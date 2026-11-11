@@ -5,36 +5,36 @@ import { clampSplit, getPanes, coverImage } from '../apps/portrait-makeover/geom
 // Catch split rounding, out-of-bounds partitions, stretched images and unclamped panning.
 test('half and asymmetric panes meet exactly and fill the photo area', () => {
   const half = getPanes(.5);
-  assert.deepEqual(half, [{ x: 6, y: 115, width: 1494, height: 3879 }, { x: 1500, y: 115, width: 1494, height: 3879 }]);
+  assert.deepEqual(half, [{ x: 13, y: 232, width: 2987, height: 7755 }, { x: 3000, y: 232, width: 2987, height: 7755 }]);
   const asymmetric = getPanes(.25);
-  assert.deepEqual(asymmetric, [{ x: 6, y: 115, width: 747, height: 3879 }, { x: 753, y: 115, width: 2241, height: 3879 }]);
+  assert.deepEqual(asymmetric, [{ x: 13, y: 232, width: 1494, height: 7755 }, { x: 1507, y: 232, width: 4480, height: 7755 }]);
 });
 
 // A fractional clip boundary antialiases both photos over the white underfill.
 // Catch a seam by requiring one shared boundary on the actual output pixel grid.
 test('fractional splits snap the shared boundary to preview and export pixels', () => {
   for (const { split, renderWidth, boundary } of [
-    { split: .125, renderWidth: 3000, boundary: 380 },
-    { split: .376, renderWidth: 3000, boundary: 1129 },
-    { split: .321, renderWidth: 3000, boundary: 965 },
-    { split: .125, renderWidth: 900, boundary: 380 },
-    { split: .376, renderWidth: 900, boundary: 1130 },
-    { split: .321, renderWidth: 900, boundary: 966.6666666666666 },
+    { split: .125, renderWidth: 6000, boundary: 760 },
+    { split: .376, renderWidth: 6000, boundary: 2259 },
+    { split: .321, renderWidth: 6000, boundary: 1931 },
+    { split: .125, renderWidth: 900, boundary: 760 },
+    { split: .376, renderWidth: 900, boundary: 2260 },
+    { split: .321, renderWidth: 900, boundary: 1933.3333333333333 },
   ]) {
     const [left, right] = getPanes(split, renderWidth);
     assert.ok(Math.abs(right.x - boundary) < 1e-9);
     assert.equal(left.x + left.width, right.x);
-    const pixelBoundary = right.x * renderWidth / 3000;
+    const pixelBoundary = right.x * renderWidth / 6000;
     assert.ok(Math.abs(pixelBoundary - Math.round(pixelBoundary)) < 1e-9);
-    assert.equal(left.x, 6);
-    assert.equal(right.x + right.width, 2994);
+    assert.equal(left.x, 13);
+    assert.equal(right.x + right.width, 5987);
   }
 });
 
 test('pixel snapping preserves zero and full width panes at each render size', () => {
-  for (const renderWidth of [900, 3000]) {
-    assert.deepEqual(getPanes(0, renderWidth).map((pane) => [pane.x, pane.width]), [[6, 0], [6, 2988]]);
-    assert.deepEqual(getPanes(1, renderWidth).map((pane) => [pane.x, pane.width]), [[6, 2988], [2994, 0]]);
+  for (const renderWidth of [900, 6000]) {
+    assert.deepEqual(getPanes(0, renderWidth).map((pane) => [pane.x, pane.width]), [[13, 0], [13, 5974]]);
+    assert.deepEqual(getPanes(1, renderWidth).map((pane) => [pane.x, pane.width]), [[13, 5974], [5987, 0]]);
   }
 });
 
@@ -61,7 +61,7 @@ test('zoom and normalized pan are clamped so all pane edges stay covered', () =>
 test('zero-width edge panes produce only finite values', () => {
   for (const split of [0, 1]) {
     const panes = getPanes(split);
-    assert.equal(panes[0].width + panes[1].width, 2988);
+    assert.equal(panes[0].width + panes[1].width, 5974);
     for (const pane of panes) {
       const placement = coverImage(pane, 300, 800, 4, 1, -1);
       assert.ok(Object.values(placement).every(Number.isFinite));

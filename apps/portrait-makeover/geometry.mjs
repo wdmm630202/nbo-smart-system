@@ -1,5 +1,5 @@
-export const POSTER = { width: 3000, height: 4000 };
-export const PHOTO_AREA = { x: 6, y: 115, width: 2988, height: 3879 };
+export const POSTER = { width: 6000, height: 8000 };
+export const PHOTO_AREA = { x: 13, y: 232, width: 5974, height: 7755 };
 
 const clamp = (value, min, max, fallback) => Math.min(max, Math.max(min, Number.isFinite(value) ? value : fallback));
 

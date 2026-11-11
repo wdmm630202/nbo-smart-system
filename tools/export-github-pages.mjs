@@ -283,3 +283,8 @@ await mkdir(join(docs, "projects/copy-center"), { recursive: true });
 await copyFile(join(root, "apps/copy-center/entry.html"), join(docs, "projects/copy-center/index.html"));
 
 await copyFile(join(root, "public/portrait-fold-preview.jpg"), join(docs, "portrait-fold-preview.jpg"));
+
+const portraitMakeoverDir = join(docs, "projects/portrait-makeover");
+await rm(portraitMakeoverDir, { recursive: true, force: true });
+await cp(join(root, "apps/portrait-makeover"), portraitMakeoverDir, { recursive: true });
+await copyFile(join(root, "public/portrait-makeover-preview.jpg"), join(docs, "portrait-makeover-preview.jpg"));

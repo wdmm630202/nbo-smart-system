@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f4f1">
+  <title>南铂素人改造对比图</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="page-header">
+    <a class="back" href="../../">← 返回工作台</a>
+    <div class="heading"><span class="eyebrow">NANBO · PHOTO TOOLS</span><h1>南铂素人改造对比图</h1><p>放入两张照片，调整位置，导出原版设计。</p></div>
+    <span class="privacy">仅在本机处理 · 照片不上传</span>
+  </header>
+  <main class="workspace">
+    <div class="controls">
+      <section class="panel" aria-labelledby="photos-heading">
+        <div class="section-title"><span class="step">01</span><h2 id="photos-heading">放入照片</h2></div>
+        <p class="muted">支持 JPG、PNG、WebP。选择一侧后，可在预览中拖动照片。</p>
+        <section class="photo-card selected" data-side="0" aria-label="素颜照片设置">
+          <div class="card-heading"><label class="side-choice"><input type="radio" name="active-side" value="0" checked><span>素颜照片</span></label><span class="side-tag">左侧</span></div>
+          <label class="upload" for="photo-0"><span class="upload-icon" aria-hidden="true">＋</span><span id="file-name-0">选择素颜照片</span><span class="upload-caption">点击上传或更换</span></label>
+          <input class="file-input" type="file" id="photo-0" accept="image/jpeg,image/png,image/webp">
+          <div class="zoom-label"><label for="zoom-0">照片缩放</label><output id="zoom-value-0" for="zoom-0">1.00×</output></div>
+          <input id="zoom-0" type="range" min="1" max="4" step="0.01" value="1" disabled>
+          <button class="reset quiet" data-reset="0" disabled>重置位置与缩放</button>
+        </section>
+        <section class="photo-card" data-side="1" aria-label="精修照片设置">
+          <div class="card-heading"><label class="side-choice"><input type="radio" name="active-side" value="1"><span>精修照片</span></label><span class="side-tag">右侧</span></div>
+          <label class="upload" for="photo-1"><span class="upload-icon" aria-hidden="true">＋</span><span id="file-name-1">选择精修照片</span><span class="upload-caption">点击上传或更换</span></label>
+          <input class="file-input" type="file" id="photo-1" accept="image/jpeg,image/png,image/webp">
+          <div class="zoom-label"><label for="zoom-1">照片缩放</label><output id="zoom-value-1" for="zoom-1">1.00×</output></div>
+          <input id="zoom-1" type="range" min="1" max="4" step="0.01" value="1" disabled>
+          <button class="reset quiet" data-reset="1" disabled>重置位置与缩放</button>
+        </section>
+      </section>
+      <section class="panel" aria-labelledby="split-heading">
+        <div class="section-title"><span class="step">02</span><h2 id="split-heading">调整左右占比</h2></div>
+        <div class="split-label"><label for="split">素颜照片占比</label><output id="split-value" for="split">50%</output></div>
+        <input id="split" type="range" min="0" max="100" step="0.1" value="50" aria-describedby="split-note">
+        <p class="muted small" id="split-note">也可拖动预览中的竖线。模板上的文字与设计始终固定。</p>
+        <button id="equal-split" class="quiet">恢复左右各半</button>
+      </section>
+      <section class="panel" aria-labelledby="export-heading">
+        <div class="section-title"><span class="step">03</span><h2 id="export-heading">导出对比图</h2></div>
+        <p class="muted small">原始尺寸 3000 × 4000 像素</p>
+        <div class="export-buttons"><button id="export-png" class="primary" disabled>导出 PNG</button><button id="export-jpg" class="secondary" disabled>导出 JPG</button></div>
+        <p id="status" class="status" role="status" aria-live="polite">正在加载原版模板…</p>
+        <button id="retry-template" class="quiet" hidden>重新加载模板</button>
+        <div id="download-result" class="download-result" hidden><a id="download-link" download>再次下载图片</a><a id="open-image" target="_blank" rel="noopener">打开图片保存</a><p class="muted small">手机若未自动下载，可打开图片后长按保存。</p></div>
+      </section>
+    </div>
+    <section class="preview-section" aria-labelledby="preview-heading">
+      <div class="preview-heading"><h2 id="preview-heading">实时预览</h2><span id="active-label">正在调整：素颜照片</span></div>
+      <div class="poster-wrap">
+        <canvas id="preview" width="900" height="1200" tabindex="0" role="img" aria-label="对比图预览。点击选择照片，拖动调整位置；方向键微调，减号和加号缩放。"></canvas>
+        <div id="selection" class="selection" aria-hidden="true"></div>
+        <div id="divider" class="divider"><button id="split-handle" type="button" role="slider" aria-label="拖动调整左右照片占比" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-valuetext="素颜照片占 50%" aria-orientation="horizontal"><span aria-hidden="true">↔</span></button></div>
+      </div>
+      <p class="preview-tip">拖动照片调整构图 · 拖动竖线改变占比<br><span>选中预览后，可用方向键微调照片，＋ / − 缩放。</span></p>
+    </section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

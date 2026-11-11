@@ -263,7 +263,56 @@ preview.addEventListener('keydown', (event) => {
   edited();
 });
 
+const isFileDrag = (event) => Array.from(event.dataTransfer?.types || []).includes('Files');
+
+// Keep a file dropped outside its upload box from opening over the editor.
+document.addEventListener('dragover', (event) => {
+  if (!isFileDrag(event) || event.defaultPrevented) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'none';
+});
+document.addEventListener('drop', (event) => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  status('请把图片拖到素颜照片或精修照片的上传框内。', true);
+});
+
 photos.forEach((photo, side) => {
+  const dropZone = $(`label[for="photo-${side}"]`);
+  let dragDepth = 0;
+  const clearDrag = () => {
+    dragDepth = 0;
+    dropZone.classList.remove('is-dragover');
+  };
+  dropZone.addEventListener('dragenter', (event) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth += 1;
+    dropZone.classList.add('is-dragover');
+  });
+  dropZone.addEventListener('dragover', (event) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) clearDrag();
+  });
+  dropZone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearDrag();
+    const files = event.dataTransfer?.files;
+    if (!files || files.length !== 1) {
+      status(`请一次拖入一张${names[side]}，支持 JPG、PNG 或 WebP。`, true);
+      return;
+    }
+    loadPhoto(files[0], side);
+  });
+  dropZone.addEventListener('dragend', clearDrag);
+  window.addEventListener('blur', clearDrag);
+
   $(`#photo-${side}`).addEventListener('change', (event) => {
     const file = event.target.files?.[0];
     event.target.value = ''; // The same file can be selected again.

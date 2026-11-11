@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f3f4f1">
   <title>南铂素人改造对比图</title>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=20261112-drop">
 </head>
 <body>
   <header class="page-header">
@@ -17,10 +17,10 @@
     <div class="controls">
       <section class="panel" aria-labelledby="photos-heading">
         <div class="section-title"><span class="step">01</span><h2 id="photos-heading">放入照片</h2></div>
-        <p class="muted">支持 JPG、PNG、WebP。选择一侧后，可在预览中拖动照片。</p>
+        <p class="muted">支持 JPG、PNG、WebP。可直接把图片拖入对应框，再到预览中调整位置。</p>
         <section class="photo-card selected" data-side="0" aria-label="素颜照片设置">
           <div class="card-heading"><label class="side-choice"><input type="radio" name="active-side" value="0" checked><span>素颜照片</span></label><span class="side-tag">左侧</span></div>
-          <label class="upload" for="photo-0"><span class="upload-icon" aria-hidden="true">＋</span><span id="file-name-0">选择素颜照片</span><span class="upload-caption">点击上传或更换</span></label>
+          <label class="upload" for="photo-0"><span class="upload-icon" aria-hidden="true">＋</span><span id="file-name-0">选择素颜照片</span><span class="upload-caption">点击选择或拖入图片</span></label>
           <input class="file-input" type="file" id="photo-0" accept="image/jpeg,image/png,image/webp">
           <div class="zoom-label"><label for="zoom-0">照片缩放</label><output id="zoom-value-0" for="zoom-0">1.00×</output></div>
           <input id="zoom-0" type="range" min="1" max="4" step="0.01" value="1" disabled>
@@ -28,7 +28,7 @@
         </section>
         <section class="photo-card" data-side="1" aria-label="精修照片设置">
           <div class="card-heading"><label class="side-choice"><input type="radio" name="active-side" value="1"><span>精修照片</span></label><span class="side-tag">右侧</span></div>
-          <label class="upload" for="photo-1"><span class="upload-icon" aria-hidden="true">＋</span><span id="file-name-1">选择精修照片</span><span class="upload-caption">点击上传或更换</span></label>
+          <label class="upload" for="photo-1"><span class="upload-icon" aria-hidden="true">＋</span><span id="file-name-1">选择精修照片</span><span class="upload-caption">点击选择或拖入图片</span></label>
           <input class="file-input" type="file" id="photo-1" accept="image/jpeg,image/png,image/webp">
           <div class="zoom-label"><label for="zoom-1">照片缩放</label><output id="zoom-value-1" for="zoom-1">1.00×</output></div>
           <input id="zoom-1" type="range" min="1" max="4" step="0.01" value="1" disabled>
@@ -61,6 +61,6 @@
       <p class="preview-tip">拖动照片调整构图 · 拖动竖线改变占比<br><span>选中预览后，可用方向键微调照片，＋ / − 缩放。</span></p>
     </section>
   </main>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=20261112-drop"></script>
 </body>
 </html>

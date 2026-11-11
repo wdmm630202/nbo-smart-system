@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
@@ -123,7 +124,7 @@ test("封面卡片统一显示为自媒体封面制作", async () => {
     'name: "自媒体封面制作"',
     'eyebrow: "SOCIAL MEDIA COVER STUDIO"',
     "小红书、抖音、视频号封面统一在这里制作",
-    'tags: ["三平台封面", "9种版式", "高清导出"]',
+    'tags: ["三平台封面", "素人改造", "高清导出"]',
   ]) {
     assert.match(card[0], new RegExp(wording.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), wording);
   }
@@ -139,6 +140,26 @@ test("封面卡片统一显示为自媒体封面制作", async () => {
   }
   assert.deepEqual(sourceFiles, ["index.html"]);
   assert.deepEqual(publishedFiles, ["index.html"]);
+});
+
+test("旧素人改造地址打开统一封面工作台的改造模式并保留客户端资源", async () => {
+  const destination = "https://wdmm630202.github.io/nbo-cover-copy/cover.html?mode=makeover";
+  for (const directory of ["apps/portrait-makeover/", "docs/projects/portrait-makeover/"]) {
+    const html = await read(`${directory}index.html`);
+    const script = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
+    assert.ok(script, `${directory} redirects clients with JavaScript`);
+    let redirectedTo;
+    runInNewContext(script[1], { window: { location: { replace: (url) => { redirectedTo = url; } } } });
+    assert.equal(redirectedTo, destination, "old bookmarks open the makeover workspace");
+    const refresh = html.match(/<meta\b(?=[^>]*http-equiv="refresh")(?=[^>]*content="[^"]*url=([^"]+)")[^>]*>/i);
+    assert.equal(refresh?.[1], destination, "redirect also works without JavaScript");
+    const link = html.match(/<a\b[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i);
+    assert.equal(link?.[1], destination, "a visible link remains available if automatic navigation is blocked");
+    assert.ok(link?.[2].trim());
+    for (const file of ["app.js", "geometry.mjs", "style.css", "assets/template-overlay.png"]) {
+      assert.ok((await stat(new URL(`${directory}${file}`, root))).size > 0, `${directory}${file} remains available to already-open clients`);
+    }
+  }
 });
 
 test("行业内容工作台登记本地生产入口和安全边界", async () => {

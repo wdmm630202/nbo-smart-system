@@ -333,9 +333,9 @@ const projects: Project[] = [
     eyebrow: "SOCIAL MEDIA COVER STUDIO",
     category: "网页",
     status: "已上线",
-    summary: "小红书、抖音、视频号封面统一在这里制作，支持真实前后对比、9种版式和三平台高清导出。",
-    detail: "整合真实前后对比、9种版式与三平台尺寸导出。照片只在当前浏览器本地处理，不上传服务器；Mac、Windows 电脑都可直接打开使用。",
-    tags: ["三平台封面", "9种版式", "高清导出"],
+    summary: "小红书、抖音、视频号封面统一在这里制作，支持9种版式、前后对比与固定设计素人改造。",
+    detail: "封面制作与素人改造共用一个工作台。封面支持9种版式与三平台尺寸；素人改造保留原 PSD 的文字、标识、渐变和3:4比例，支持两张照片独立取景、缩放与自由分界，导出6000 × 8000 PNG或JPG。照片只在当前浏览器本地处理，不上传服务器。",
+    tags: ["三平台封面", "素人改造", "高清导出"],
     tone: "butter",
     visual: "xhs",
     href: "https://wdmm630202.github.io/nbo-cover-copy/cover.html",
@@ -373,15 +373,6 @@ const projects: Project[] = [
     tags: ["八平台简体中文", "云端同步", "批量导入"], tone: "paper", visual: "copy",
     href: "https://wdmm630202.github.io/nbo-smart-system/projects/copy-center/",
     linkLabel: "打开南铂文案中心",
-  },
-  {
-    id: "portrait-makeover", index: "25", name: "南铂素人改造对比图",
-    eyebrow: "BEFORE & AFTER STUDIO", category: "网页", status: "已上线",
-    summary: "素颜、精修各上传一张，沿用固定设计，拖动分界即可制作改造对比图。",
-    detail: "保留原 PSD 的文字、标识、渐变和 3:4 比例，支持两张照片独立取景与缩放、左右分界调整，导出 6000 × 8000 PNG 或 JPG。照片仅在当前浏览器处理。",
-    tags: ["固定设计", "自由分界", "高清导出"], tone: "peach", visual: "studio", preview: "/portrait-makeover-preview.jpg",
-    href: "https://wdmm630202.github.io/nbo-smart-system/projects/portrait-makeover/",
-    linkLabel: "打开素人改造对比图",
   },
 ];
 

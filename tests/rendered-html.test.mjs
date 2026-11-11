@@ -24,7 +24,7 @@ async function render() {
 
 // These assertions consume the worker's rendered page, not its source project list.
 // Catch broken entry links, an inaccessible new entry, stale counts and starter regressions.
-test("server-renders the NBO portal with the makeover entry and core destinations", async () => {
+test("server-renders one cover studio entry including makeover and core destinations", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
@@ -32,15 +32,19 @@ test("server-renders the NBO portal with the makeover entry and core destination
   const html = await response.text();
   assert.match(html, /<h1\b[^>]*>NBO南铂智能系统<\/h1>/);
   const cards = [...html.matchAll(/<a\b(?=[^>]*\bclass=["'][^"']*\bproject-card\b)[^>]*>[\s\S]*?<\/a>/g)].map((match) => match[0]);
-  const makeover = cards.find((card) => card.includes('href="https://wdmm630202.github.io/nbo-smart-system/projects/portrait-makeover/"'));
-  assert.ok(makeover, "makeover must be a real project-card link");
-  assert.match(makeover, /aria-label="打开素人改造对比图：南铂素人改造对比图"/);
-  assert.match(makeover, /<h3\b[^>]*>南铂素人改造对比图<\/h3>/);
+  const coverEntries = cards.filter((card) => card.includes('href="https://wdmm630202.github.io/nbo-cover-copy/cover.html"'));
+  assert.equal(coverEntries.length, 1, "cover studio must have one consolidated project-card link");
+  assert.match(coverEntries[0], /aria-label="打开自媒体封面制作：自媒体封面制作"/);
+  assert.match(coverEntries[0], /<h3\b[^>]*>自媒体封面制作<\/h3>/);
+  assert.match(coverEntries[0], /素人改造/);
+  assert.match(coverEntries[0], /9种版式/);
+  assert.ok(cards.every((card) => !card.includes('/projects/portrait-makeover/')), "makeover is reached from the cover studio rather than a duplicate portal card");
 
   const destinations = new Set(cards.map((card) => card.match(/\bhref="([^"]+)"/)?.[1]));
   for (const destination of [
     "https://stash-status.nanbostudio.com/",
     "https://wdmm630202.github.io/nbo-cover-copy/",
+    "https://wdmm630202.github.io/nbo-cover-copy/cover.html",
     "https://erp.nanbostudio.com",
     "https://wdmm630202.github.io/nbo-smart-system/p/",
     "https://wdmm630202.github.io/nbo-smart-system/i/",
